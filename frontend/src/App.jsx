@@ -1,4 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import ToastProvider from "./custom_components/ToastProvider";
+
 import ProtectedRoute from "./context/ProtectedRoute";
 import HomePage from "./Home";
 import LoginPage from "./auth/LoginPage";
@@ -19,6 +21,7 @@ const App = () => {
           }
         />
       </Routes>
+      <ToastProvider />
     </BrowserRouter>
   );
 };

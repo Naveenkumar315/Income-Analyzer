@@ -3,6 +3,7 @@ import Input from "../components/Input";
 import Button from "../components/Button";
 import api from "../api/client";
 import { Link } from "react-router-dom";
+import { toast } from "react-toastify";
 
 const RegisterPage = () => {
   const [userInfo, setUserInfo] = useState({
@@ -12,7 +13,7 @@ const RegisterPage = () => {
     confirmPassword: "",
   });
 
-  const [error, setError] = useState({ isError: false, errorMessage: "" });
+  // const [error, setError] = useState({ isError: false, errorMessage: "" });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -28,12 +29,14 @@ const RegisterPage = () => {
       !userInfo.password ||
       !userInfo.confirmPassword
     ) {
-      setError({ isError: true, errorMessage: "All fields are required" });
+      // setError({ isError: true, errorMessage: "All fields are required" });
+      toast.error("All fields are required");
       return;
     }
 
     if (userInfo.password !== userInfo.confirmPassword) {
-      setError({ isError: true, errorMessage: "Passwords do not match" });
+      // setError({ isError: true, errorMessage: "Passwords do not match" });
+      toast.error("Passwords do not match");
       return;
     }
 
@@ -41,9 +44,9 @@ const RegisterPage = () => {
       const res = await api.post("/auth/register", userInfo);
 
       // Success 🎉
-      setError({ isError: false, errorMessage: "" });
-      alert("Registration successful! 🎉");
-      console.log("Submitting register form:", res.data);
+      // setError({ isError: false, errorMessage: "" });
+      toast.success("Registration successful!");
+      // console.log("Submitting register form:", res.data);
 
       // Optionally clear form
       setUserInfo({
@@ -57,11 +60,11 @@ const RegisterPage = () => {
 
       // If backend sends error in response
       if (err.response && err.response.data && err.response.data.detail) {
-        alert(`Error: ${err.response.data.detail}`);
-        setError({ isError: true, errorMessage: err.response.data.detail });
+        toast.error(`${err.response.data.detail}`);
+        // setError({ isError: true, errorMessage: err.response.data.detail });
       } else {
         alert("Something went wrong. Please try again.");
-        setError({ isError: true, errorMessage: "Unexpected error" });
+        // setError({ isError: true, errorMessage: "Unexpected error" });
       }
     }
   };
@@ -79,12 +82,12 @@ const RegisterPage = () => {
 
         <h2 className="text-xl font-bold text-center mb-4">Register</h2>
 
-        {
+        {/* {
           error.isError &&
             // <div className="bg-red-100 text-red-600 p-2 rounded mb-3 text-sm text-center">
             alert(error.errorMessage)
           // </div>
-        }
+        } */}
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <Input

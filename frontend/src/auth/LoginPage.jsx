@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom"; // navigation
 import Input from "../components/Input";
 import Button from "../components/Button";
 import api from "../api/client"; // axios instance
+import { toast } from "react-toastify";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -12,7 +13,7 @@ export default function LoginPage() {
     password: "",
   });
 
-  const [error, setError] = useState({ isError: false, errorMessage: "" });
+  // const [error, setError] = useState({ isError: false, errorMessage: "" });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -23,10 +24,11 @@ export default function LoginPage() {
     e.preventDefault();
 
     if (!userInfo.email || !userInfo.password) {
-      setError({
-        isError: true,
-        errorMessage: "Email and password are required",
-      });
+      // setError({
+      //   isError: true,
+      //   errorMessage: "Email and password are required",
+      // });
+      toast.error("Email and password are required");
       return;
     }
 
@@ -40,19 +42,20 @@ export default function LoginPage() {
       // Save token in localStorage (or cookies if you want more security)
       localStorage.setItem("token", access_token);
 
-      setError({ isError: false, errorMessage: "" });
+      // setError({ isError: false, errorMessage: "" });
 
-      alert("Login successful ✅");
+      toast.success("Login successful!");
       navigate("/home");
     } catch (err) {
       console.error("Login error:", err);
 
       if (err.response && err.response.data && err.response.data.detail) {
-        setError({ isError: true, errorMessage: err.response.data.detail });
-        alert(`Error: ${err.response.data.detail}`);
+        // setError({ isError: true, errorMessage: err.response.data.detail });
+        // alert(`Error: ${err.response.data.detail}`);
+        toast.error(err.response.data.detail);
       } else {
-        setError({ isError: true, errorMessage: "Unexpected error" });
-        alert("Something went wrong. Please try again.");
+        // setError({ isError: true, errorMessage: "Unexpected error" });
+        toast.error("Something went wrong. Please try again.");
       }
     }
   };

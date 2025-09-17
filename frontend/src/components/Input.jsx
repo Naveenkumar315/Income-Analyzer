@@ -1,5 +1,6 @@
 import { useState } from "react";
-
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 const Input = ({
   id,
   label = "",
@@ -56,7 +57,7 @@ const Input = ({
             onClick={() => setShowPassword(!showPassword)}
             className="absolute right-0 top-2 text-gray-500 text-sm"
           >
-            {showPassword ? "🙈" : "👁️"}
+            {showPassword ? <VisibilityIcon /> : <VisibilityOffIcon />}
           </button>
         )}
       </div>
