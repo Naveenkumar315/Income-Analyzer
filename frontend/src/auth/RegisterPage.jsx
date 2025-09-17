@@ -2,6 +2,7 @@ import { useState } from "react";
 import Input from "../components/Input";
 import Button from "../components/Button";
 import api from "../api/client";
+import { Link } from "react-router-dom";
 
 const RegisterPage = () => {
   const [userInfo, setUserInfo] = useState({
@@ -140,9 +141,9 @@ const RegisterPage = () => {
 
         <p className="text-sm text-center mt-3">
           Already have an account?{" "}
-          <a href="/login" className="text-sky-500 hover:underline">
+          <Link to="/" className="text-sky-500 hover:underline">
             Log in
-          </a>
+          </Link>
         </p>
       </div>
     </div>
