@@ -1,22 +1,26 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
-import Button from './components/Button'
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import ProtectedRoute from "./context/ProtectedRoute";
+import HomePage from "./Home";
+import LoginPage from "./auth/LoginPage";
+import RegisterPage from "./auth/RegisterPage";
 
-function App() {
-
+const App = () => {
   return (
-    <>
-      <div className=''>
-        {/* <Button variant="primary" label={'Click'}/> */}
-        <div className='m-10'>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route
+          path="/home"
+          element={
+            <ProtectedRoute>
+              <HomePage />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </BrowserRouter>
+  );
+};
 
-        <Button variant="cancel" label='Continue'/>
-        </div>
-      </div>
-    </>
-  )
-}
-
-export default App
+export default App;
