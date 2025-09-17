@@ -1,12 +1,16 @@
+// client.js (axios setup)
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:8000", // FastAPI backend
+  baseURL: "http://127.0.0.1:8000",
 });
 
+// attach token
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
   return config;
 });
 

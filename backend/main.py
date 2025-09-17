@@ -16,6 +16,14 @@ app.add_middleware(
     allow_headers=["*"],              # allow all headers
 )
 
+
 @app.get("/")
 async def root():
     return {"message": "Welcome to the Income Analyzer API"}
+
+# @app.on_event("startup")
+# async def show_routes():
+#     print("🔎 Registered routes:")
+#     for route in app.routes:
+#         print(route.path)
+
