@@ -18,8 +18,8 @@ const Home = () => {
 
             {/* Main Content - takes remaining height */}
             <main className="flex-1 bg-gray-100 p-4 overflow-auto">
-                <div className="bg-white rounded-lg p-2 min-h-[400px] max-h-[calc(100vh-80px)] overflow-auto"
-                    style={{ boxShadow: "rgba(0, 0, 0, 0.16) 0px 1px 4px" }}>
+                <div className="min-h-[400px] max-h-[calc(100vh-80px)] overflow-auto"
+                >
                     {tab === 0 && <Dashboard />}
                     {tab === 1 && <Rules />}
                 </div>

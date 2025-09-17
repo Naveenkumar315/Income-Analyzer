@@ -69,7 +69,7 @@ const rulesData = [
 
 const Rules = () => {
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 bg-white rounded-lg p-2 min-h-[400px] shadow-md">
             {rulesData.map((rule, index) => (
                 <div key={index} className="border-b border-gray-200 p-4  ">
                     <p className=" font-semibold mb-1">

@@ -64,7 +64,7 @@ const Header = ({ initial = "N", tabValue, onTabChange }) => {
                 <button className="text-[#12699D]">
                     <NotificationsIcon />
                 </button>
-                <div className="w-10 h-10 rounded-full bg-[#12699D] flex items-center cursor-pointer justify-center text-white font-bold text-md shadow-md">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#26a3dd] to-[#12699D] flex items-center cursor-pointer justify-center text-white font-bold text-md shadow-md">
                     {initial}
                 </div>
             </div>
