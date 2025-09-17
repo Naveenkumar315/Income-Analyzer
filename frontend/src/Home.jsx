@@ -2,11 +2,10 @@ import { useState } from "react";
 import Dashboard from "./custom_components/Dashboard";
 import Header from "./custom_components/Header";
 import Rules from "./custom_components/Rules";
-
-import { useAuth } from "./context/AuthContext";
+import useCurrentUser from "./hooks/useCurrentUser";
 
 const Home = () => {
-  const { user, loading, logout } = useAuth();
+  const {user, loading, logout} = useCurrentUser();
   const { username } = user || {};
   console.log("User from context:", user, "Loading:", loading);
   const name = username || "User";
