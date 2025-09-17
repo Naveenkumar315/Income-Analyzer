@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Input from "../components/Input";
 import Button from "../components/Button";
+import api from "../api/client";
 
 const RegisterPage = () => {
   const [userInfo, setUserInfo] = useState({
@@ -17,7 +18,7 @@ const RegisterPage = () => {
     setUserInfo({ ...userInfo, [name]: value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (
@@ -35,8 +36,33 @@ const RegisterPage = () => {
       return;
     }
 
-    setError({ isError: false, errorMessage: "" });
-    console.log("Submitting register form:", userInfo);
+    try {
+      const res = await api.post("/auth/register", userInfo);
+
+      // Success 🎉
+      setError({ isError: false, errorMessage: "" });
+      alert("Registration successful! 🎉");
+      console.log("Submitting register form:", res.data);
+
+      // Optionally clear form
+      setUserInfo({
+        username: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+      });
+    } catch (err) {
+      console.error("Registration error:", err);
+
+      // If backend sends error in response
+      if (err.response && err.response.data && err.response.data.detail) {
+        alert(`Error: ${err.response.data.detail}`);
+        setError({ isError: true, errorMessage: err.response.data.detail });
+      } else {
+        alert("Something went wrong. Please try again.");
+        setError({ isError: true, errorMessage: "Unexpected error" });
+      }
+    }
   };
 
   return (
