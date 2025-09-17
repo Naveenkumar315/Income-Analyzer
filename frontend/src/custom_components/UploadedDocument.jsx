@@ -1,9 +1,8 @@
 import { useState } from "react";
 import Button from "../components/Button";
 import Input from "../components/Input";
-import CheckOutlinedIcon from "@mui/icons-material/CheckOutlined";
 
-const UploadedDocument = () => {
+const UploadedDocument = ({ setShowSection = () => {} }) => {
   const [loanId, setLoanId] = useState("");
 
   const handle_loanid_change = (e) => {
@@ -12,6 +11,20 @@ const UploadedDocument = () => {
       setLoanId(id_value);
     } catch (ex) {
       console.error("error in handle_loanid_change fn", ex);
+    }
+  };
+
+  const handle_continue = () => {
+    try {
+      setShowSection((prev) => ({
+        ...prev,
+        extractedSection: true,
+        uploadedModel: true,
+        processLoanSection: false,
+        provideLoanIDSection: false,
+      }));
+    } catch (ex) {
+      console.error("error in handle_continue fn", ex);
     }
   };
   return (
@@ -36,7 +49,11 @@ const UploadedDocument = () => {
         </div>
 
         <div className="mt-6">
-          <Button label="Continue" disabled={!loanId.length} />
+          <Button
+            label="Continue"
+            disabled={!loanId.length}
+            onClick={() => handle_continue()}
+          />
         </div>
       </div>
     </div>

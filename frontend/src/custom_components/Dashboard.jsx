@@ -8,6 +8,7 @@ const Dashboard = () => {
     processLoanSection: true,
     provideLoanIDSection: false,
     extractedSection: false,
+    uploadedModel: false,
   });
 
   // columns.js
@@ -97,14 +98,17 @@ const Dashboard = () => {
 
       {showSection.provideLoanIDSection && (
         <>
-          <UploadedDocument />
+          <UploadedDocument setShowSection={setShowSection} />
         </>
       )}
 
       {showSection.extractedSection && (
         <div>
           <div className="bg-white rounded-lg p-2 min-h-[400px] max-h-[calc(100vh-80px)] shadow-lg">
-            <LoanExatraction />
+            <LoanExatraction
+              showSection={showSection}
+              setShowSection={setShowSection}
+            />
           </div>
         </div>
       )}
