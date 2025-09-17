@@ -52,6 +52,9 @@ const LoanExatraction = ({ showSection = {}, setShowSection = () => {} }) => {
               variant="upload-doc"
               width={200}
               label={"Upload Documents"}
+              onClick={() =>
+                setShowSection((prev) => ({ ...prev, uploadedModel: true }))
+              }
             />
             <Button
               variant="start-analyze"
