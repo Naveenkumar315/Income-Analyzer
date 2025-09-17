@@ -3,7 +3,7 @@ uvicorn
 motor
 pydantic[email]
 python-dotenv
-bcrypt
 python-jose[cryptography]
 pydantic-settings
+bcrypt
 passlib[bcrypt]
