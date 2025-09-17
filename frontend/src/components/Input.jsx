@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 const Input = ({
-  id,
+  id = "",
   label = "",
   name = "",
   type = "text",
@@ -15,6 +15,7 @@ const Input = ({
   disabled = false,
   showPasswordToggle = false,
 }) => {
+  const id_hook = useId();
   const [showPassword, setShowPassword] = useState(false);
 
   const inputType =
@@ -28,7 +29,7 @@ const Input = ({
     <div className="mb-6">
       {label && (
         <label
-          htmlFor={id}
+          htmlFor={id ?? id_hook}
           className="block text-sm font-medium text-gray-800 mb-1"
         >
           {label} {required && <span className="text-red-500">*</span>}
@@ -37,7 +38,7 @@ const Input = ({
 
       <div className="relative">
         <input
-          id={id}
+          id={id ?? id_hook}
           name={name}
           type={inputType}
           placeholder={placeholder}
