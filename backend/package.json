@@ -1,12 +1,13 @@
 {
-  "name": "backend",
+  "name": "income-analyzer-backend",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "main.py",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "uvicorn main:app --reload",
+    "test": "echo \"No tests configured\""
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": ""
+  "description": "FastAPI backend with MongoDB"
 }
