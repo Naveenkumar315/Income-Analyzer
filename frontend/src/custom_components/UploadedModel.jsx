@@ -7,6 +7,7 @@ import { CircularProgress, IconButton, Divider } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DataObjectSharpIcon from "@mui/icons-material/DataObjectSharp";
+import { useLoader } from "../context/LoaderContext";
 const style = {
   position: "absolute",
   top: "50%",
@@ -23,6 +24,9 @@ const style = {
 };
 
 export default function UploadedModel({ setShowSection = () => {} }) {
+  const { showLoader, updateProgress, completeLoader, hideLoader } =
+    useLoader();
+
   const [files, setFiles] = React.useState([]);
   const fileInputRef = React.useRef(null);
 
@@ -34,12 +38,49 @@ export default function UploadedModel({ setShowSection = () => {} }) {
     setShowSection((prev) => ({ ...prev, uploadedModel: false }));
 
   const handleFileChange = (event) => {
-    const selected = Array.from(event.target.files);
-    setFiles((prev) => [...prev, ...selected]);
+    try {
+      const selected = Array.from(event.target.files);
+
+      // Log full JSON of each file
+      const fileData = selected.map((file) => ({
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        lastModified: file.lastModified,
+      }));
+
+      console.log("Selected Files:", JSON.stringify(fileData, null, 2));
+
+      setFiles((prev) => [...prev, ...selected]);
+    } catch (err) {
+      console.error("Error processing files:", err);
+    }
   };
 
   const handleRemoveFile = (index) => {
     setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handle_file_upload = async () => {
+    handleClose();
+    showLoader({
+      progress: 0,
+      message: "Starting analysis...",
+      totalSteps: 5,
+    });
+    let step = 0;
+
+    const interval = setInterval(() => {
+      step++;
+      const prog = (step / 5) * 100;
+      updateProgress(prog, step, 5, `Analyzing step ${step} of 5`);
+
+      if (step === 5) {
+        clearInterval(interval);
+        completeLoader("Analysis Complete!");
+        setTimeout(() => hideLoader(), 2000);
+      }
+    }, 1000);
   };
 
   return (
@@ -135,6 +176,7 @@ export default function UploadedModel({ setShowSection = () => {} }) {
             variant="contained"
             sx={{ backgroundColor: "#26a3dd", textTransform: "none" }}
             disabled={files.length === 0}
+            onClick={() => handle_file_upload()}
           >
             Upload
           </Button>
