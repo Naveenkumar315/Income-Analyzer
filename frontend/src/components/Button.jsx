@@ -6,7 +6,7 @@ const Button = ({
   disabled = false,
 }) => {
   let baseStyle =
-    "px-4 py-2 rounded-sm font-medium focus:outline-none transition cursor-pointer";
+    "px-4 py-2 h-[40px] rounded-sm font-medium focus:outline-none transition cursor-pointer";
 
   let variantStyle = "";
 
@@ -22,7 +22,9 @@ const Button = ({
     variantStyle = "text-white bg-gradient-to-r from-[#26a3dd] to-[#95bfd3]";
   } else if (variant === "upload-doc") {
     variantStyle = "text-black border border-[#26a3dd] border-2 border-l-2 border-t-1 border-r-1 border-b-2";
-  } else if (variant = "upload-document") {
+  } else if (variant == "result_download") {
+    variantStyle = "text-white bg-gradient-to-r from-[#26a3dd] to-[#95bfd3]";
+  } else if (variant == "upload-document") {
     variantStyle = "text-black border border-[#26a3dd] border-2 border-l-2 border-t-2 border-r-1 border-b-1";
   } else {
     variantStyle = "bg-[#999999] text-white";

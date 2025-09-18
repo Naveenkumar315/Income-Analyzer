@@ -71,7 +71,7 @@ const Rules = () => {
     return (
         <div className="space-y-6 bg-white rounded-lg p-2 min-h-[400px] ">
             {rulesData.map((rule, index) => (
-                <div key={index} className="border-b border-gray-200 p-4  ">
+                <div key={index} className="border-b border-gray-200 p-4  text-left">
                     <p className=" font-semibold mb-1">
                         <span className="text-gray-600">Rule {index + 1}:</span> {rule.title}
                     </p>

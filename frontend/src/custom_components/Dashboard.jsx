@@ -2,6 +2,7 @@ import { useState } from "react";
 import LoanExatraction from "./LoanExtraction";
 import ProcessLoanTable from "./ProcessLoanTable";
 import UploadedDocument from "./UploadedDocument";
+import UnderwritingRuleResult from "./UnderwritingRuleResults";
 
 const Dashboard = () => {
   const [showSection, setShowSection] = useState({
@@ -9,6 +10,7 @@ const Dashboard = () => {
     provideLoanIDSection: false,
     extractedSection: false,
     uploadedModel: false,
+    startAnalyzing: false,
   });
 
   // columns.js
@@ -112,6 +114,17 @@ const Dashboard = () => {
           </div>
         </div>
       )}
+
+      {
+        showSection.startAnalyzing && (<>
+          <div>
+            <UnderwritingRuleResult
+              showSection={showSection}
+              setShowSection={setShowSection}
+            />
+          </div>
+        </>)
+      }
     </>
   );
 };
