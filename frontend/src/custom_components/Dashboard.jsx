@@ -10,6 +10,7 @@ const Dashboard = () => {
     extractedSection: false,
     uploadedModel: false,
   });
+  const [loanId, setLoanId] = useState("");
 
   // columns.js
   const columns = [
@@ -85,7 +86,7 @@ const Dashboard = () => {
       actions: "",
     },
   ];
-
+  console.log("UploadedModel rendered with loanId:", loanId);
   return (
     <>
       {showSection.processLoanSection && (
@@ -98,7 +99,11 @@ const Dashboard = () => {
 
       {showSection.provideLoanIDSection && (
         <>
-          <UploadedDocument setShowSection={setShowSection} />
+          <UploadedDocument
+            setShowSection={setShowSection}
+            setLoanId={setLoanId}
+            loanId={loanId}
+          />
         </>
       )}
 
@@ -108,6 +113,7 @@ const Dashboard = () => {
             <LoanExatraction
               showSection={showSection}
               setShowSection={setShowSection}
+              loanId={loanId}
             />
           </div>
         </div>

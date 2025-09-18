@@ -6,6 +6,10 @@ from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
 from app.utils.borrower_cleanup_service import clean_borrower_documents_from_dict
 
+
+from app.db import db
+
+
 app = FastAPI(title="Income Analyzer API", version="1.0.0")
 
 app.include_router(auth.router)
@@ -26,6 +30,9 @@ async def root():
     return {"message": "Welcome to the Income Analyzer API"}
 
 class CleanJsonRequest(BaseModel):
+    username: str
+    email: str
+    loanID: str
     file_name: str
     raw_json: Dict[str, Any]
     threshold: Optional[float] = 0.7
@@ -34,11 +41,25 @@ class CleanJsonRequest(BaseModel):
 
 @app.post("/clean-json")
 async def clean_json(req: CleanJsonRequest):
+    # Clean JSON
     cleaned = clean_borrower_documents_from_dict(
         data=req.raw_json,
         threshold=req.threshold,
         borrower_indicators=req.borrower_indicators,
         employer_indicators=req.employer_indicators,
     )
-    return {"file_name": req.file_name, "cleaned_json": cleaned}
+
+    # Save into MongoDB
+    record = {
+        "username": req.username,
+        "email": req.email,
+        "loanID": req.loanID,
+        "file_name": req.file_name,
+        "original_data": req.raw_json,
+        "cleaned_data": cleaned,
+    }
+    await db["uploadedData"].insert_one(record)
+
+    return {"message": "Upload saved successfully", "cleaned_json": cleaned}
+
 

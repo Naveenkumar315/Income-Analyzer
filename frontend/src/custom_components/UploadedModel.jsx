@@ -9,6 +9,7 @@ import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DataObjectSharpIcon from "@mui/icons-material/DataObjectSharp";
 import { useLoader } from "../context/LoaderContext";
 import api from "../api/client"; // ✅ make sure you import your axios instance
+import useCurrentUser from "../hooks/useCurrentUser";
 
 const style = {
   position: "absolute",
@@ -25,9 +26,16 @@ const style = {
   gap: 2,
 };
 
-export default function UploadedModel({ setShowSection = () => {} }) {
+export default function UploadedModel({
+  setShowSection = () => {},
+  loanId = "",
+}) {
+  console.log("UploadedModel rendered with loanId:", loanId);
   const { showLoader, updateProgress, completeLoader, hideLoader } =
     useLoader();
+
+  const { user, loading, logout } = useCurrentUser();
+  const { username, email } = user || {};
 
   const [files, setFiles] = React.useState([]);
   const fileInputRef = React.useRef(null);
@@ -80,6 +88,7 @@ export default function UploadedModel({ setShowSection = () => {} }) {
   };
 
   const handleFileUpload = async () => {
+    debugger;
     const file = files[0];
     if (!file) return;
     handleClose();
@@ -91,9 +100,12 @@ export default function UploadedModel({ setShowSection = () => {} }) {
         const rawJson = JSON.parse(e.target.result);
 
         const res = await api.post("/clean-json", {
+          username: username || "", // from auth context
+          email: email || "", // from auth context
+          loanID: sessionStorage.getItem("loanId") || "", // generate or pass from UI
           file_name: file.name,
           raw_json: rawJson,
-          threshold: 0.7, // configurable
+          threshold: 0.7,
           borrower_indicators: ["borrower name", "employee name"],
           employer_indicators: ["employer", "company"],
         });
