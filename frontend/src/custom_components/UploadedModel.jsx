@@ -8,6 +8,8 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DataObjectSharpIcon from "@mui/icons-material/DataObjectSharp";
 import { useLoader } from "../context/LoaderContext";
+import api from "../api/client"; // ✅ make sure you import your axios instance
+
 const style = {
   position: "absolute",
   top: "50%",
@@ -31,7 +33,15 @@ export default function UploadedModel({ setShowSection = () => {} }) {
   const fileInputRef = React.useRef(null);
 
   React.useEffect(() => {
-    console.log("Selected files:", files);
+    if (files.length > 0) {
+      const fileData = files.map((file) => ({
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        lastModified: file.lastModified,
+      }));
+      console.log("Selected Files:", JSON.stringify(fileData, null, 2));
+    }
   }, [files]);
 
   const handleClose = () =>
@@ -40,17 +50,6 @@ export default function UploadedModel({ setShowSection = () => {} }) {
   const handleFileChange = (event) => {
     try {
       const selected = Array.from(event.target.files);
-
-      // Log full JSON of each file
-      const fileData = selected.map((file) => ({
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        lastModified: file.lastModified,
-      }));
-
-      console.log("Selected Files:", JSON.stringify(fileData, null, 2));
-
       setFiles((prev) => [...prev, ...selected]);
     } catch (err) {
       console.error("Error processing files:", err);
@@ -61,26 +60,54 @@ export default function UploadedModel({ setShowSection = () => {} }) {
     setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handle_file_upload = async () => {
-    handleClose();
+  const startLoader = () => {
     showLoader({
       progress: 0,
       message: "Starting analysis...",
       totalSteps: 5,
     });
     let step = 0;
-
     const interval = setInterval(() => {
       step++;
       const prog = (step / 5) * 100;
       updateProgress(prog, step, 5, `Analyzing step ${step} of 5`);
-
       if (step === 5) {
         clearInterval(interval);
         completeLoader("Analysis Complete!");
         setTimeout(() => hideLoader(), 2000);
       }
     }, 1000);
+  };
+
+  const handleFileUpload = async () => {
+    const file = files[0];
+    if (!file) return;
+    handleClose();
+    startLoader(); // show loader while processing
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const rawJson = JSON.parse(e.target.result);
+
+        const res = await api.post("/clean-json", {
+          file_name: file.name,
+          raw_json: rawJson,
+          threshold: 0.7, // configurable
+          borrower_indicators: ["borrower name", "employee name"],
+          employer_indicators: ["employer", "company"],
+        });
+
+        console.log("Cleaned JSON:", res.data.cleaned_json);
+        // TODO: Display in UI instead of console.log
+      } catch (err) {
+        console.error("Error uploading JSON:", err);
+      } finally {
+        hideLoader();
+        handleClose();
+      }
+    };
+    reader.readAsText(file);
   };
 
   return (
@@ -93,7 +120,7 @@ export default function UploadedModel({ setShowSection = () => {} }) {
           Upload Documents to Start Extracting
         </Typography>
 
-        {/* Drag and drop / click-to-upload box */}
+        {/* Upload Box */}
         <Box
           sx={{
             border: "2px dashed #cfd8dc",
@@ -102,7 +129,7 @@ export default function UploadedModel({ setShowSection = () => {} }) {
             textAlign: "center",
             bgcolor: "#f9f9f9",
             cursor: "pointer",
-            background: "linear-gradient(to right, #ffffff, #e0f2fe)", // white → sky blue
+            background: "linear-gradient(to right, #ffffff, #e0f2fe)",
           }}
           onClick={() => fileInputRef.current.click()}
         >
@@ -123,7 +150,7 @@ export default function UploadedModel({ setShowSection = () => {} }) {
           />
         </Box>
 
-        {/* File list */}
+        {/* File List */}
         {files.length > 0 && (
           <Box sx={{ mt: 2 }}>
             {files.map((file, idx) => (
@@ -140,11 +167,6 @@ export default function UploadedModel({ setShowSection = () => {} }) {
                 }}
               >
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  {/* <img
-                    src="/pdf-icon.png"
-                    alt="file"
-                    style={{ width: 28, height: 28 }}
-                  /> */}
                   <DataObjectSharpIcon style={{ width: 28, height: 28 }} />
                   <Box>
                     <Typography fontWeight="500">{file.name}</Typography>
@@ -167,7 +189,7 @@ export default function UploadedModel({ setShowSection = () => {} }) {
 
         <Divider sx={{ my: 2 }} />
 
-        {/* Action buttons */}
+        {/* Action Buttons */}
         <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
           <Button variant="outlined" onClick={handleClose}>
             Discard
@@ -176,7 +198,7 @@ export default function UploadedModel({ setShowSection = () => {} }) {
             variant="contained"
             sx={{ backgroundColor: "#26a3dd", textTransform: "none" }}
             disabled={files.length === 0}
-            onClick={() => handle_file_upload()}
+            onClick={handleFileUpload}
           >
             Upload
           </Button>
