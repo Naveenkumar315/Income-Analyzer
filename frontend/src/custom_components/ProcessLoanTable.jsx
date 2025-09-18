@@ -8,7 +8,7 @@ import ErrorOutlineOutlinedIcon from "@mui/icons-material/ErrorOutlineOutlined";
 const ProcessLoanTable = ({
   columns = [],
   data = [],
-  setShowSection = () => { },
+  setShowSection = () => {},
 }) => {
   const handle_section_change = () => {
     try {
@@ -23,9 +23,7 @@ const ProcessLoanTable = ({
     }
   };
   return (
-    <div
-      className="p-2 bg-white rounded-lg min-h-[400px]"
-    >
+    <div className="p-2 bg-white rounded-lg min-h-[400px]">
       <div className="flex items-center justify-between">
         <span className="font-bold text-lg">Processed Loans</span>
 

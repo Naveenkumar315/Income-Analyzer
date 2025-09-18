@@ -4,7 +4,6 @@ import ProcessLoanTable from "./ProcessLoanTable";
 import UploadedDocument from "./UploadedDocument";
 import api from "../api/client";
 const Dashboard = ({ email }) => {
-  const [user, setUser] = useState(sessionStorage.getItem("user") || null);
   const [showSection, setShowSection] = useState({
     processLoanSection: true,
     provideLoanIDSection: false,
@@ -12,6 +11,7 @@ const Dashboard = ({ email }) => {
     uploadedModel: false,
   });
   const [loanId, setLoanId] = useState("");
+  const [data, setData] = useState([]);
 
   useEffect(() => {
     handleCheckData();
@@ -19,10 +19,14 @@ const Dashboard = ({ email }) => {
 
   const handleCheckData = async () => {
     try {
-      const Loggined_email = user ? JSON.parse(user).email : "";
+      debugger;
+      const Loggined_email = sessionStorage.getItem("email") || "";
       const data = await fetchUploadedData(Loggined_email);
       console.log("User Loan Data:", data);
       // { loanID: "LD-9080", file_name: "IC_LOAN_50490...", updated_at: "...", borrower: "firstKey" }
+      if (data && data.length > 0) {
+        setData(transformUploadedData(data));
+      }
     } catch (err) {
       console.error("Error fetching uploaded data", err);
     }
@@ -33,6 +37,28 @@ const Dashboard = ({ email }) => {
       email,
     });
     return res.data;
+  };
+
+  const transformUploadedData = (resData) => {
+    return resData.map((item) => {
+      return {
+        loanId: item.loanID || "", // rename loanID → loanId
+        fileName: item.file_name || "", // rename file_name → fileName
+        borrower: item.borrower || "",
+        loanType: "Wager", // hardcoded
+        status: "Completed", // hardcoded
+        lastUpdated: new Date(item.updated_at).toLocaleString("en-US", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        }), // format datetime → "MM/DD/YYYY, hh:mm AM/PM"
+        uploadedBy: item.borrower || "", // assuming uploadedBy = borrower
+        actions: "", // placeholder
+      };
+    });
   };
 
   // columns.js
@@ -47,68 +73,68 @@ const Dashboard = ({ email }) => {
     { id: "actions", label: "Actions", isCustom: true },
   ];
 
-  const data = [
-    {
-      loanId: "LN-20250915-001",
-      fileName: "123456789_W2.json",
-      borrower: "John Doe",
-      loanType: "Conventional",
-      status: "Completed",
-      lastUpdated: "2025-09-14 10:45 AM",
-      uploadedBy: "John Doe",
-      actions: "",
-    },
-    {
-      loanId: "LN-20250914-005",
-      fileName: "12345_LoanFile.json",
-      borrower: "Lando Norris",
-      loanType: "FHA",
-      status: "Pending",
-      lastUpdated: "2025-09-13 04:22 PM",
-      uploadedBy: "Emily Johnson",
-      actions: "",
-    },
-    {
-      loanId: "LN-20250914-005",
-      fileName: "12345_LoanFile.json",
-      borrower: "Lando Norris",
-      loanType: "FHA",
-      status: "Error",
-      lastUpdated: "2025-09-13 04:22 PM",
-      uploadedBy: "Emily Johnson",
-      actions: "",
-    },
-    {
-      loanId: "LN-20250915-001",
-      fileName: "123456789_W2.json",
-      borrower: "John Doe",
-      loanType: "Conventional",
-      status: "Completed",
-      lastUpdated: "2025-09-14 10:45 AM",
-      uploadedBy: "John Doe",
-      actions: "",
-    },
-    {
-      loanId: "LN-20250914-005",
-      fileName: "12345_LoanFile.json",
-      borrower: "Lando Norris",
-      loanType: "FHA",
-      status: "Pending",
-      lastUpdated: "2025-09-13 04:22 PM",
-      uploadedBy: "Emily Johnson",
-      actions: "",
-    },
-    {
-      loanId: "LN-20250914-005",
-      fileName: "12345_LoanFile.json",
-      borrower: "Lando Norris",
-      loanType: "FHA",
-      status: "Error",
-      lastUpdated: "2025-09-13 04:22 PM",
-      uploadedBy: "Emily Johnson",
-      actions: "",
-    },
-  ];
+  // const data = [
+  //   {
+  //     loanId: "LN-20250915-001",
+  //     fileName: "123456789_W2.json",
+  //     borrower: "John Doe",
+  //     loanType: "Conventional",
+  //     status: "Completed",
+  //     lastUpdated: "2025-09-14 10:45 AM",
+  //     uploadedBy: "John Doe",
+  //     actions: "",
+  //   },
+  //   {
+  //     loanId: "LN-20250914-005",
+  //     fileName: "12345_LoanFile.json",
+  //     borrower: "Lando Norris",
+  //     loanType: "FHA",
+  //     status: "Pending",
+  //     lastUpdated: "2025-09-13 04:22 PM",
+  //     uploadedBy: "Emily Johnson",
+  //     actions: "",
+  //   },
+  //   {
+  //     loanId: "LN-20250914-005",
+  //     fileName: "12345_LoanFile.json",
+  //     borrower: "Lando Norris",
+  //     loanType: "FHA",
+  //     status: "Error",
+  //     lastUpdated: "2025-09-13 04:22 PM",
+  //     uploadedBy: "Emily Johnson",
+  //     actions: "",
+  //   },
+  //   {
+  //     loanId: "LN-20250915-001",
+  //     fileName: "123456789_W2.json",
+  //     borrower: "John Doe",
+  //     loanType: "Conventional",
+  //     status: "Completed",
+  //     lastUpdated: "2025-09-14 10:45 AM",
+  //     uploadedBy: "John Doe",
+  //     actions: "",
+  //   },
+  //   {
+  //     loanId: "LN-20250914-005",
+  //     fileName: "12345_LoanFile.json",
+  //     borrower: "Lando Norris",
+  //     loanType: "FHA",
+  //     status: "Pending",
+  //     lastUpdated: "2025-09-13 04:22 PM",
+  //     uploadedBy: "Emily Johnson",
+  //     actions: "",
+  //   },
+  //   {
+  //     loanId: "LN-20250914-005",
+  //     fileName: "12345_LoanFile.json",
+  //     borrower: "Lando Norris",
+  //     loanType: "FHA",
+  //     status: "Error",
+  //     lastUpdated: "2025-09-13 04:22 PM",
+  //     uploadedBy: "Emily Johnson",
+  //     actions: "",
+  //   },
+  // ];
   console.log("UploadedModel rendered with loanId:", loanId);
   return (
     <>

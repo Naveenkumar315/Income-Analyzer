@@ -40,12 +40,13 @@ export default function LoginPage() {
       setLoading(true);
 
       const res = await api.post("/auth/login", formattedUser);
-
       // Backend returns { access_token, token_type }
-      const { access_token } = res.data;
+      const { access_token, username, email } = res.data;
 
       // Save token in localStorage (or cookies if you want more security)
       localStorage.setItem("token", access_token);
+      sessionStorage.setItem("username", username);
+      sessionStorage.setItem("email", email);
 
       toast.success("Login successful!");
       navigate("/home");
