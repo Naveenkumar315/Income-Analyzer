@@ -30,27 +30,29 @@ const RegisterPage = () => {
       !userInfo.password ||
       !userInfo.confirmPassword
     ) {
-      // setError({ isError: true, errorMessage: "All fields are required" });
       toast.error("All fields are required");
       return;
     }
 
     if (userInfo.password !== userInfo.confirmPassword) {
-      // setError({ isError: true, errorMessage: "Passwords do not match" });
       toast.error("Passwords do not match");
       return;
     }
 
+    // 🔹 Normalize data before sending to DB
+    const formattedUser = {
+      ...userInfo,
+      username:
+        userInfo.username.charAt(0).toUpperCase() +
+        userInfo.username.slice(1).toLowerCase(),
+      email: userInfo.email.toLowerCase(),
+    };
+
     try {
       setLoading(true);
-      const res = await api.post("/auth/register", userInfo);
+      const res = await api.post("/auth/register", formattedUser);
 
-      // Success 🎉
-      // setError({ isError: false, errorMessage: "" });
       toast.success("Registration successful!");
-      // console.log("Submitting register form:", res.data);
-
-      // Optionally clear form
       setUserInfo({
         username: "",
         email: "",
@@ -60,13 +62,10 @@ const RegisterPage = () => {
     } catch (err) {
       console.error("Registration error:", err);
 
-      // If backend sends error in response
       if (err.response && err.response.data && err.response.data.detail) {
         toast.error(`${err.response.data.detail}`);
-        // setError({ isError: true, errorMessage: err.response.data.detail });
       } else {
         alert("Something went wrong. Please try again.");
-        // setError({ isError: true, errorMessage: "Unexpected error" });
       }
     } finally {
       setLoading(false);

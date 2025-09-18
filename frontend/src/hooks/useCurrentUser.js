@@ -22,7 +22,8 @@ export default function useCurrentUser() {
   }, []);
 
   const logout = () => {
-    localStorage.removeItem("token");
+    localStorage.clear();
+    sessionStorage.clear();
     setUser(null);
     window.location.href = "/";
   };
