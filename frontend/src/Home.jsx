@@ -5,7 +5,7 @@ import Rules from "./custom_components/Rules";
 import useCurrentUser from "./hooks/useCurrentUser";
 
 const Home = () => {
-  const {user, loading, logout} = useCurrentUser();
+  const { user, loading, logout } = useCurrentUser();
   const { username } = user || {};
   console.log("User from context:", user, "Loading:", loading);
   const name = username || "User";
@@ -20,7 +20,7 @@ const Home = () => {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Header */}
-      <Header initial={initial} tabValue={tab} onTabChange={handleTabChange} logout={logout}/>
+      <Header initial={initial} tabValue={tab} onTabChange={handleTabChange} logout={logout} />
 
       {/* Main Content - takes remaining height */}
       <main className="flex-1 bg-gray-100 p-4 overflow-auto">

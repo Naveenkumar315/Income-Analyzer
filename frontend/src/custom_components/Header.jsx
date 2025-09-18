@@ -12,7 +12,7 @@ const Header = ({
   initial = "N",
   tabValue,
   onTabChange,
-  logout = () => {},
+  logout = () => { },
 }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -86,7 +86,7 @@ const Header = ({
         {/* Avatar + Dropdown */}
         <div className="relative" ref={dropdownRef}>
           <div
-            className="w-10 h-10 rounded-full bg-[#12699D] flex items-center cursor-pointer justify-center text-white font-bold text-md shadow-md"
+            className="w-10 h-10 rounded-full bg-gradient-to-r from-[#26a3dd] to-[#12699D] flex items-center cursor-pointer justify-center text-white font-bold text-md shadow-md"
             onClick={() => setDropdownOpen((prev) => !prev)}
           >
             {initial}
