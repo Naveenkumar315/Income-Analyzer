@@ -12,7 +12,9 @@ const Header = ({
   initial = "N",
   tabValue,
   onTabChange,
-  logout = () => { },
+  logout = () => {},
+  username = "User",
+  email = "",
 }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -93,13 +95,34 @@ const Header = ({
           </div>
 
           {dropdownOpen && (
-            <div className="absolute right-0 mt-2 w-40 bg-white shadow-lg rounded-md border z-50">
-              <button
-                onClick={logout}
-                className="block w-full text-left px-4 py-2 text-gray-700 cursor-pointer hover:bg-gray-100"
-              >
-                Logout
-              </button>
+            <div className="absolute right-0 mt-2 w-64 bg-white shadow-xl rounded-lg border z-50 p-4">
+              {/* Profile section */}
+              <div className="flex items-center space-x-3 pb-4 border-b">
+                {/* Circle avatar with initials */}
+                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-[#12699D] text-white font-bold text-lg">
+                  {username ? username[0].toUpperCase() : "U"}
+                </div>
+
+                {/* User details */}
+                <div>
+                  <div className="text-gray-900 font-semibold text-base">
+                    {username || "Unknown User"}
+                  </div>
+                  <div className="text-gray-500 text-sm">
+                    {email || "No email"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Logout button */}
+              <div className="pt-4">
+                <button
+                  onClick={logout}
+                  className="w-full px-4 py-2 rounded-md text-sm font-medium text-red-600 hover:bg-red-50 transition"
+                >
+                  Sign out
+                </button>
+              </div>
             </div>
           )}
         </div>
