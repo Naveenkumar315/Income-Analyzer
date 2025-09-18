@@ -95,7 +95,7 @@ const Header = ({
           </div>
 
           {dropdownOpen && (
-            <div className="absolute right-0 mt-2 w-64 bg-white shadow-xl rounded-lg border z-50 p-4">
+            <div className="absolute right-0 mt-2 w-64 bg-white shadow-xl rounded-lg border z-1000 p-4">
               {/* Profile section */}
               <div className="flex items-center space-x-3 pb-4 border-b">
                 {/* Circle avatar with initials */}

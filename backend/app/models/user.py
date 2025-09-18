@@ -21,3 +21,5 @@ class UserLogin(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None

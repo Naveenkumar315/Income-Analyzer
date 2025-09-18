@@ -36,7 +36,7 @@ const Home = () => {
           className="bg-white rounded-lg p-2 min-h-[calc(100vh-100px)] max-h-[calc(100vh-80px)] overflow-auto"
           style={{ boxShadow: "rgba(0, 0, 0, 0.16) 0px 1px 4px" }}
         >
-          {tab === 0 && <Dashboard />}
+          {tab === 0 && <Dashboard username={username} email={email} />}
           {tab === 1 && <Rules />}
         </div>
       </main>

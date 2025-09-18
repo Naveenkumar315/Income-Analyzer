@@ -2,8 +2,12 @@ import { useState } from "react";
 import Button from "../components/Button";
 import Input from "../components/Input";
 
-const UploadedDocument = ({ setShowSection = () => {} }) => {
-  const [loanId, setLoanId] = useState("");
+const UploadedDocument = ({
+  setShowSection = () => {},
+  loanId = "",
+  setLoanId,
+}) => {
+  // const [loanId, setLoanId] = useState("");
 
   const handle_loanid_change = (e) => {
     try {
@@ -15,6 +19,9 @@ const UploadedDocument = ({ setShowSection = () => {} }) => {
   };
 
   const handle_continue = () => {
+    if (!loanId.trim()) return;
+
+    sessionStorage.setItem("loanId", loanId);
     try {
       setShowSection((prev) => ({
         ...prev,

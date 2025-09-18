@@ -3,11 +3,15 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import Modal from "@mui/material/Modal";
-import { CircularProgress, IconButton, Divider } from "@mui/material";
+import { IconButton, Divider } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DataObjectSharpIcon from "@mui/icons-material/DataObjectSharp";
 import { useLoader } from "../context/LoaderContext";
+import api from "../api/client";
+import useCurrentUser from "../hooks/useCurrentUser";
+import { toast } from "react-toastify";
+
 const style = {
   position: "absolute",
   top: "50%",
@@ -23,16 +27,17 @@ const style = {
   gap: 2,
 };
 
-export default function UploadedModel({ setShowSection = () => {} }) {
-  const { showLoader, updateProgress, completeLoader, hideLoader } =
+export default function UploadedModel({
+  setShowSection = () => {},
+  loanId = "",
+}) {
+  const { showLoader, hideLoader, updateProgress, completeLoader } =
     useLoader();
+  const { user } = useCurrentUser();
+  const { username, email } = user || {};
 
   const [files, setFiles] = React.useState([]);
   const fileInputRef = React.useRef(null);
-
-  React.useEffect(() => {
-    console.log("Selected files:", files);
-  }, [files]);
 
   const handleClose = () =>
     setShowSection((prev) => ({ ...prev, uploadedModel: false }));
@@ -40,20 +45,10 @@ export default function UploadedModel({ setShowSection = () => {} }) {
   const handleFileChange = (event) => {
     try {
       const selected = Array.from(event.target.files);
-
-      // Log full JSON of each file
-      const fileData = selected.map((file) => ({
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        lastModified: file.lastModified,
-      }));
-
-      console.log("Selected Files:", JSON.stringify(fileData, null, 2));
-
       setFiles((prev) => [...prev, ...selected]);
     } catch (err) {
       console.error("Error processing files:", err);
+      toast.error("Failed to load file(s)");
     }
   };
 
@@ -61,26 +56,46 @@ export default function UploadedModel({ setShowSection = () => {} }) {
     setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handle_file_upload = async () => {
+  const handleFileUpload = async () => {
+    const file = files[0];
+    if (!file) {
+      toast.warning("Please select a file before uploading.");
+      return;
+    }
+
     handleClose();
-    showLoader({
-      progress: 0,
-      message: "Starting analysis...",
-      totalSteps: 5,
-    });
-    let step = 0;
+    showLoader({ progress: 0, message: "Uploading & Cleaning JSON..." });
 
-    const interval = setInterval(() => {
-      step++;
-      const prog = (step / 5) * 100;
-      updateProgress(prog, step, 5, `Analyzing step ${step} of 5`);
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const rawJson = JSON.parse(e.target.result);
 
-      if (step === 5) {
-        clearInterval(interval);
+        const res = await api.post("/clean-json", {
+          username: username || "",
+          email: email || "",
+          loanID: sessionStorage.getItem("loanId") || loanId || "",
+          file_name: file.name,
+          raw_json: rawJson,
+          threshold: 0.7,
+          borrower_indicators: ["borrower name", "employee name"],
+          employer_indicators: ["employer", "company"],
+        });
+
+        updateProgress(100, 1, 1, "Cleaning completed");
         completeLoader("Analysis Complete!");
-        setTimeout(() => hideLoader(), 2000);
+
+        // ✅ You can now lift this cleaned JSON up to Dashboard or show in a table
+        console.log("Cleaned JSON:", res.data.cleaned_json);
+        toast.success("File processed successfully!");
+      } catch (err) {
+        console.error("Error uploading JSON:", err);
+        toast.error("Error processing file. Please try again.");
+      } finally {
+        hideLoader();
       }
-    }, 1000);
+    };
+    reader.readAsText(file);
   };
 
   return (
@@ -93,7 +108,7 @@ export default function UploadedModel({ setShowSection = () => {} }) {
           Upload Documents to Start Extracting
         </Typography>
 
-        {/* Drag and drop / click-to-upload box */}
+        {/* Upload Box */}
         <Box
           sx={{
             border: "2px dashed #cfd8dc",
@@ -102,7 +117,7 @@ export default function UploadedModel({ setShowSection = () => {} }) {
             textAlign: "center",
             bgcolor: "#f9f9f9",
             cursor: "pointer",
-            background: "linear-gradient(to right, #ffffff, #e0f2fe)", // white → sky blue
+            background: "linear-gradient(to right, #ffffff, #e0f2fe)",
           }}
           onClick={() => fileInputRef.current.click()}
         >
@@ -123,7 +138,7 @@ export default function UploadedModel({ setShowSection = () => {} }) {
           />
         </Box>
 
-        {/* File list */}
+        {/* File List */}
         {files.length > 0 && (
           <Box sx={{ mt: 2 }}>
             {files.map((file, idx) => (
@@ -140,11 +155,6 @@ export default function UploadedModel({ setShowSection = () => {} }) {
                 }}
               >
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  {/* <img
-                    src="/pdf-icon.png"
-                    alt="file"
-                    style={{ width: 28, height: 28 }}
-                  /> */}
                   <DataObjectSharpIcon style={{ width: 28, height: 28 }} />
                   <Box>
                     <Typography fontWeight="500">{file.name}</Typography>
@@ -167,7 +177,7 @@ export default function UploadedModel({ setShowSection = () => {} }) {
 
         <Divider sx={{ my: 2 }} />
 
-        {/* Action buttons */}
+        {/* Action Buttons */}
         <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
           <Button variant="outlined" onClick={handleClose}>
             Discard
@@ -176,9 +186,9 @@ export default function UploadedModel({ setShowSection = () => {} }) {
             variant="contained"
             sx={{ backgroundColor: "#26a3dd", textTransform: "none" }}
             disabled={files.length === 0}
-            onClick={() => handle_file_upload()}
+            onClick={handleFileUpload}
           >
-            Upload
+            {files.length > 0 ? "Upload & Clean" : "Upload"}
           </Button>
         </Box>
       </Box>

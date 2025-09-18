@@ -2,9 +2,19 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import auth
 
+from pydantic import BaseModel
+from typing import Dict, Any, List, Optional
+from app.utils.borrower_cleanup_service import clean_borrower_documents_from_dict
+from app.db import db
+from app.routes import uploaded_data
+
+from datetime import datetime  # <-- import datetime
+
+
 app = FastAPI(title="Income Analyzer API", version="1.0.0")
 
 app.include_router(auth.router)
+app.include_router(uploaded_data.router)
 
 origins = ["*"]
 
@@ -21,9 +31,42 @@ app.add_middleware(
 async def root():
     return {"message": "Welcome to the Income Analyzer API"}
 
-# @app.on_event("startup")
-# async def show_routes():
-#     print("🔎 Registered routes:")
-#     for route in app.routes:
-#         print(route.path)
 
+class CleanJsonRequest(BaseModel):
+    username: str
+    email: str
+    loanID: str
+    file_name: str
+    raw_json: Dict[str, Any]
+    threshold: Optional[float] = 0.7
+    borrower_indicators: Optional[List[str]] = None
+    employer_indicators: Optional[List[str]] = None
+
+
+@app.post("/clean-json")
+async def clean_json(req: CleanJsonRequest):
+    # Clean JSON
+    cleaned = clean_borrower_documents_from_dict(
+        data=req.raw_json,
+        threshold=req.threshold,
+        borrower_indicators=req.borrower_indicators,
+        employer_indicators=req.employer_indicators,
+    )
+
+    # Current timestamp in required format
+    timestamp = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")
+
+    # Save into MongoDB
+    record = {
+        "username": req.username,
+        "email": req.email,
+        "loanID": req.loanID,
+        "file_name": req.file_name,
+        "original_data": req.raw_json,
+        "cleaned_data": cleaned,
+        "created_at": timestamp,
+        "updated_at": timestamp,   # both same at insertion
+    }
+    await db["uploadedData"].insert_one(record)
+
+    return {"message": "Upload saved successfully", "cleaned_json": cleaned}

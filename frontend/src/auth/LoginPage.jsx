@@ -26,26 +26,27 @@ export default function LoginPage() {
     e.preventDefault();
 
     if (!userInfo.email || !userInfo.password) {
-      // setError({
-      //   isError: true,
-      //   errorMessage: "Email and password are required",
-      // });
       toast.error("Email and password are required");
       return;
     }
 
+    // 🔹 Normalize email before sending
+    const formattedUser = {
+      ...userInfo,
+      email: userInfo.email.toLowerCase(),
+    };
+
     try {
       setLoading(true);
 
-      const res = await api.post("/auth/login", userInfo);
-
+      const res = await api.post("/auth/login", formattedUser);
       // Backend returns { access_token, token_type }
-      const { access_token } = res.data;
+      const { access_token, username, email } = res.data;
 
       // Save token in localStorage (or cookies if you want more security)
       localStorage.setItem("token", access_token);
-
-      // setError({ isError: false, errorMessage: "" });
+      sessionStorage.setItem("username", username);
+      sessionStorage.setItem("email", email);
 
       toast.success("Login successful!");
       navigate("/home");
@@ -53,11 +54,8 @@ export default function LoginPage() {
       console.error("Login error:", err);
 
       if (err.response && err.response.data && err.response.data.detail) {
-        // setError({ isError: true, errorMessage: err.response.data.detail });
-        // alert(`Error: ${err.response.data.detail}`);
         toast.error(err.response.data.detail);
       } else {
-        // setError({ isError: true, errorMessage: "Unexpected error" });
         toast.error("Something went wrong. Please try again.");
       }
     } finally {
