@@ -3,13 +3,14 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import Modal from "@mui/material/Modal";
-import { CircularProgress, IconButton, Divider } from "@mui/material";
+import { IconButton, Divider } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DataObjectSharpIcon from "@mui/icons-material/DataObjectSharp";
 import { useLoader } from "../context/LoaderContext";
-import api from "../api/client"; // ✅ make sure you import your axios instance
+import api from "../api/client";
 import useCurrentUser from "../hooks/useCurrentUser";
+import { toast } from "react-toastify";
 
 const style = {
   position: "absolute",
@@ -30,27 +31,13 @@ export default function UploadedModel({
   setShowSection = () => {},
   loanId = "",
 }) {
-  console.log("UploadedModel rendered with loanId:", loanId);
-  const { showLoader, updateProgress, completeLoader, hideLoader } =
+  const { showLoader, hideLoader, updateProgress, completeLoader } =
     useLoader();
-
-  const { user, loading, logout } = useCurrentUser();
+  const { user } = useCurrentUser();
   const { username, email } = user || {};
 
   const [files, setFiles] = React.useState([]);
   const fileInputRef = React.useRef(null);
-
-  React.useEffect(() => {
-    if (files.length > 0) {
-      const fileData = files.map((file) => ({
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        lastModified: file.lastModified,
-      }));
-      console.log("Selected Files:", JSON.stringify(fileData, null, 2));
-    }
-  }, [files]);
 
   const handleClose = () =>
     setShowSection((prev) => ({ ...prev, uploadedModel: false }));
@@ -61,6 +48,7 @@ export default function UploadedModel({
       setFiles((prev) => [...prev, ...selected]);
     } catch (err) {
       console.error("Error processing files:", err);
+      toast.error("Failed to load file(s)");
     }
   };
 
@@ -68,31 +56,15 @@ export default function UploadedModel({
     setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const startLoader = () => {
-    showLoader({
-      progress: 0,
-      message: "Starting analysis...",
-      totalSteps: 5,
-    });
-    let step = 0;
-    const interval = setInterval(() => {
-      step++;
-      const prog = (step / 5) * 100;
-      updateProgress(prog, step, 5, `Analyzing step ${step} of 5`);
-      if (step === 5) {
-        clearInterval(interval);
-        completeLoader("Analysis Complete!");
-        setTimeout(() => hideLoader(), 2000);
-      }
-    }, 1000);
-  };
-
   const handleFileUpload = async () => {
-    debugger;
     const file = files[0];
-    if (!file) return;
+    if (!file) {
+      toast.warning("Please select a file before uploading.");
+      return;
+    }
+
     handleClose();
-    startLoader(); // show loader while processing
+    showLoader({ progress: 0, message: "Uploading & Cleaning JSON..." });
 
     const reader = new FileReader();
     reader.onload = async (e) => {
@@ -100,9 +72,9 @@ export default function UploadedModel({
         const rawJson = JSON.parse(e.target.result);
 
         const res = await api.post("/clean-json", {
-          username: username || "", // from auth context
-          email: email || "", // from auth context
-          loanID: sessionStorage.getItem("loanId") || "", // generate or pass from UI
+          username: username || "",
+          email: email || "",
+          loanID: sessionStorage.getItem("loanId") || loanId || "",
           file_name: file.name,
           raw_json: rawJson,
           threshold: 0.7,
@@ -110,13 +82,17 @@ export default function UploadedModel({
           employer_indicators: ["employer", "company"],
         });
 
+        updateProgress(100, 1, 1, "Cleaning completed");
+        completeLoader("Analysis Complete!");
+
+        // ✅ You can now lift this cleaned JSON up to Dashboard or show in a table
         console.log("Cleaned JSON:", res.data.cleaned_json);
-        // TODO: Display in UI instead of console.log
+        toast.success("File processed successfully!");
       } catch (err) {
         console.error("Error uploading JSON:", err);
+        toast.error("Error processing file. Please try again.");
       } finally {
         hideLoader();
-        handleClose();
       }
     };
     reader.readAsText(file);
@@ -212,7 +188,7 @@ export default function UploadedModel({
             disabled={files.length === 0}
             onClick={handleFileUpload}
           >
-            Upload
+            {files.length > 0 ? "Upload & Clean" : "Upload"}
           </Button>
         </Box>
       </Box>

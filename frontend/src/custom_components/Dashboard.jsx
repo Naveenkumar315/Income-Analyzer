@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import LoanExatraction from "./LoanExtraction";
 import ProcessLoanTable from "./ProcessLoanTable";
 import UploadedDocument from "./UploadedDocument";
-
-const Dashboard = () => {
+import api from "../api/client";
+const Dashboard = ({ email }) => {
+  const [user, setUser] = useState(sessionStorage.getItem("user") || null);
   const [showSection, setShowSection] = useState({
     processLoanSection: true,
     provideLoanIDSection: false,
@@ -11,6 +12,28 @@ const Dashboard = () => {
     uploadedModel: false,
   });
   const [loanId, setLoanId] = useState("");
+
+  useEffect(() => {
+    handleCheckData();
+  }, []);
+
+  const handleCheckData = async () => {
+    try {
+      const Loggined_email = user ? JSON.parse(user).email : "";
+      const data = await fetchUploadedData(Loggined_email);
+      console.log("User Loan Data:", data);
+      // { loanID: "LD-9080", file_name: "IC_LOAN_50490...", updated_at: "...", borrower: "firstKey" }
+    } catch (err) {
+      console.error("Error fetching uploaded data", err);
+    }
+  };
+
+  const fetchUploadedData = async (email) => {
+    const res = await api.post("/uploaded-data/by-email", {
+      email,
+    });
+    return res.data;
+  };
 
   // columns.js
   const columns = [
