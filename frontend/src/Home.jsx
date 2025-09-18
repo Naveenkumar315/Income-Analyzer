@@ -3,10 +3,11 @@ import Dashboard from "./custom_components/Dashboard";
 import Header from "./custom_components/Header";
 import Rules from "./custom_components/Rules";
 import useCurrentUser from "./hooks/useCurrentUser";
+import LoadingModal from "./custom_components/LoaderModal";
 
 const Home = () => {
-  const {user, loading, logout} = useCurrentUser();
-  const { username } = user || {};
+  const { user, loading, logout } = useCurrentUser();
+  const { username, email } = user || {};
   console.log("User from context:", user, "Loading:", loading);
   const name = username || "User";
   const initial = name ? name.charAt(0).toUpperCase() : "?";
@@ -20,7 +21,14 @@ const Home = () => {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Header */}
-      <Header initial={initial} tabValue={tab} onTabChange={handleTabChange} logout={logout}/>
+      <Header
+        initial={initial}
+        tabValue={tab}
+        onTabChange={handleTabChange}
+        logout={logout}
+        username={username}
+        email={email}
+      />
 
       {/* Main Content - takes remaining height */}
       <main className="flex-1 bg-gray-100 p-4 overflow-auto">

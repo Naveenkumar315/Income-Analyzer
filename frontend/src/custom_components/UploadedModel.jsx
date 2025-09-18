@@ -6,7 +6,7 @@ import Modal from "@mui/material/Modal";
 import { CircularProgress, IconButton, Divider } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
-
+import DataObjectSharpIcon from "@mui/icons-material/DataObjectSharp";
 const style = {
   position: "absolute",
   top: "50%",
@@ -25,6 +25,10 @@ const style = {
 export default function UploadedModel({ setShowSection = () => {} }) {
   const [files, setFiles] = React.useState([]);
   const fileInputRef = React.useRef(null);
+
+  React.useEffect(() => {
+    console.log("Selected files:", files);
+  }, [files]);
 
   const handleClose = () =>
     setShowSection((prev) => ({ ...prev, uploadedModel: false }));
@@ -95,11 +99,12 @@ export default function UploadedModel({ setShowSection = () => {} }) {
                 }}
               >
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <img
+                  {/* <img
                     src="/pdf-icon.png"
                     alt="file"
                     style={{ width: 28, height: 28 }}
-                  />
+                  /> */}
+                  <DataObjectSharpIcon style={{ width: 28, height: 28 }} />
                   <Box>
                     <Typography fontWeight="500">{file.name}</Typography>
                     <Typography variant="caption" color="text.secondary">
