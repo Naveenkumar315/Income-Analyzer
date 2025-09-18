@@ -5,7 +5,7 @@ import AccordionDetails from "@mui/material/AccordionDetails";
 import Typography from "@mui/material/Typography";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
-const LoanPackagePanel = ({ menuItems, selected, setSelected, documents }) => {
+const LoanPackagePanel = ({ menuItems, documents, setSelectedCategory, selectedCategory }) => {
 
 
 
@@ -19,9 +19,9 @@ const LoanPackagePanel = ({ menuItems, selected, setSelected, documents }) => {
                     {menuItems.map((item) => (
                         <li
                             key={item}
-                            onClick={() => setSelected(item)}
+                            onClick={() => setSelectedCategory(item)}
                             className={`p-2 cursor-pointer border-b hover:bg-gray-50
-                ${item === selected
+                                    ${item === selectedCategory
                                     ? "border-l-4 border-[#26a3dd] font-medium bg-gray-100 rounded-r-md"
                                     : "border-gray-200"
                                 }`}
@@ -44,25 +44,36 @@ const LoanPackagePanel = ({ menuItems, selected, setSelected, documents }) => {
                                 className="!bg-gray-100 !rounded-t-lg"
                             >
                                 <Typography component="span" className="font-medium text-gray-800">
-                                    {doc.title}
+                                    {doc.Title || "Untitled Doc"}
                                 </Typography>
                                 <Typography component="span" className="pl-6 text-sm text-gray-500">
-                                    {doc.fieldCount} Fields Extracted
+                                    Borrower: {doc.borrower}
                                 </Typography>
                             </AccordionSummary>
                             <AccordionDetails>
                                 <table className="w-full text-left text-sm">
                                     <tbody>
-                                        <tr className="border-t bg-gray-100 border-gray-200">
-                                            <td className="p-2 font-semibold">Fields</td>
-                                            <td className="p-2 font-semibold">Value</td>
+                                        {Object.entries(doc).map(([label, value]) =>
+                                            ["borrower", "Title", "Url"].includes(label) ? null : (
+                                                <tr key={label} className="border-t border-gray-200">
+                                                    <td className="p-2 font-semibold">{label}</td>
+                                                    <td className="p-2">{String(value)}</td>
+                                                </tr>
+                                            )
+                                        )}
+                                        <tr>
+                                            <td className="p-2 font-semibold">Document Link</td>
+                                            <td className="p-2">
+                                                <a
+                                                    href={doc.Url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-blue-600 underline"
+                                                >
+                                                    View PDF
+                                                </a>
+                                            </td>
                                         </tr>
-                                        {doc.fields.map((field, i) => (
-                                            <tr key={i} className="border-t border-gray-200">
-                                                <td className="p-2 font-semibold">{field.label}</td>
-                                                <td className="p-2">{field.value}</td>
-                                            </tr>
-                                        ))}
                                     </tbody>
                                 </table>
                             </AccordionDetails>
