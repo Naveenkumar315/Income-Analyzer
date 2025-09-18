@@ -13,6 +13,8 @@ export default function LoginPage() {
     password: "",
   });
 
+  const [loading, setLoading] = useState(false);
+
   // const [error, setError] = useState({ isError: false, errorMessage: "" });
 
   const handleChange = (e) => {
@@ -33,7 +35,8 @@ export default function LoginPage() {
     }
 
     try {
-      debugger;
+      setLoading(true);
+
       const res = await api.post("/auth/login", userInfo);
 
       // Backend returns { access_token, token_type }
@@ -57,6 +60,8 @@ export default function LoginPage() {
         // setError({ isError: true, errorMessage: "Unexpected error" });
         toast.error("Something went wrong. Please try again.");
       }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -99,11 +104,41 @@ export default function LoginPage() {
             showPasswordToggle
           />
 
-          <Button
-            type="submit"
-            className="w-full bg-sky-500 text-white py-2 rounded-lg hover:bg-sky-600 transition"
-            label="Login →"
-          />
+          <div className="flex justify-center">
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full flex justify-center items-center bg-sky-500 text-white py-2 rounded-lg hover:bg-sky-600 transition disabled:opacity-70"
+            >
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <svg
+                    className="animate-spin h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v8H4z"
+                    ></path>
+                  </svg>
+                  Processing...
+                </span>
+              ) : (
+                "Login →"
+              )}
+            </button>
+          </div>
         </form>
 
         <p className="text-sm text-center mt-3">
