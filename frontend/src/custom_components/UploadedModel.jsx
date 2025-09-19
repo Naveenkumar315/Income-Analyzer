@@ -12,6 +12,8 @@ import api from "../api/client";
 import useCurrentUser from "../hooks/useCurrentUser";
 import { toast } from "react-toastify";
 
+import { useUpload } from "../context/UploadContext";
+
 const style = {
   position: "absolute",
   top: "50%",
@@ -33,14 +35,17 @@ export default function UploadedModel({
 }) {
   const { showLoader, hideLoader, updateProgress, completeLoader } =
     useLoader();
+  const { isUploaded, setIsUploaded } = useUpload();
   const { user } = useCurrentUser();
   const { username, email } = user || {};
 
   const [files, setFiles] = React.useState([]);
   const fileInputRef = React.useRef(null);
 
-  const handleClose = () =>
+  const handleClose = () => {
+    setIsUploaded((prev) => ({ ...prev, uploaded: false }));
     setShowSection((prev) => ({ ...prev, uploadedModel: false }));
+  };
 
   const handleFileChange = (event) => {
     try {
@@ -88,9 +93,11 @@ export default function UploadedModel({
         // ✅ You can now lift this cleaned JSON up to Dashboard or show in a table
         console.log("Cleaned JSON:", res.data.cleaned_json);
         toast.success("File processed successfully!");
+        setIsUploaded((prev) => ({ ...prev, uploaded: true }));
       } catch (err) {
         console.error("Error uploading JSON:", err);
         toast.error("Error processing file. Please try again.");
+        setIsUploaded((prev) => ({ ...prev, uploaded: false }));
       } finally {
         hideLoader();
       }

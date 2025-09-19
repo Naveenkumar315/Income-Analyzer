@@ -6,7 +6,10 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import UnderwritingRulesModel from "./UnderwritingRulesModel";
 import UnuploadedScreen from "./UnuploadedScreen";
 
+import { useUpload } from "../context/UploadContext";
+
 const LoanExatraction = ({ showSection = {}, setShowSection = () => {} }) => {
+  const { isUploaded, setIsUploaded } = useUpload();
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [rulesModel, setRulesModel] = useState(false);
   const rawData = {
@@ -2350,29 +2353,29 @@ const LoanExatraction = ({ showSection = {}, setShowSection = () => {} }) => {
   return (
     <div>
       <>
-        <div className="flex justify-between items-center rounded-lg border-b border-gray-200 pb-3">
+        <div className="flex justify-between items-center rounded-lg  pb-3">
           {/* Left side: filename */}
           <span className="font-medium">
             Upload & Extract Files {sessionStorage.getItem("loanId") || ""}
           </span>
-
-          {/* Right side: buttons */}
-          <div className="flex gap-2">
-            <Button
-              variant="upload-doc"
-              width={200}
-              label={"Upload Documents"}
-              onClick={() =>
-                setShowSection((prev) => ({ ...prev, uploadedModel: true }))
-              }
-            />
-            <Button
-              variant="start-analyze"
-              width={200}
-              label={"Start Analyzing"}
-              onClick={HandleProcess}
-            />
-          </div>
+          {isUploaded?.uploaded && (
+            <div className="flex gap-2">
+              <Button
+                variant="upload-doc"
+                width={200}
+                label={"Upload Documents"}
+                onClick={() =>
+                  setShowSection((prev) => ({ ...prev, uploadedModel: true }))
+                }
+              />
+              <Button
+                variant="start-analyze"
+                width={200}
+                label={"Start Analyzing"}
+                onClick={HandleProcess}
+              />
+            </div>
+          )}
         </div>
 
         {/* <div className="flex border-t border-gray-300 max-h-[calc(100vh-80px)] ">
@@ -2429,13 +2432,18 @@ const LoanExatraction = ({ showSection = {}, setShowSection = () => {} }) => {
                         </div>
                     </div>
                 </div> */}
-        <UnuploadedScreen setShowSection={setShowSection} />
-        {/* <LoanPackagePanel
-          menuItems={menuItems}
-          documents={documents}
-          setSelectedCategory={setSelectedCategory}
-          selectedCategory={selectedCategory}
-        /> */}
+        {isUploaded?.uploaded ? (
+          <LoanPackagePanel
+            menuItems={menuItems}
+            documents={documents}
+            setSelectedCategory={setSelectedCategory}
+            selectedCategory={selectedCategory}
+          />
+        ) : (
+          <UnuploadedScreen setShowSection={setShowSection} />
+        )}
+
+        {/* */}
 
         {/* <div> */}
         <div className="fixed bottom-4 right-4 flex items-center justify-center w-[50px] h-[50px] rounded-3xl bg-[#12699D] shadow-lg cursor-pointer">
