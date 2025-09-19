@@ -93,8 +93,8 @@ export default function UploadedModel({
 
         // ✅ You can now lift this cleaned JSON up to Dashboard or show in a table
         // console.log("Cleaned JSON:", res.data.cleaned_json);
-        const result = transformObjectToArray(res.data.cleaned_json || {});
-        set_normalized_json(result || {});
+        // const result = transformObjectToArray(res.data.cleaned_json || {});
+        set_normalized_json(res.data.cleaned_json || {});
         toast.success("File processed successfully!");
         setIsUploaded((prev) => ({ ...prev, uploaded: true }));
       } catch (err) {

@@ -11,6 +11,7 @@ const LoanPackagePanel = ({
   setSelectedCategory,
   selectedCategory,
 }) => {
+  debugger;
   return (
     <div className="flex border-t border-gray-300 max-h-[calc(100vh-80px)] mt-5">
       {/* Sidebar */}
