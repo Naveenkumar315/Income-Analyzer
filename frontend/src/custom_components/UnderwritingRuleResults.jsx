@@ -58,132 +58,163 @@ const UnderwritingRuleResult = () => {
       </div>
 
       <div className="mt-2 border-b-1 border-gray-300"></div>
-      <div className="text-[#26a3dd] mt-2">
-        Underwriting Rule Results{" "}
-        <span className="text-black">(LN-20250915-001)</span>
-      </div>
 
-      <div className="h-[100px] mt-3 w-full bg-gradient-to-r from-[#d6f1ff] to-[#b0e2de] rounded-2xl p-5">
-        <div className="grid grid-cols-4 gap-4 h-full">
-          <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl">
-            <span className="text-black font-bold pl-1">$8000.00</span>
-            <span className="flex items-center gap-1 text-sm">
-              Total Monthly Income
-            </span>
-          </div>
-          <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl">
-            <span className="text-black font-bold pl-1">$1000.00</span>
-            <span className="flex items-center gap-1 text-sm">
-              W-2/Paystub Monthly
-            </span>
-          </div>
-          <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl">
-            <span className="text-black font-bold pl-1">$1000.00</span>
-            <span className="flex items-center gap-1 text-sm">
-              Tax-Return Monthly
-            </span>
-          </div>
-        </div>
-      </div>
 
-      <div className="w-full">
-        {/* Accordion for Income */}
-        <SummarySection summary_data={summary_data} />
-      </div>
+
+
+      {
+        value === "Summary" && (<>
+          <div className="text-[#26a3dd] mt-2">
+            Underwriting Summary{" "}
+            <span className="text-black">(LN-20250915-001)</span>
+          </div>
+          <div className="h-[100px] mt-3 w-full bg-gradient-to-r from-[#d6f1ff] to-[#b0e2de] rounded-2xl p-5">
+            <div className="grid grid-cols-4 gap-4 h-full">
+              <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl">
+                <span className="text-black font-bold pl-1">$8000.00</span>
+                <span className="flex items-center gap-1 text-sm">
+                  Total Monthly Income
+                </span>
+              </div>
+              <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl">
+                <span className="text-black font-bold pl-1">$1000.00</span>
+                <span className="flex items-center gap-1 text-sm">
+                  W-2/Paystub Monthly
+                </span>
+              </div>
+              <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl">
+                <span className="text-black font-bold pl-1">$1000.00</span>
+                <span className="flex items-center gap-1 text-sm">
+                  Tax-Return Monthly
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="w-full">
+            <SummarySection summary_data={summary_data} />
+          </div>
+        </>)
+      }
+      {
+        value === "Rule Results" && (<>
+          <div className="text-[#26a3dd] mt-2">
+            Underwriting Rule Results{" "}
+            <span className="text-black">(LN-20250915-001)</span>
+          </div>
+          <div className="h-[100px] mt-3 w-full bg-gradient-to-r from-[#d6f1ff] to-[#b0e2de] rounded-2xl p-5">
+            <div className="grid grid-cols-4 gap-4 h-full">
+              <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl">
+                <span className="text-black font-bold pl-1">11</span>
+                <span className="flex items-center gap-1 text-sm">
+                  <CheckCircleIcon className="text-green-500 text-base" />
+                  Passed
+                </span>
+              </div>
+              <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl">
+                <span className="text-black font-bold pl-1">11</span>
+                <span className="flex items-center gap-1 text-sm">
+                  <CancelOutlinedIcon className="text-red-500 text-base" />
+                  Failed
+                </span>
+              </div>
+              <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl">
+                <span className="text-black font-bold pl-1">11</span>
+                <span className="flex items-center gap-1 text-sm">
+                  <ErrorIcon className="text-yellow-500 text-base" />
+                  Insufficient
+                </span>
+              </div>
+              <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl">
+                <span className="text-black font-bold pl-1">11</span>
+                <span className="flex items-center gap-1 text-sm">
+                  <CheckCircleIcon className="text-green-500 text-base" />
+                  Error
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="w-full">
+            <div className="space-y-3">
+              {data.map((item, idx) => {
+                const { result } = item;
+                const status = result?.status || "Unknown";
+
+                // status styles + icons
+                const statusConfig = {
+                  Pass: { color: "text-green-600", icon: <CheckCircleIcon className="text-green-500 text-base" /> },
+                  Fail: { color: "text-red-600", icon: <CancelOutlinedIcon className="text-red-500 text-base" /> },
+                  Error: { color: "text-yellow-600", icon: <ErrorIcon className="text-yellow-500 text-base" /> },
+                  Default: { color: "text-gray-600", icon: <CheckCircleIcon className="text-green-500 text-base" /> },
+                };
+                const { color, icon } = statusConfig[status] || statusConfig.Default;
+
+                return (
+                  <Accordion key={idx} className="!shadow-sm !border !border-gray-200 mt-3">
+                    {/* HEADER */}
+                    <AccordionSummary
+                      expandIcon={<ExpandMoreIcon />}
+                      aria-controls={`panel-${idx}-content`}
+                      id={`panel-${idx}-header`}
+                      className="!bg-gray-100 !rounded-t-lg"
+                    >
+                      <div className="flex justify-between items-center w-full">
+                        {/* Left side: Rule number + truncated rule text */}
+                        <Typography className="font-medium text-gray-800 truncate max-w-[70%]">
+                          {`Rule ${idx + 1}: `}
+                        </Typography>
+
+                        {/* Right side: Status */}
+                        <div className={`flex items-center gap-1 text-sm font-medium `}>
+                          <span className="font-bold">Status: </span>
+                          {icon}
+                          <span>{status}</span>
+                        </div>
+                      </div>
+                    </AccordionSummary>
+
+                    {/* BODY */}
+                    <AccordionDetails>
+                      <div className="space-y-3 text-sm">
+                        <div>
+                          <div className="font-semibold">Commentary:</div>
+                          <p className="mt-1 text-gray-700">{result?.commentary || "—"}</p>
+                        </div>
+
+                        <div>
+                          <div className="font-semibold">Rule Text:</div>
+                          <p className="mt-1 text-gray-600">{result?.rule || item.rule}</p>
+                        </div>
+                      </div>
+                    </AccordionDetails>
+                  </Accordion>
+                );
+              })}
+            </div>
+          </div>
+        </>)
+      }
+      {
+        value === "Insights" && (<>
+          <div className="text-[#26a3dd] mt-2">
+            Underwriting Insights{" "}
+            <span className="text-black">(LN-20250915-001)</span>
+          </div>
+          <div className="h-[150px] mt-3 w-full bg-gradient-to-r from-[#d6f1ff] to-[#b0e2de] rounded-2xl p-5">
+            <div className="grid grid-cols-4 gap-4 h-full">
+
+            </div>
+          </div>
+        </>)
+      }
+
+
+
     </>
   );
 };
-// {/* <div className="h-[100px] mt-3 w-full bg-gradient-to-r from-[#d6f1ff] to-[#b0e2de] rounded-2xl p-5">
-//     <div className="grid grid-cols-4 gap-4 h-full">
-//         <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl">
-//             <span className="text-black font-bold pl-1">11</span>
-//             <span className="flex items-center gap-1 text-sm">
-//                 <CheckCircleIcon className="text-green-500 text-base" />
-//                 Passed
-//             </span>
-//         </div>
-//         <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl">
-//             <span className="text-black font-bold pl-1">11</span>
-//             <span className="flex items-center gap-1 text-sm">
-//                 <CancelOutlinedIcon className="text-red-500 text-base" />
-//                 Failed
-//             </span>
-//         </div>
-//         <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl">
-//             <span className="text-black font-bold pl-1">11</span>
-//             <span className="flex items-center gap-1 text-sm">
-//                 <ErrorIcon className="text-yellow-500 text-base" />
-//                 Insufficient
-//             </span>
-//         </div>
-//         <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl">
-//             <span className="text-black font-bold pl-1">11</span>
-//             <span className="flex items-center gap-1 text-sm">
-//                 <CheckCircleIcon className="text-green-500 text-base" />
-//                 Error
-//             </span>
-//         </div>
-//     </div>
-// </div> */}
 
-//  <div className="w-full">
-//     {/* Accordion for Income */}
-//     <div className="space-y-3">
-//         {data.map((item, idx) => {
-//             const { result } = item;
-//             const status = result?.status || "Unknown";
 
-//             // status styles + icons
-//             const statusConfig = {
-//                 Pass: { color: "text-green-600", icon: <CheckCircleIcon className="text-green-500 text-base" /> },
-//                 Fail: { color: "text-red-600", icon: <CancelOutlinedIcon className="text-red-500 text-base" /> },
-//                 Error: { color: "text-yellow-600", icon: <ErrorIcon className="text-yellow-500 text-base" /> },
-//                 Default: { color: "text-gray-600", icon: <CheckCircleIcon className="text-green-500 text-base" /> },
-//             };
-//             const { color, icon } = statusConfig[status] || statusConfig.Default;
 
-//             return (
-//                 <Accordion key={idx} className="!shadow-sm !border !border-gray-200 mt-3">
-//                     {/* HEADER */}
-//                     <AccordionSummary
-//                         expandIcon={<ExpandMoreIcon />}
-//                         aria-controls={`panel-${idx}-content`}
-//                         id={`panel-${idx}-header`}
-//                         className="!bg-gray-100 !rounded-t-lg"
-//                     >
-//                         <div className="flex justify-between items-center w-full">
-//                             {/* Left side: Rule number + truncated rule text */}
-//                             <Typography className="font-medium text-gray-800 truncate max-w-[70%]">
-//                                 {`Rule ${idx + 1}: `}
-//                             </Typography>
-
-//                             {/* Right side: Status */}
-//                             <div className={`flex items-center gap-1 text-sm font-medium `}>
-//                                 <span className="font-bold">Status: </span>
-//                                 {icon}
-//                                 <span>{status}</span>
-//                             </div>
-//                         </div>
-//                     </AccordionSummary>
-
-//                     {/* BODY */}
-//                     <AccordionDetails>
-//                         <div className="space-y-3 text-sm">
-//                             <div>
-//                                 <div className="font-semibold">Commentary:</div>
-//                                 <p className="mt-1 text-gray-700">{result?.commentary || "—"}</p>
-//                             </div>
-
-//                             <div>
-//                                 <div className="font-semibold">Rule Text:</div>
-//                                 <p className="mt-1 text-gray-600">{result?.rule || item.rule}</p>
-//                             </div>
-//                         </div>
-//                     </AccordionDetails>
-//                 </Accordion>
-//             );
-//         })}
-//     </div>
-// </div>
 
 export default UnderwritingRuleResult;
