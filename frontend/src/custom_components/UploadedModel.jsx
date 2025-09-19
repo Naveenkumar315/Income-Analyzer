@@ -13,6 +13,7 @@ import useCurrentUser from "../hooks/useCurrentUser";
 import { toast } from "react-toastify";
 
 import { useUpload } from "../context/UploadContext";
+import { transformObjectToArray } from "../utils/helper";
 
 const style = {
   position: "absolute",
@@ -35,7 +36,7 @@ export default function UploadedModel({
 }) {
   const { showLoader, hideLoader, updateProgress, completeLoader } =
     useLoader();
-  const { isUploaded, setIsUploaded } = useUpload();
+  const { isUploaded, setIsUploaded, set_normalized_json } = useUpload();
   const { user } = useCurrentUser();
   const { username, email } = user || {};
 
@@ -91,7 +92,9 @@ export default function UploadedModel({
         completeLoader("Analysis Complete!");
 
         // ✅ You can now lift this cleaned JSON up to Dashboard or show in a table
-        console.log("Cleaned JSON:", res.data.cleaned_json);
+        // console.log("Cleaned JSON:", res.data.cleaned_json);
+        const result = transformObjectToArray(res.data.cleaned_json || {});
+        set_normalized_json(result || {});
         toast.success("File processed successfully!");
         setIsUploaded((prev) => ({ ...prev, uploaded: true }));
       } catch (err) {
