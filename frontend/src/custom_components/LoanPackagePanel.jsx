@@ -43,7 +43,7 @@ const LoanPackagePanel = ({ menuItems, documents, setSelectedCategory, selectedC
                                 id={`panel-${idx}-header`}
                                 className="!bg-gray-100 !rounded-t-lg"
                             >
-                                <Typography component="span" className="font-medium text-gray-800">
+                                <Typography variant="body2" component="span" className=" text-gray-800">
                                     {doc.Title || "Untitled Doc"}
                                 </Typography>
                                 <Typography component="span" className="pl-6 text-sm text-gray-500">

@@ -69,17 +69,24 @@ const rulesData = [
 
 const Rules = () => {
     return (
-        <div className="space-y-6 bg-white rounded-lg p-2 min-h-[400px] ">
-            {rulesData.map((rule, index) => (
-                <div key={index} className="border-b border-gray-200 p-4  text-left">
-                    <p className=" font-semibold mb-1">
-                        <span className="text-gray-600">Rule {index + 1}:</span> {rule.title}
-                    </p>
-                    <p className="text-gray-500 text-sm ">{rule.description}</p>
-                    <p className="text-gray-500 text-sm">Explanation: {rule.explanation}</p>
+        <main className="flex-1 bg-gray-100 p-4 overflow-auto">
+            <div
+                className="bg-white rounded-lg p-2 min-h-[calc(90vh-90px)] max-h-[calc(80vh-80px)] overflow-auto"
+                style={{ boxShadow: "rgba(0, 0, 0, 0.16) 0px 1px 4px" }}
+            >
+                <div className="space-y-6 bg-white rounded-lg p-2 min-h-[400px] ">
+                    {rulesData.map((rule, index) => (
+                        <div key={index} className="border-b border-gray-200 p-4  text-left">
+                            <p className=" font-semibold mb-1">
+                                <span className="text-gray-600">Rule {index + 1}:</span> {rule.title}
+                            </p>
+                            <p className="text-gray-500 text-sm ">{rule.description}</p>
+                            <p className="text-gray-500 text-sm">Explanation: {rule.explanation}</p>
+                        </div>
+                    ))}
                 </div>
-            ))}
-        </div>
+            </div>
+        </main>
     );
 };
 

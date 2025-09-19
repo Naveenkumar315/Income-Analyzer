@@ -31,15 +31,15 @@ const Home = () => {
       />
 
       {/* Main Content - takes remaining height */}
-      <main className="flex-1 bg-gray-100 p-4 overflow-auto">
+      {/* <main className="flex-1 bg-gray-100 p-4 overflow-auto">
         <div
           className="bg-white rounded-lg p-2 min-h-[calc(100vh-100px)] max-h-[calc(100vh-80px)] overflow-auto"
           style={{ boxShadow: "rgba(0, 0, 0, 0.16) 0px 1px 4px" }}
-        >
-          {tab === 0 && <Dashboard username={username} email={email} />}
-          {tab === 1 && <Rules />}
-        </div>
-      </main>
+        > */}
+      {tab === 0 && <Dashboard username={username} email={email} />}
+      {tab === 1 && <Rules />}
+      {/* </div>
+      </main> */}
     </div>
   );
 };
