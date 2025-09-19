@@ -49,9 +49,9 @@ export default function LoanPackagePanel({ borrower, category, docs }) {
 
           {/* Collapsible Body */}
           {openDocs[idx] && (
-            <div className="p-3">
+            <div className="p-3 max-h-[60vh] overflow-y-auto">
               {/* Document header */}
-              {/* <div className="flex items-center gap-3 font-medium p-2 bg-gray-50 border-b">
+              {/* <div className="flex items-center gap-3 font-medium p-2 bg-gray-50 border-b sticky top-0 z-10">
                 <PictureAsPdfIcon className="text-red-500" />
                 <span className="text-gray-800">{doc.Title}</span>
                 <span className="ml-auto text-sm text-gray-500">
