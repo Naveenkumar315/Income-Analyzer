@@ -10,16 +10,24 @@ import LoanPackagePanel from "./LoanPackagePanel";
 import PersonSharpIcon from "@mui/icons-material/PersonSharp";
 
 const LoanExatraction = ({ showSection = {}, setShowSection = () => {} }) => {
-  const { isUploaded, setIsUploaded, normalized_json } = useUpload();
+  const { isUploaded, normalized_json } = useUpload();
   const [rulesModel, setRulesModel] = useState(false);
   const [rawData, setRawData] = useState(normalized_json || {});
   const [selectedBorrower, setSelectedBorrower] = useState(null);
 
+  // Sync rawData with context
   useEffect(() => {
     setRawData(normalized_json);
   }, [normalized_json]);
 
   const borrowers = rawData ? Object.keys(rawData) : [];
+
+  // Auto-select first borrower when data changes
+  useEffect(() => {
+    if (borrowers.length > 0 && !selectedBorrower) {
+      setSelectedBorrower(borrowers[0]);
+    }
+  }, [borrowers, selectedBorrower]);
 
   const OpenRulesModel = () => setRulesModel(true);
 
@@ -36,6 +44,7 @@ const LoanExatraction = ({ showSection = {}, setShowSection = () => {} }) => {
 
   return (
     <div className="h-full">
+      {/* Header */}
       <div className="flex justify-between items-center rounded-lg pb-3">
         <span className="font-medium">
           Upload & Extract Files {sessionStorage.getItem("loanId") || ""}
@@ -45,7 +54,7 @@ const LoanExatraction = ({ showSection = {}, setShowSection = () => {} }) => {
             <Button
               variant="upload-doc"
               width={200}
-              label={"Upload Documents"}
+              label="Upload Documents"
               onClick={() =>
                 setShowSection((prev) => ({ ...prev, uploadedModel: true }))
               }
@@ -53,13 +62,14 @@ const LoanExatraction = ({ showSection = {}, setShowSection = () => {} }) => {
             <Button
               variant="start-analyze"
               width={200}
-              label={"Start Analyzing"}
+              label="Start Analyzing"
               onClick={HandleProcess}
             />
           </div>
         )}
       </div>
 
+      {/* Main layout */}
       {isUploaded?.uploaded ? (
         <div className="flex border-t border-gray-300 h-[calc(100vh-100px)]">
           {/* Borrower list */}
@@ -70,14 +80,14 @@ const LoanExatraction = ({ showSection = {}, setShowSection = () => {} }) => {
                 <li
                   key={name}
                   onClick={() => setSelectedBorrower(name)}
-                  className={`p-2 cursor-pointer border-b hover:bg-gray-50 ${
+                  className={`flex items-center gap-2 p-2 cursor-pointer border-b hover:bg-gray-50 ${
                     name === selectedBorrower
                       ? "border-l-4 border-[#26a3dd] font-medium bg-gray-100 rounded-r-md"
                       : "border-gray-200"
                   }`}
                 >
-                  <PersonSharpIcon />
-                  {name.toLowerCase()}
+                  <PersonSharpIcon fontSize="small" />
+                  <span className="capitalize">{name.toLowerCase()}</span>
                 </li>
               ))}
             </ul>
@@ -101,7 +111,7 @@ const LoanExatraction = ({ showSection = {}, setShowSection = () => {} }) => {
         <UnuploadedScreen setShowSection={setShowSection} />
       )}
 
-      {/* floating button */}
+      {/* Floating button */}
       <div className="fixed bottom-4 right-4 flex items-center justify-center w-[50px] h-[50px] rounded-3xl bg-[#12699D] shadow-lg cursor-pointer">
         <DescriptionIcon onClick={OpenRulesModel} className="text-white" />
       </div>
