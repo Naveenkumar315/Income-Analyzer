@@ -203,6 +203,7 @@ const Dashboard = ({ email }) => {
                   showSection={showSection}
                   setShowSection={setShowSection}
                   loanId={loanId}
+                  setActiveStep={setActiveStep}
                 />
               </div>
             </div>

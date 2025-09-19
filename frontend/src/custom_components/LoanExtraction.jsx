@@ -5,7 +5,7 @@ import LoanPackagePanel from "./LoanPackagePanel";
 import DescriptionIcon from '@mui/icons-material/Description';
 import UnderwritingRulesModel from "./UnderwritingRulesModel";
 
-const LoanExatraction = ({ showSection = {}, setShowSection = () => { } }) => {
+const LoanExatraction = ({ showSection = {}, setActiveStep, setShowSection = () => { } }) => {
     const [selectedCategory, setSelectedCategory] = useState(null);
     const [rulesModel, setRulesModel] = useState(false)
     const rawData = {
@@ -1975,6 +1975,7 @@ const LoanExatraction = ({ showSection = {}, setShowSection = () => { } }) => {
             uploadedModel: false,
             startAnalyzing: true,
         }))
+        setActiveStep(1)
     }
 
     return (
