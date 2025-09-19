@@ -24,7 +24,7 @@ const LoanExatraction = ({ showSection = {}, setShowSection = () => {} }) => {
 
   const borrowers = rawData ? Object.keys(rawData) : [];
 
-  // Select first borrower + first category by default
+  // Auto-select first borrower + first category
   useEffect(() => {
     if (borrowers.length > 0 && !selectedBorrower) {
       const firstBorrower = borrowers[0];
@@ -33,6 +33,7 @@ const LoanExatraction = ({ showSection = {}, setShowSection = () => {} }) => {
       if (categories.length > 0) {
         setSelectedCategory(categories[0]);
       }
+      setOpenBorrowers({ [firstBorrower]: true }); // auto-expand first borrower
     }
   }, [borrowers, rawData, selectedBorrower]);
 
@@ -54,7 +55,7 @@ const LoanExatraction = ({ showSection = {}, setShowSection = () => {} }) => {
   };
 
   return (
-    <div className="h-full">
+    <div className="h-full flex flex-col">
       {/* Header */}
       <div className="flex justify-between items-center rounded-lg pb-3">
         <span className="font-medium">
@@ -80,8 +81,9 @@ const LoanExatraction = ({ showSection = {}, setShowSection = () => {} }) => {
         )}
       </div>
 
+      {/* Main layout */}
       {isUploaded?.uploaded ? (
-        <div className="flex border-t border-gray-300 h-[calc(100vh-150px)]">
+        <div className="flex border-t border-gray-300 flex-1 min-h-0">
           {/* Borrower + categories list */}
           <div className="w-[25%] border-r border-gray-300 p-2 overflow-y-auto">
             <p className="font-semibold mb-2 text-[#26a3dd]">Loan Package</p>
@@ -139,7 +141,7 @@ const LoanExatraction = ({ showSection = {}, setShowSection = () => {} }) => {
           </div>
 
           {/* Document panel */}
-          <div className="w-[75%] p-4 overflow-y-auto">
+          <div className="w-[75%] p-4 overflow-y-auto h-full">
             {selectedBorrower && selectedCategory ? (
               <LoanPackagePanel
                 borrower={selectedBorrower}
