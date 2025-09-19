@@ -11,6 +11,7 @@ import {
   AccordionDetails,
   Typography,
 } from "@mui/material";
+import SummarySection from "./SummarySection";
 
 const Tabs = ["Rule Results", "Summary", "Insights"];
 
@@ -42,7 +43,8 @@ const UnderwritingRuleResult = () => {
     {
       title: "Income Calculator worksheet & details",
       paystub_month: "$1000.00",
-      year_wages: "96,392",
+      year_wages:
+        "96,392, 101,821, 101,821, 96,392, 157,525, 167,874, 167,870,15,526 (stability reference).",
       total_tax: "$1000.00",
       total_month: "$8000.00",
     },
@@ -86,86 +88,7 @@ const UnderwritingRuleResult = () => {
 
       <div className="w-full">
         {/* Accordion for Income */}
-        <div className="space-y-3">
-          {summary_data.map((item, idx) => {
-            const { result } = item;
-            const status = result?.status || "Unknown";
-
-            // status styles + icons
-            const statusConfig = {
-              Pass: {
-                color: "text-green-600",
-                icon: <CheckCircleIcon className="text-green-500 text-base" />,
-              },
-              Fail: {
-                color: "text-red-600",
-                icon: <CancelOutlinedIcon className="text-red-500 text-base" />,
-              },
-              Error: {
-                color: "text-yellow-600",
-                icon: <ErrorIcon className="text-yellow-500 text-base" />,
-              },
-              Default: {
-                color: "text-gray-600",
-                icon: <CheckCircleIcon className="text-green-500 text-base" />,
-              },
-            };
-            const { color, icon } =
-              statusConfig[status] || statusConfig.Default;
-
-            return (
-              <Accordion
-                key={idx}
-                className="!shadow-sm !border !border-gray-200 mt-3"
-              >
-                {/* HEADER */}
-                <AccordionSummary
-                  expandIcon={<ExpandMoreIcon />}
-                  aria-controls={`panel-${idx}-content`}
-                  id={`panel-${idx}-header`}
-                  className="!bg-gray-100 !rounded-t-lg"
-                >
-                  <div className="flex justify-between items-center w-full">
-                    {/* Left side: Rule number + truncated rule text */}
-                    <Typography className="font-medium text-gray-800 truncate max-w-[70%]">
-                      {item.title}
-                    </Typography>
-
-                    {/* Right side: Status */}
-                    <div
-                      className={`flex items-center gap-1 text-sm font-medium `}
-                    >
-                      <span className="font-bold">Status: </span>
-                      {icon}
-                      <span>{status}</span>
-                    </div>
-                  </div>
-                </AccordionSummary>
-
-                {/* BODY */}
-                <AccordionDetails>
-                  <div className="space-y-3 text-sm">
-                    <div>
-                      <div className="font-semibold">
-                        W-2/Paystub Monthly Total:
-                      </div>
-                      <p className="mt-1 text-gray-700">
-                        {result?.commentary || "—"}
-                      </p>
-                    </div>
-
-                    <div>
-                      <div className="font-semibold">Rule Text:</div>
-                      <p className="mt-1 text-gray-600">
-                        {result?.rule || item.rule}
-                      </p>
-                    </div>
-                  </div>
-                </AccordionDetails>
-              </Accordion>
-            );
-          })}
-        </div>
+        <SummarySection summary_data={summary_data} />
       </div>
     </>
   );
