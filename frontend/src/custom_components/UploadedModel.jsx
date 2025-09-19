@@ -198,7 +198,7 @@ export default function UploadedModel({
             disabled={files.length === 0}
             onClick={handleFileUpload}
           >
-            {files.length > 0 ? "Upload & Clean" : "Upload"}
+            {"Upload"}
           </Button>
         </Box>
       </Box>
