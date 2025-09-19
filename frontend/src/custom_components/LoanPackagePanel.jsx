@@ -1,100 +1,105 @@
-import React, { useEffect } from "react";
-import Accordion from "@mui/material/Accordion";
-import AccordionSummary from "@mui/material/AccordionSummary";
-import AccordionDetails from "@mui/material/AccordionDetails";
-import Typography from "@mui/material/Typography";
+import { useState } from "react";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import DescriptionIcon from "@mui/icons-material/Description";
 
-const LoanPackagePanel = ({
-  menuItems,
-  documents,
-  setSelectedCategory,
-  selectedCategory,
-}) => {
-  debugger;
+export default function LoanPackagePanel({ borrower, borrowerDocs }) {
+  const [openCategories, setOpenCategories] = useState({});
+
+  if (!borrowerDocs) return null;
+
+  const toggleCategory = (category) => {
+    setOpenCategories((prev) => ({
+      ...prev,
+      [category]: !prev[category],
+    }));
+  };
+
   return (
-    <div className="flex border-t border-gray-300 max-h-[calc(100vh-80px)] mt-5">
-      {/* Sidebar */}
-      <div className="w-[30%] border-r border-gray-300 p-2 overflow-y-auto">
-        <p className="font-semibold mb-2 text-[#26a3dd]">Loan Package</p>
-        <ul>
-          {menuItems.map((item) => (
-            <li
-              key={item}
-              onClick={() => setSelectedCategory(item)}
-              className={`p-2 cursor-pointer border-b hover:bg-gray-50
-                                    ${
-                                      item === selectedCategory
-                                        ? "border-l-4 border-[#26a3dd] font-medium bg-gray-100 rounded-r-md"
-                                        : "border-gray-200"
-                                    }`}
-            >
-              {item}
-            </li>
-          ))}
-        </ul>
-      </div>
+    <div className="space-y-6">
+      {/* Borrower Header */}
+      <h2 className="text-xl font-bold text-sky-600 border-b pb-2">
+        {borrower}
+      </h2>
 
-      {/* Content */}
-      <div className="w-[70%] p-2 space-y-3">
-        <div className="space-y-4 h-[400px] overflow-y-auto">
-          {documents.map((doc, idx) => (
-            <Accordion
-              key={idx}
-              className="!shadow-sm !border !border-gray-200"
-            >
-              <AccordionSummary
-                expandIcon={<ExpandMoreIcon />}
-                aria-controls={`panel-${idx}-content`}
-                id={`panel-${idx}-header`}
-                className="!bg-gray-100 !rounded-t-lg"
-              >
-                <Typography
-                  component="span"
-                  className="font-medium text-gray-800"
+      {Object.entries(borrowerDocs).map(([category, docs]) => (
+        <div
+          key={category}
+          className="border border-gray-200 rounded-lg shadow-sm bg-white"
+        >
+          {/* Dropdown Header */}
+          <div
+            className="flex items-center justify-between p-3 bg-gray-100 cursor-pointer rounded-t-lg"
+            onClick={() => toggleCategory(category)}
+          >
+            <span className="font-semibold text-gray-700">{category}</span>
+            {openCategories[category] ? (
+              <ExpandLessIcon className="text-gray-600" />
+            ) : (
+              <ExpandMoreIcon className="text-gray-600" />
+            )}
+          </div>
+
+          {/* Collapsible Body */}
+          {openCategories[category] && (
+            <div className="p-3 space-y-3">
+              {docs.map((doc, idx) => (
+                <div
+                  key={idx}
+                  className="border border-gray-200 rounded-lg overflow-hidden"
                 >
-                  {doc.Title || "Untitled Doc"}
-                </Typography>
-                <Typography
-                  component="span"
-                  className="pl-6 text-sm text-gray-500"
-                >
-                  Borrower: {doc.borrower}
-                </Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <table className="w-full text-left text-sm">
-                  <tbody>
-                    {Object.entries(doc).map(([label, value]) =>
-                      ["borrower", "Title", "Url"].includes(label) ? null : (
-                        <tr key={label} className="border-t border-gray-200">
-                          <td className="p-2 font-semibold">{label}</td>
-                          <td className="p-2">{String(value)}</td>
-                        </tr>
-                      )
-                    )}
-                    <tr>
-                      <td className="p-2 font-semibold">Document Link</td>
-                      <td className="p-2">
-                        <a
-                          href={doc.Url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 underline"
-                        >
-                          View PDF
-                        </a>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </AccordionDetails>
-            </Accordion>
-          ))}
+                  {/* Document header */}
+                  {/* <div className="flex items-center gap-3 font-medium p-2 bg-gray-50">
+                    <PictureAsPdfIcon className="text-red-500" />
+                    <span className="text-gray-800">{doc.Title}</span>
+                    <span className="ml-auto text-sm text-gray-500">
+                      {doc.StageName || "Unknown Stage"}
+                    </span>
+                  </div> */}
+
+                  {/* Document table */}
+                  <table className="w-full text-left text-sm">
+                    <tbody>
+                      {Object.entries(doc).map(([field, value]) => {
+                        if (
+                          ["Title", "Url", "StageName", "GeneratedOn"].includes(
+                            field
+                          )
+                        )
+                          return null;
+                        return (
+                          <tr
+                            key={field}
+                            className="border-t border-gray-200 hover:bg-gray-50"
+                          >
+                            <td className="p-2 font-semibold w-1/3">{field}</td>
+                            <td className="p-2">{value}</td>
+                          </tr>
+                        );
+                      })}
+                      <tr className="border-t border-gray-200">
+                        <td className="p-2 font-semibold">Document</td>
+                        <td className="p-2">
+                          <a
+                            href={doc.Url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sky-500 hover:underline flex items-center gap-1"
+                          >
+                            <DescriptionIcon fontSize="small" />
+                            View PDF
+                          </a>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      </div>
+      ))}
     </div>
   );
-};
-
-export default LoanPackagePanel;
+}
