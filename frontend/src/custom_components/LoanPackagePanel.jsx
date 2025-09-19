@@ -17,9 +17,9 @@ export default function LoanPackagePanel({ borrower, borrowerDocs }) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="h-full overflow-y-auto space-y-6">
       {/* Borrower Header */}
-      <h2 className="text-xl font-bold text-sky-600 border-b pb-2">
+      <h2 className="text-xl font-bold text-sky-600 border-b pb-2 sticky top-0 bg-white z-10">
         {borrower}
       </h2>
 
@@ -30,7 +30,7 @@ export default function LoanPackagePanel({ borrower, borrowerDocs }) {
         >
           {/* Dropdown Header */}
           <div
-            className="flex items-center justify-between p-3 bg-gray-100 cursor-pointer rounded-t-lg"
+            className="flex items-center justify-between p-3 bg-gray-100 cursor-pointer rounded-t-lg sticky top-10 z-5"
             onClick={() => toggleCategory(category)}
           >
             <span className="font-semibold text-gray-700">{category}</span>
@@ -49,16 +49,6 @@ export default function LoanPackagePanel({ borrower, borrowerDocs }) {
                   key={idx}
                   className="border border-gray-200 rounded-lg overflow-hidden"
                 >
-                  {/* Document header */}
-                  {/* <div className="flex items-center gap-3 font-medium p-2 bg-gray-50">
-                    <PictureAsPdfIcon className="text-red-500" />
-                    <span className="text-gray-800">{doc.Title}</span>
-                    <span className="ml-auto text-sm text-gray-500">
-                      {doc.StageName || "Unknown Stage"}
-                    </span>
-                  </div> */}
-
-                  {/* Document table */}
                   <table className="w-full text-left text-sm">
                     <tbody>
                       {Object.entries(doc).map(([field, value]) => {

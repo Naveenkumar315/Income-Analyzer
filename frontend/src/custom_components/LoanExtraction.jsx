@@ -70,8 +70,9 @@ const LoanExatraction = ({ showSection = {}, setShowSection = () => {} }) => {
       </div>
 
       {/* Main layout */}
+      {/* Main layout */}
       {isUploaded?.uploaded ? (
-        <div className="flex border-t border-gray-300 h-[calc(100vh-100px)]">
+        <div className="flex border-t border-gray-300 h-[calc(100vh-150px)]">
           {/* Borrower list */}
           <div className="w-[25%] border-r border-gray-300 p-2 overflow-y-auto">
             <p className="font-semibold mb-2 text-[#26a3dd]">Loan Package</p>
