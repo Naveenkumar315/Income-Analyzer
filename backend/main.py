@@ -73,6 +73,7 @@ class CleanJsonRequest(BaseModel):
 
 @app.post("/clean-json")
 async def clean_json(req: CleanJsonRequest):
+    # Run cleaner
     cleaned = clean_borrower_documents_from_dict(
         data=req.raw_json,
         threshold=req.threshold,
@@ -80,7 +81,7 @@ async def clean_json(req: CleanJsonRequest):
         employer_indicators=req.employer_indicators,
     )
 
-    # Convert array → dict { borrower_name: borrower_data }
+    # Convert to dict form for saving in DB
     cleaned_dict = {}
     if isinstance(cleaned, list):
         for item in cleaned:
@@ -99,7 +100,9 @@ async def clean_json(req: CleanJsonRequest):
         "email": req.email,
         "loanID": req.loanID,
         "file_name": req.file_name,
+        # 🔑 keep raw merged json for audit/debug
         "original_data": req.raw_json,
+        # 🔑 save the updated merged borrower structure here
         "cleaned_data": cleaned_dict,
         "updated_at": timestamp,
     }
@@ -117,5 +120,8 @@ async def clean_json(req: CleanJsonRequest):
         record["created_at"] = timestamp
         await db["uploadedData"].insert_one(record)
 
+    # ✅ return cleaned_dict so frontend sees the merged borrowers
     return {"message": "Data saved successfully", "cleaned_json": cleaned_dict}
+
+
 

@@ -7,8 +7,10 @@ export default function LoanPackagePanel({ borrower, category, docs }) {
   const [openDocs, setOpenDocs] = useState({});
 
   useEffect(() => {
-    if (docs && docs.length > 0) {
-      setOpenDocs({ 0: true }); // Auto-expand first doc
+    if (Array.isArray(docs) && docs.length > 0) {
+      setOpenDocs({ 0: true });
+    } else {
+      setOpenDocs({});
     }
   }, [category, docs]);
 
@@ -18,25 +20,52 @@ export default function LoanPackagePanel({ borrower, category, docs }) {
 
   function formatCategory(cat = "") {
     return cat
-      .replace(/([a-z])([A-Z])/g, "$1 $2") // split camelCase
-      .replace(/[_-]/g, " ") // replace _ and - with space
-      .replace(/\s+/g, " ") // collapse spaces
+      .replace(/([a-z])([A-Z])/g, "$1 $2")
+      .replace(/[_-]/g, " ")
+      .replace(/\s+/g, " ")
       .trim()
-      .replace(/\b\w/g, (c) => c.toUpperCase()); // capitalize words
+      .replace(/\b\w/g, (c) => c.toUpperCase());
   }
 
-  if (!docs) return null;
+  const formatDocTitle = (doc) => {
+    const t =
+      (typeof doc === "string" && doc) ||
+      doc?.Title ||
+      doc?.title ||
+      doc?.fileName ||
+      doc?.file_name ||
+      doc?.name ||
+      "";
+    let s = String(t).split("~")[0];
+    s = s.replace(/\.(pdf|png|jpg|jpeg)$/i, "");
+    s = s.replace(/[_-]+/g, " ").trim();
+    if (s.length > 70) {
+      const parts = s.split(" ");
+      s = parts.slice(-3).join(" ");
+    }
+    return s || "Document";
+  };
+
+  if (!Array.isArray(docs) || docs.length === 0) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center text-gray-400">
+        <h2 className="text-xl font-bold text-sky-600 border-b pb-2">
+          {borrower} / {formatCategory(category)}
+        </h2>
+        <p>No documents found</p>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col overflow-hidden space-y-4">
       <h2 className="text-xl font-bold text-sky-600 border-b pb-2 shrink-0">
-        {borrower} / {category}
+        {borrower} / {formatCategory(category)}
       </h2>
 
       <div className="flex-1 overflow-auto flex flex-col gap-4">
         {docs.map((doc, idx) => {
-          // Filter fields (exclude metadata like Title/Url)
-          const fieldEntries = Object.entries(doc).filter(
+          const fieldEntries = Object.entries(doc || {}).filter(
             ([field]) =>
               !["Title", "Url", "StageName", "GeneratedOn"].includes(field)
           );
@@ -47,16 +76,12 @@ export default function LoanPackagePanel({ borrower, category, docs }) {
               key={idx}
               className="border border-gray-300 rounded-md bg-white shadow-sm"
             >
-              {/* Dropdown header */}
               <div
                 className="flex items-center justify-between px-4 py-3 bg-gray-50 cursor-pointer rounded-t-md hover:bg-gray-100"
                 onClick={() => toggleDoc(idx)}
               >
                 <div className="flex items-center gap-2">
                   <DescriptionIcon className="text-sky-600" />
-                  {/* <span className="font-semibold text-gray-800">
-                    {doc.Title || `${category}_${idx + 1}`}
-                  </span> */}
                   <span className="font-semibold text-gray-800">
                     {formatCategory(category)}
                   </span>
@@ -72,7 +97,6 @@ export default function LoanPackagePanel({ borrower, category, docs }) {
                 )}
               </div>
 
-              {/* Dropdown body */}
               {openDocs[idx] && (
                 <div className="p-4">
                   <table className="w-full text-left border-collapse text-sm">
@@ -93,14 +117,14 @@ export default function LoanPackagePanel({ borrower, category, docs }) {
                           <td className="p-2 font-medium text-gray-700">
                             {field}
                           </td>
-                          <td className="p-2 text-gray-600">{value}</td>
+                          <td className="p-2 text-gray-600">{String(value)}</td>
                         </tr>
                       ))}
                       <tr>
                         <td className="p-2 font-medium">Document</td>
                         <td className="p-2">
                           <a
-                            href={doc.Url}
+                            href={doc?.Url}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-sky-500 hover:underline flex items-center gap-1"
