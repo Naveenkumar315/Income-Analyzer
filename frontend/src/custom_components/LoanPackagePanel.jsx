@@ -8,8 +8,7 @@ export default function LoanPackagePanel({ borrower, category, docs }) {
 
   useEffect(() => {
     if (docs && docs.length > 0) {
-      // Auto-expand the first doc
-      setOpenDocs({ 0: true });
+      setOpenDocs({ 0: true }); // Auto-expand first doc
     }
   }, [category, docs]);
 
@@ -26,7 +25,7 @@ export default function LoanPackagePanel({ borrower, category, docs }) {
         {borrower} / {category}
       </h2>
 
-      {/* Doc List */}
+      {/* Doc List (scroll here, not inside each doc) */}
       <div className="flex-1 overflow-auto flex flex-col gap-4">
         {docs.map((doc, idx) => (
           <div
@@ -51,9 +50,9 @@ export default function LoanPackagePanel({ borrower, category, docs }) {
               )}
             </div>
 
-            {/* Collapsible body */}
+            {/* Collapsible body (no inner scroll) */}
             {openDocs[idx] && (
-              <div className="p-3 overflow-auto max-h-[calc(100vh-250px)]">
+              <div className="p-3">
                 <table className="w-full text-left text-sm">
                   <tbody>
                     {Object.entries(doc).map(([field, value]) => {
