@@ -2,7 +2,10 @@ import Button from "../components/Button";
 
 const UnuploadedScreen = ({ setShowSection }) => {
   return (
-    <div className="m-[15%] flex flex-col items-center justify-center text-center">
+    <div
+      className="h-full flex flex-col items-center justify-center text-center"
+      style={{ margin: "auto" }}
+    >
       <p className="text-gray-500 mb-4">
         No documents yet, Upload to start extracting
       </p>

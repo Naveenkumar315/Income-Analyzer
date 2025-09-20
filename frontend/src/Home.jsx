@@ -5,16 +5,12 @@ import Rules from "./custom_components/Rules";
 import useCurrentUser from "./hooks/useCurrentUser";
 
 const Home = () => {
-  const { user, loading, logout } = useCurrentUser();
+  const { user, logout } = useCurrentUser();
   const { username, email } = user || {};
   const name = username || "User";
   const initial = name ? name.charAt(0).toUpperCase() : "?";
 
   const [tab, setTab] = useState(0);
-
-  const handleTabChange = (event, newValue) => {
-    setTab(newValue);
-  };
 
   return (
     <div className="flex flex-col h-screen">
@@ -22,7 +18,7 @@ const Home = () => {
       <Header
         initial={initial}
         tabValue={tab}
-        onTabChange={handleTabChange}
+        onTabChange={(e, v) => setTab(v)}
         logout={logout}
         username={username}
         email={email}
