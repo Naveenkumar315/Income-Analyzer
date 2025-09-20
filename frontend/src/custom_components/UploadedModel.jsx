@@ -14,6 +14,7 @@ import { toast } from "react-toastify";
 
 import { useUpload } from "../context/UploadContext";
 import { transformObjectToArray } from "../utils/helper";
+import { mock_file_data } from "../utils/mock_data";
 
 const style = {
   position: "absolute",
@@ -77,16 +78,18 @@ export default function UploadedModel({
       try {
         const rawJson = JSON.parse(e.target.result);
 
-        const res = await api.post("/clean-json", {
-          username: username || "",
-          email: email || "",
-          loanID: sessionStorage.getItem("loanId") || loanId || "",
-          file_name: file.name,
-          raw_json: rawJson,
-          threshold: 0.7,
-          borrower_indicators: ["borrower name", "employee name"],
-          employer_indicators: ["employer", "company"],
-        });
+        // const res = await api.post("/clean-json", {
+        //   username: username || "",
+        //   email: email || "",
+        //   loanID: sessionStorage.getItem("loanId") || loanId || "",
+        //   file_name: file.name,
+        //   raw_json: rawJson,
+        //   threshold: 0.7,
+        //   borrower_indicators: ["borrower name", "employee name"],
+        //   employer_indicators: ["employer", "company"],
+        // });
+
+        const res = mock_file_data;
 
         updateProgress(100, 1, 1, "Cleaning completed");
         completeLoader("Analysis Complete!");
@@ -94,7 +97,7 @@ export default function UploadedModel({
         // ✅ You can now lift this cleaned JSON up to Dashboard or show in a table
         // console.log("Cleaned JSON:", res.data.cleaned_json);
         // const result = transformObjectToArray(res.data.cleaned_json || {});
-        set_normalized_json(res.data.cleaned_json || {});
+        set_normalized_json(res || {});
         toast.success("File processed successfully!");
         setIsUploaded((prev) => ({ ...prev, uploaded: true }));
       } catch (err) {

@@ -12,6 +12,7 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 
 import { FaFolder, FaFolderOpen } from "react-icons/fa";
 import BackLink from "./BackLink";
+import EnterBorrowerName from "./EnterBorrowerName";
 // import { FaFolderOpen } from "react-icons/fa";
 const LoanExatraction = ({
   showSection = {},
@@ -24,6 +25,10 @@ const LoanExatraction = ({
   const [selectedBorrower, setSelectedBorrower] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [openBorrowers, setOpenBorrowers] = useState({});
+  const [addBorrower, setAddBorrower] = useState({
+    model: false,
+    borrowerName: "",
+  });
 
   useEffect(() => setRawData(normalized_json), [normalized_json]);
 
@@ -88,9 +93,17 @@ const LoanExatraction = ({
             <>
               {/* Borrower + categories */}
               <div className="w-[25%] border-r border-gray-300 p-2 overflow-auto">
-                <p className="font-semibold mb-2 text-[#26a3dd]">
-                  Loan Package
-                </p>
+                <div className="font-semibold mb-2 text-[#26a3dd] flex justify-between">
+                  <span>Loan Package</span>
+                  <p
+                    className="cursor-pointer"
+                    onClick={() =>
+                      setAddBorrower((prev) => ({ ...prev, model: true }))
+                    }
+                  >
+                    Select
+                  </p>
+                </div>
                 <ul>
                   {borrowers.map((name) => {
                     const categories = Object.keys(rawData[name] || {});
@@ -193,6 +206,13 @@ const LoanExatraction = ({
           <UploadedModel setShowSection={setShowSection} />
         )}
       </div>
+
+      {addBorrower?.model && (
+        <EnterBorrowerName
+          setAddBorrower={setAddBorrower}
+          addBorrower={addBorrower}
+        />
+      )}
     </>
   );
 };
