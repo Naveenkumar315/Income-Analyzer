@@ -61,7 +61,7 @@ const CustomTable = ({ columns, data, renderCustomCells, loading = false }) => {
                   <CircularProgress size={32} thickness={4} />
                 </TableCell>
               </TableRow>
-            ) : paginatedData.length === 0 ? (
+            ) : data.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={columns.length}

@@ -9,6 +9,7 @@ const ProcessLoanTable = ({
   columns = [],
   data = [],
   setShowSection = () => {},
+  loading,
 }) => {
   const handle_section_change = () => {
     try {
@@ -38,7 +39,7 @@ const ProcessLoanTable = ({
       <CustomTable
         columns={columns}
         data={data}
-        loading={data.length === 0}
+        loading={loading}
         renderCustomCells={(field, row) => {
           if (field === "status") {
             let chipProps = {};
