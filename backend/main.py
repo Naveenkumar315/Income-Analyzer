@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import auth
 
@@ -43,37 +43,9 @@ class CleanJsonRequest(BaseModel):
     employer_indicators: Optional[List[str]] = None
 
 
-# @app.post("/clean-json")
-# async def clean_json(req: CleanJsonRequest):
-#     # Clean JSON
-#     cleaned = clean_borrower_documents_from_dict(
-#         data=req.raw_json,
-#         threshold=req.threshold,
-#         borrower_indicators=req.borrower_indicators,
-#         employer_indicators=req.employer_indicators,
-#     )
-
-#     # Current timestamp in required format
-#     timestamp = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")
-
-#     # Save into MongoDB
-#     record = {
-#         "username": req.username,
-#         "email": req.email,
-#         "loanID": req.loanID,
-#         "file_name": req.file_name,
-#         "original_data": req.raw_json,
-#         "cleaned_data": cleaned,
-#         "created_at": timestamp,
-#         "updated_at": timestamp,   # both same at insertion
-#     }
-#     await db["uploadedData"].insert_one(record)
-
-#     return {"message": "Upload saved successfully", "cleaned_json": cleaned}
-
 @app.post("/clean-json")
 async def clean_json(req: CleanJsonRequest):
-    # Run cleaner
+    # Clean JSON
     cleaned = clean_borrower_documents_from_dict(
         data=req.raw_json,
         threshold=req.threshold,
@@ -81,47 +53,54 @@ async def clean_json(req: CleanJsonRequest):
         employer_indicators=req.employer_indicators,
     )
 
-    # Convert to dict form for saving in DB
-    cleaned_dict = {}
-    if isinstance(cleaned, list):
-        for item in cleaned:
-            if isinstance(item, dict) and "borrower" in item:
-                borrower_name = item["borrower"]
-                cleaned_dict[borrower_name] = item.get("docs", {})
-    elif isinstance(cleaned, dict):
-        cleaned_dict = cleaned
-    else:
-        cleaned_dict = {}
-
+    # Current timestamp in required format
     timestamp = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")
 
+    # Save into MongoDB
     record = {
         "username": req.username,
         "email": req.email,
         "loanID": req.loanID,
         "file_name": req.file_name,
-        # 🔑 keep raw merged json for audit/debug
         "original_data": req.raw_json,
-        # 🔑 save the updated merged borrower structure here
-        "cleaned_data": cleaned_dict,
-        "updated_at": timestamp,
+        "cleaned_data": cleaned,
+        "created_at": timestamp,
+        "updated_at": timestamp,   # both same at insertion
     }
+    await db["uploadedData"].insert_one(record)
 
+    return {"message": "Upload saved successfully", "cleaned_json": cleaned}
+
+@app.post("/update-cleaned-data")
+async def update_cleaned_data(req: CleanJsonRequest):
+    # Find existing record
     existing = await db["uploadedData"].find_one(
         {"loanID": req.loanID, "email": req.email}
     )
 
-    if existing:
-        await db["uploadedData"].update_one(
-            {"loanID": req.loanID, "email": req.email},
-            {"$set": record},
-        )
-    else:
-        record["created_at"] = timestamp
-        await db["uploadedData"].insert_one(record)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Record not found")
 
-    # ✅ return cleaned_dict so frontend sees the merged borrowers
-    return {"message": "Data saved successfully", "cleaned_json": cleaned_dict}
+    # Current cleaned_data from DB
+    current_cleaned = existing.get("cleaned_data", {})
+
+    # New cleaned_data from client (merge or modification)
+    # 👇 this will come from frontend after merge
+    new_cleaned = req.raw_json  
+
+    # Timestamp
+    timestamp = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")
+
+    # Update only cleaned_data + updated_at
+    await db["uploadedData"].update_one(
+        {"loanID": req.loanID, "email": req.email},
+        {"$set": {"cleaned_data": new_cleaned, "updated_at": timestamp}},
+    )
+
+    return {
+        "message": "Cleaned data updated successfully",
+        "cleaned_json": new_cleaned,
+    }
 
 
 

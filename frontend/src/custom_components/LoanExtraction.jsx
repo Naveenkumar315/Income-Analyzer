@@ -25,7 +25,7 @@ const LoanExatraction = ({
   setShowSection = () => {},
   goBack,
 }) => {
-  const { isUploaded, normalized_json } = useUpload();
+  const { isUploaded, normalized_json, set_normalized_json } = useUpload();
 
   // UI & data state
   const [rulesModel, setRulesModel] = useState(false);
@@ -151,60 +151,42 @@ const LoanExatraction = ({
 
   // merge flow: selectedBase (A) + targetBorrower (B) -> newName
   const handleMerge = async (targetBorrower, newName) => {
-    if (!selectedBase) return;
-    if (!targetBorrower) return;
+    if (!selectedBase || !targetBorrower) return;
 
     const email = sessionStorage.getItem("email");
     const loanID = sessionStorage.getItem("loanId");
     const username = sessionStorage.getItem("username") || "User";
 
-    try {
-      // deep clone
-      const mergedData = JSON.parse(JSON.stringify(rawData || {}));
+    // deep clone current rawData
+    const mergedData = JSON.parse(JSON.stringify(rawData));
 
-      // build union of categories (if same category exists, concatenate arrays)
-      const baseCats = mergedData[selectedBase] || {};
-      const targetCats = mergedData[targetBorrower] || {};
-      const unionCats = { ...baseCats };
+    // merge categories
+    const baseCats = mergedData[selectedBase] || {};
+    const targetCats = mergedData[targetBorrower] || {};
+    const unionCats = { ...baseCats };
 
-      Object.keys(targetCats).forEach((cat) => {
-        if (!Array.isArray(unionCats[cat])) unionCats[cat] = [];
-        // concat docs from target; avoid mutating original doc objects
-        unionCats[cat] = unionCats[cat].concat(targetCats[cat]);
-      });
+    Object.keys(targetCats).forEach((cat) => {
+      if (!Array.isArray(unionCats[cat])) unionCats[cat] = [];
+      unionCats[cat] = unionCats[cat].concat(targetCats[cat]);
+    });
 
-      // if there are categories present in base that are arrays already, keep them
-      // delete originals
-      delete mergedData[selectedBase];
-      delete mergedData[targetBorrower];
+    delete mergedData[selectedBase];
+    delete mergedData[targetBorrower];
+    mergedData[newName] = unionCats;
 
-      // set new borrower name
-      mergedData[newName] = unionCats;
+    // 🔥 Call new update API
+    const res = await api.post("/update-cleaned-data", {
+      username,
+      email,
+      loanID,
+      file_name: "merge_update",
+      raw_json: mergedData, // we treat this as cleaned_data now
+    });
 
-      // call backend: re-run cleaning/upsert via /clean-json (your backend will upsert)
-      const res = await api.post("/clean-json", {
-        username,
-        email,
-        loanID,
-        file_name: "merge_update",
-        raw_json: mergedData,
-      });
-
-      // backend might return array or object; normalize to object-of-objects
-      const cleaned = res?.data?.cleaned_json ?? res?.data ?? res;
-      const normalized = normalizeToObjectOfObjects(cleaned);
-
-      // update UI with normalized object structure
-      setRawData(normalized);
-
-      // reset select mode
-      setSelectMode(false);
-      setSelectedBase(null);
-      setAnchorEl(null);
-    } catch (err) {
-      console.error("Merge failed", err);
-      // optionally show a toast / snackbar here
-    }
+    // Update UI
+    set_normalized_json(res.data.cleaned_json);
+    setSelectMode(false);
+    setSelectedBase(null);
   };
 
   return (
