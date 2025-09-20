@@ -30,6 +30,7 @@ const Dashboard = () => {
       const res = await api.post("/uploaded-data/by-email", { email });
       if (res.data && res.data.length > 0) {
         setData(transformUploadedData(res.data));
+        console.log("table data", transformUploadedData(res.data));
       }
     } catch (err) {
       console.error("Error fetching uploaded data", err);
@@ -53,7 +54,7 @@ const Dashboard = () => {
         minute: "2-digit",
         hour12: true,
       }),
-      uploadedBy: item.borrower || "",
+      uploadedBy: sessionStorage.getItem("username") || item.borrower || "",
       actions: "",
     }));
 
