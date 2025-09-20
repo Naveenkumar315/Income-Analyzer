@@ -165,7 +165,7 @@ const Dashboard = ({}) => {
 
   return (
     <>
-      <main className="flex-1 bg-gray-100 p-4">
+      <div className="h-full flex flex-col overflow-hidden">
         {!showSection.processLoanSection &&
           !showSection.provideLoanIDSection && (
             <>
@@ -177,7 +177,7 @@ const Dashboard = ({}) => {
           )}
 
         <div
-          className="bg-white rounded-lg p-2 min-h-[calc(90vh-90px)] max-h-[calc(80vh-80px)]"
+          className="bg-white rounded-lg p-2 flex-1 overflow-auto"
           style={{ boxShadow: "rgba(0, 0, 0, 0.16) 0px 1px 4px" }}
         >
           {showSection.processLoanSection && (
@@ -222,7 +222,7 @@ const Dashboard = ({}) => {
             </>
           )}
         </div>
-      </main>
+      </div>
     </>
   );
 };

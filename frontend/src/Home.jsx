@@ -3,12 +3,10 @@ import Dashboard from "./custom_components/Dashboard";
 import Header from "./custom_components/Header";
 import Rules from "./custom_components/Rules";
 import useCurrentUser from "./hooks/useCurrentUser";
-import LoadingModal from "./custom_components/LoaderModal";
 
 const Home = () => {
   const { user, loading, logout } = useCurrentUser();
   const { username, email } = user || {};
-  console.log("User from context:", user, "Loading:", loading);
   const name = username || "User";
   const initial = name ? name.charAt(0).toUpperCase() : "?";
 
@@ -19,8 +17,8 @@ const Home = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
-      {/* Header */}
+    <div className="flex flex-col h-screen">
+      {/* Header (fixed height) */}
       <Header
         initial={initial}
         tabValue={tab}
@@ -30,16 +28,13 @@ const Home = () => {
         email={email}
       />
 
-      {/* Main Content - takes remaining height */}
-      {/* <main className="flex-1 bg-gray-100 p-4 overflow-auto">
-        <div
-          className="bg-white rounded-lg p-2 min-h-[calc(100vh-100px)] max-h-[calc(100vh-80px)] overflow-auto"
-          style={{ boxShadow: "rgba(0, 0, 0, 0.16) 0px 1px 4px" }}
-        > */}
-      {tab === 0 && <Dashboard username={username} email={email} />}
-      {tab === 1 && <Rules />}
-      {/* </div>
-      </main> */}
+      {/* Main Content fills rest of viewport */}
+      <main className="flex-1 overflow-hidden bg-gray-100">
+        <div className="h-full overflow-auto p-4">
+          {tab === 0 && <Dashboard username={username} email={email} />}
+          {tab === 1 && <Rules />}
+        </div>
+      </main>
     </div>
   );
 };
