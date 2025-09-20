@@ -4,6 +4,7 @@ import ProcessLoanTable from "./ProcessLoanTable";
 import UploadedDocument from "./UploadedDocument";
 import UnderwritingRuleResult from "./UnderwritingRuleResults";
 import api from "../api/client";
+import StepChips from "../custom_components/StepChips";
 const Dashboard = ({}) => {
   const [showSection, setShowSection] = useState({
     processLoanSection: true,
@@ -139,7 +140,6 @@ const Dashboard = ({}) => {
   //   },
   // ];
 
-
   const handleStepChange = (step) => {
     setActiveStep(step);
     if (step === 1) {
@@ -150,7 +150,7 @@ const Dashboard = ({}) => {
         extractedSection: false,
         uploadedModel: false,
         startAnalyzing: true,
-      }))
+      }));
     } else {
       setShowSection((prev) => ({
         ...prev,
@@ -159,23 +159,27 @@ const Dashboard = ({}) => {
         extractedSection: true,
         uploadedModel: false,
         startAnalyzing: false,
-      }))
+      }));
     }
   };
 
   return (
     <>
-
       <main className="flex-1 bg-gray-100 p-4">
-        {
-          (!showSection.processLoanSection && !showSection.provideLoanIDSection) && (<><StepChips activeStep={activeStep} onStepChange={handleStepChange} /></>)
-        }
+        {!showSection.processLoanSection &&
+          !showSection.provideLoanIDSection && (
+            <>
+              <StepChips
+                activeStep={activeStep}
+                onStepChange={handleStepChange}
+              />
+            </>
+          )}
 
         <div
           className="bg-white rounded-lg p-2 min-h-[calc(90vh-90px)] max-h-[calc(80vh-80px)]"
           style={{ boxShadow: "rgba(0, 0, 0, 0.16) 0px 1px 4px" }}
         >
-
           {showSection.processLoanSection && (
             <ProcessLoanTable
               columns={columns}
@@ -217,8 +221,8 @@ const Dashboard = ({}) => {
               </div>
             </>
           )}
-
-        </div></main>
+        </div>
+      </main>
     </>
   );
 };

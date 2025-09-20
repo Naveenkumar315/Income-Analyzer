@@ -115,23 +115,26 @@ const LoanExatraction = ({ showSection = {}, setShowSection = () => {} }) => {
                     {/* Categories */}
                     {openBorrowers[name] && (
                       <ul className="ml-6 mt-1">
-                        {categories.map((cat) => (
-                          <li
-                            key={cat}
-                            onClick={() => {
-                              setSelectedBorrower(name);
-                              setSelectedCategory(cat);
-                            }}
-                            className={`p-1 cursor-pointer text-sm hover:bg-gray-50 ${
-                              name === selectedBorrower &&
-                              cat === selectedCategory
-                                ? "text-sky-600 font-semibold"
-                                : "text-gray-700"
-                            }`}
-                          >
-                            {cat}
-                          </li>
-                        ))}
+                        {categories.map((cat) => {
+                          const docCount = rawData[name][cat]?.length || 0; // count documents
+                          return (
+                            <li
+                              key={cat}
+                              onClick={() => {
+                                setSelectedBorrower(name);
+                                setSelectedCategory(cat);
+                              }}
+                              className={`p-1 cursor-pointer text-sm hover:bg-gray-50 ${
+                                name === selectedBorrower &&
+                                cat === selectedCategory
+                                  ? "text-sky-600 font-semibold"
+                                  : "text-gray-700"
+                              }`}
+                            >
+                              {cat} ({docCount})
+                            </li>
+                          );
+                        })}
                       </ul>
                     )}
                   </li>
