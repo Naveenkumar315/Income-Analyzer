@@ -80,6 +80,18 @@ async def clean_json(req: CleanJsonRequest):
         employer_indicators=req.employer_indicators,
     )
 
+    # Convert array → dict { borrower_name: borrower_data }
+    cleaned_dict = {}
+    if isinstance(cleaned, list):
+        for item in cleaned:
+            if isinstance(item, dict) and "borrower" in item:
+                borrower_name = item["borrower"]
+                cleaned_dict[borrower_name] = item.get("docs", {})
+    elif isinstance(cleaned, dict):
+        cleaned_dict = cleaned
+    else:
+        cleaned_dict = {}
+
     timestamp = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")
 
     record = {
@@ -88,23 +100,22 @@ async def clean_json(req: CleanJsonRequest):
         "loanID": req.loanID,
         "file_name": req.file_name,
         "original_data": req.raw_json,
-        "cleaned_data": cleaned,
+        "cleaned_data": cleaned_dict,
         "updated_at": timestamp,
     }
 
-    existing = await db["uploadedData"].find_one({
-        "loanID": req.loanID,
-        "email": req.email
-    })
+    existing = await db["uploadedData"].find_one(
+        {"loanID": req.loanID, "email": req.email}
+    )
 
     if existing:
         await db["uploadedData"].update_one(
             {"loanID": req.loanID, "email": req.email},
-            {"$set": record}
+            {"$set": record},
         )
     else:
         record["created_at"] = timestamp
         await db["uploadedData"].insert_one(record)
 
-    return {"message": "Data saved successfully", "cleaned_json": cleaned}
+    return {"message": "Data saved successfully", "cleaned_json": cleaned_dict}
 
