@@ -12,6 +12,9 @@ import api from "../api/client";
 import useCurrentUser from "../hooks/useCurrentUser";
 import { toast } from "react-toastify";
 
+import { useUpload } from "../context/UploadContext";
+import { transformObjectToArray } from "../utils/helper";
+
 const style = {
   position: "absolute",
   top: "50%",
@@ -33,14 +36,17 @@ export default function UploadedModel({
 }) {
   const { showLoader, hideLoader, updateProgress, completeLoader } =
     useLoader();
+  const { isUploaded, setIsUploaded, set_normalized_json } = useUpload();
   const { user } = useCurrentUser();
   const { username, email } = user || {};
 
   const [files, setFiles] = React.useState([]);
   const fileInputRef = React.useRef(null);
 
-  const handleClose = () =>
+  const handleClose = () => {
+    setIsUploaded((prev) => ({ ...prev, uploaded: false }));
     setShowSection((prev) => ({ ...prev, uploadedModel: false }));
+  };
 
   const handleFileChange = (event) => {
     try {
@@ -86,11 +92,15 @@ export default function UploadedModel({
         completeLoader("Analysis Complete!");
 
         // ✅ You can now lift this cleaned JSON up to Dashboard or show in a table
-        console.log("Cleaned JSON:", res.data.cleaned_json);
+        // console.log("Cleaned JSON:", res.data.cleaned_json);
+        // const result = transformObjectToArray(res.data.cleaned_json || {});
+        set_normalized_json(res.data.cleaned_json || {});
         toast.success("File processed successfully!");
+        setIsUploaded((prev) => ({ ...prev, uploaded: true }));
       } catch (err) {
         console.error("Error uploading JSON:", err);
         toast.error("Error processing file. Please try again.");
+        setIsUploaded((prev) => ({ ...prev, uploaded: false }));
       } finally {
         hideLoader();
       }
@@ -188,7 +198,7 @@ export default function UploadedModel({
             disabled={files.length === 0}
             onClick={handleFileUpload}
           >
-            {files.length > 0 ? "Upload & Clean" : "Upload"}
+            {"Upload"}
           </Button>
         </Box>
       </Box>

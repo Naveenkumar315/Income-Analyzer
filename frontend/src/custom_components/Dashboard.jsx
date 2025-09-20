@@ -4,9 +4,7 @@ import ProcessLoanTable from "./ProcessLoanTable";
 import UploadedDocument from "./UploadedDocument";
 import UnderwritingRuleResult from "./UnderwritingRuleResults";
 import api from "../api/client";
-import StepChips from "./StepChips";
-
-const Dashboard = ({ email }) => {
+const Dashboard = ({}) => {
   const [showSection, setShowSection] = useState({
     processLoanSection: true,
     provideLoanIDSection: false,
