@@ -8,24 +8,19 @@ import {
   TableRow,
   Paper,
   TablePagination,
+  CircularProgress,
 } from "@mui/material";
 
-const CustomTable = ({ columns, data, renderCustomCells }) => {
+const CustomTable = ({ columns, data, renderCustomCells, loading = false }) => {
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(5); // default rows per page
+  const [rowsPerPage, setRowsPerPage] = useState(5);
 
-  // Handle page change
-  const handleChangePage = (event, newPage) => {
-    setPage(newPage);
-  };
-
-  // Handle rows per page change
+  const handleChangePage = (event, newPage) => setPage(newPage);
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0); // reset to first page
+    setPage(0);
   };
 
-  // Slice data for current page
   const paginatedData = data.slice(
     page * rowsPerPage,
     page * rowsPerPage + rowsPerPage
@@ -47,7 +42,6 @@ const CustomTable = ({ columns, data, renderCustomCells }) => {
                     fontWeight: 600,
                     zIndex: 999,
                   }}
-                  className="text-white font-semibold"
                 >
                   {col.label}
                 </TableCell>
@@ -57,7 +51,17 @@ const CustomTable = ({ columns, data, renderCustomCells }) => {
 
           {/* BODY */}
           <TableBody>
-            {paginatedData.length === 0 ? (
+            {loading ? (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  align="center"
+                  sx={{ py: 6 }}
+                >
+                  <CircularProgress size={32} thickness={4} />
+                </TableCell>
+              </TableRow>
+            ) : paginatedData.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
@@ -88,15 +92,17 @@ const CustomTable = ({ columns, data, renderCustomCells }) => {
       </TableContainer>
 
       {/* PAGINATION */}
-      <TablePagination
-        component="div"
-        count={data.length}
-        page={page}
-        onPageChange={handleChangePage}
-        rowsPerPage={rowsPerPage}
-        onRowsPerPageChange={handleChangeRowsPerPage}
-        rowsPerPageOptions={[5, 10, 25, 50]}
-      />
+      {!loading && (
+        <TablePagination
+          component="div"
+          count={data.length}
+          page={page}
+          onPageChange={handleChangePage}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          rowsPerPageOptions={[5, 10, 25, 50]}
+        />
+      )}
     </Paper>
   );
 };

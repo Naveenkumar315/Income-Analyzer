@@ -38,6 +38,7 @@ const ProcessLoanTable = ({
       <CustomTable
         columns={columns}
         data={data}
+        loading={data.length === 0}
         renderCustomCells={(field, row) => {
           if (field === "status") {
             let chipProps = {};
