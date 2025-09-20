@@ -11,6 +11,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 
 import { FaFolder, FaFolderOpen } from "react-icons/fa";
+import BackLink from "./BackLink";
 // import { FaFolderOpen } from "react-icons/fa";
 const LoanExatraction = ({
   showSection = {},
@@ -53,9 +54,8 @@ const LoanExatraction = ({
 
   return (
     <>
-      <p onClick={goBack} className="text-blue-400 cursor-pointer">
-        ← Back
-      </p>
+      <BackLink onClick={goBack} />
+
       <div className="h-full flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex justify-between items-center pb-3 shrink-0">

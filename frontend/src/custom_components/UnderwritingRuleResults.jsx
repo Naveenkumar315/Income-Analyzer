@@ -12,6 +12,7 @@ import {
   Typography,
 } from "@mui/material";
 import SummarySection from "./SummarySection";
+import BackLink from "./BackLink";
 
 const Tabs = ["Rule Results", "Summary", "Insights"];
 
@@ -80,9 +81,8 @@ const UnderwritingRuleResult = ({ goBack }) => {
 
   return (
     <>
-      <p onClick={goBack} className="text-blue-400 cursor-pointer">
-        ← Back
-      </p>
+      <BackLink onClick={goBack} />
+
       <div className="flex  items-center">
         <ResultTab Tabs={Tabs} value={value} setValue={setValue} />
         <Button variant="result_download" label={"Download"} width={200} />

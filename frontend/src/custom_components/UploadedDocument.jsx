@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Button from "../components/Button";
 import Input from "../components/Input";
+import BackLink from "./BackLink";
 
 const UploadedDocument = ({
   setShowSection = () => {},
@@ -42,12 +43,9 @@ const UploadedDocument = ({
       <div className="bg-white rounded-xl shadow-md p-10 w-full max-w-md text-center relative">
         {/* Back button */}
         {goBack && (
-          <p
-            onClick={goBack}
-            className="absolute left-4 top-4 text-blue-400 cursor-pointer"
-          >
-            ← Back
-          </p>
+          <div className="absolute left-4 top-4">
+            <BackLink onClick={goBack} />
+          </div>
         )}
 
         <h2 className="text-lg font-semibold text-gray-800">Income Analyzer</h2>
