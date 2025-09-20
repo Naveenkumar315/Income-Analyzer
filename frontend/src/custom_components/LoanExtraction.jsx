@@ -10,6 +10,8 @@ import PersonSharpIcon from "@mui/icons-material/PersonSharp";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 
+import { FaFolder, FaFolderOpen } from "react-icons/fa";
+// import { FaFolderOpen } from "react-icons/fa";
 const LoanExatraction = ({ showSection = {}, setShowSection = () => {} }) => {
   const { isUploaded, normalized_json } = useUpload();
   const [rulesModel, setRulesModel] = useState(false);
@@ -116,14 +118,24 @@ const LoanExatraction = ({ showSection = {}, setShowSection = () => {} }) => {
                                   setSelectedBorrower(name);
                                   setSelectedCategory(cat);
                                 }}
-                                className={`p-1 cursor-pointer text-sm hover:bg-gray-50 ${
-                                  name === selectedBorrower &&
-                                  cat === selectedCategory
-                                    ? "text-sky-600 font-semibold"
-                                    : "text-gray-700"
-                                }`}
+                                className={`flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors
+                                    ${
+                                      name === selectedBorrower &&
+                                      cat === selectedCategory
+                                        ? "bg-blue-100 text-blue-600 font-semibold"
+                                        : "text-gray-700 hover:bg-gray-100"
+                                    }`}
                               >
-                                {cat} ({docCount})
+                                {name === selectedBorrower &&
+                                cat === selectedCategory ? (
+                                  <FaFolderOpen className="text-blue-500" />
+                                ) : (
+                                  <FaFolder className="text-gray-500" />
+                                )}
+                                <span className="truncate">{cat}</span>
+                                <span className="ml-auto text-xs text-gray-500">
+                                  ({docCount})
+                                </span>
                               </li>
                             );
                           })}
