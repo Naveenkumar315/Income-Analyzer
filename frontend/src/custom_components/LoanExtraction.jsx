@@ -13,6 +13,12 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import { FaFolder, FaFolderOpen } from "react-icons/fa";
 import BackLink from "./BackLink";
 import EnterBorrowerName from "./EnterBorrowerName";
+import Checkbox from "@mui/material/Checkbox";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
+import { TbArrowMerge } from "react-icons/tb";
+import CloseIcon from "@mui/icons-material/Close";
+import api from "../api/client";
 // import { FaFolderOpen } from "react-icons/fa";
 const LoanExatraction = ({
   showSection = {},
@@ -57,6 +63,38 @@ const LoanExatraction = ({
       startAnalyzing: true,
     }));
 
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedBase, setSelectedBase] = useState(null);
+  const [anchorEl, setAnchorEl] = useState(null);
+
+  const handleMerge = async (targetBorrower, newName) => {
+    const email = sessionStorage.getItem("email");
+    const loanID = sessionStorage.getItem("loanId");
+    const username = sessionStorage.getItem("username") || "User";
+
+    // Build merged structure
+    const mergedData = { ...rawData };
+    const mergedDocs = {
+      ...mergedData[selectedBase],
+      ...mergedData[targetBorrower],
+    };
+    delete mergedData[selectedBase];
+    delete mergedData[targetBorrower];
+    mergedData[newName] = mergedDocs;
+
+    const res = await api.post("/clean-json", {
+      username,
+      email,
+      loanID,
+      file_name: "merge_update",
+      raw_json: mergedData,
+    });
+
+    setRawData(res.data.cleaned_json);
+    setSelectMode(false);
+    setSelectedBase(null);
+  };
+
   return (
     <>
       <BackLink onClick={goBack} />
@@ -93,40 +131,64 @@ const LoanExatraction = ({
             <>
               {/* Borrower + categories */}
               <div className="w-[25%] border-r border-gray-300 p-2 overflow-auto">
-                <div className="font-semibold mb-2 text-[#26a3dd] flex justify-between">
+                <div className="font-semibold mb-2 text-[#26a3dd] flex justify-between items-center">
                   <span>Loan Package</span>
-                  <p
-                    className="cursor-pointer"
-                    onClick={() =>
-                      setAddBorrower((prev) => ({ ...prev, model: true }))
-                    }
-                  >
-                    Select
-                  </p>
+                  {selectMode ? (
+                    <div className="flex items-center gap-3">
+                      <TbArrowMerge
+                        className="text-blue-500 cursor-pointer"
+                        onClick={(e) => setAnchorEl(e.currentTarget)}
+                      />
+                      <CloseIcon
+                        className="text-red-400 cursor-pointer"
+                        onClick={() => {
+                          setSelectMode(false);
+                          setSelectedBase(null);
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <p
+                      className="cursor-pointer"
+                      onClick={() => setSelectMode(true)}
+                    >
+                      Select
+                    </p>
+                  )}
                 </div>
+
                 <ul>
                   {borrowers.map((name) => {
                     const categories = Object.keys(rawData[name] || {});
                     return (
                       <li key={name} className="mb-2">
                         <div
-                          className={`flex items-center justify-between p-2 cursor-pointer hover:bg-gray-50 ${
+                          className={`flex items-center justify-between p-2 ${
                             name === selectedBorrower
-                              ? "border-l-4 border-[#26a3dd] font-medium bg-gray-100 rounded-r-md"
-                              : "border-gray-200"
+                              ? "bg-gray-100 font-medium"
+                              : ""
                           }`}
-                          onClick={() => toggleBorrower(name)}
                         >
-                          <div className="flex items-center gap-2">
+                          {selectMode && (
+                            <Checkbox
+                              size="small"
+                              checked={selectedBase === name}
+                              onChange={() => setSelectedBase(name)}
+                            />
+                          )}
+                          <div
+                            className="flex items-center gap-2 cursor-pointer flex-1"
+                            onClick={() => toggleBorrower(name)}
+                          >
                             <PersonSharpIcon fontSize="small" />
                             <span className="capitalize">
                               {name.toLowerCase()}
                             </span>
                           </div>
                           {openBorrowers[name] ? (
-                            <ExpandLessIcon fontSize="small" />
+                            <ExpandLessIcon />
                           ) : (
-                            <ExpandMoreIcon fontSize="small" />
+                            <ExpandMoreIcon />
                           )}
                         </div>
 
@@ -213,6 +275,32 @@ const LoanExatraction = ({
           addBorrower={addBorrower}
         />
       )}
+
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={() => setAnchorEl(null)}
+      >
+        {borrowers
+          .filter((b) => b !== selectedBase)
+          .map((b) => (
+            <MenuItem
+              key={b}
+              onClick={() => {
+                setAnchorEl(null);
+                setAddBorrower({
+                  model: true,
+                  borrowerName: "",
+                  from: selectedBase,
+                  to: b,
+                  onSave: (newName) => handleMerge(b, newName),
+                });
+              }}
+            >
+              {b}
+            </MenuItem>
+          ))}
+      </Menu>
     </>
   );
 };

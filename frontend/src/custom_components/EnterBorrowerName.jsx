@@ -60,6 +60,7 @@ const EnterBorrowerName = ({
             label="Enter Borrower Name"
             placeholder="Borrower Name"
             onChange={handleChange}
+            value={addBorrower?.borrowerName}
           />
         </div>
 
@@ -75,7 +76,9 @@ const EnterBorrowerName = ({
             variant="primary"
             label="Save"
             onClick={() => {
-              // save logic
+              if (addBorrower.borrowerName.trim()) {
+                addBorrower.onSave(addBorrower.borrowerName);
+              }
               CloseModel();
             }}
             className="px-8"

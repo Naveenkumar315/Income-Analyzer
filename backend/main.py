@@ -43,9 +43,36 @@ class CleanJsonRequest(BaseModel):
     employer_indicators: Optional[List[str]] = None
 
 
+# @app.post("/clean-json")
+# async def clean_json(req: CleanJsonRequest):
+#     # Clean JSON
+#     cleaned = clean_borrower_documents_from_dict(
+#         data=req.raw_json,
+#         threshold=req.threshold,
+#         borrower_indicators=req.borrower_indicators,
+#         employer_indicators=req.employer_indicators,
+#     )
+
+#     # Current timestamp in required format
+#     timestamp = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")
+
+#     # Save into MongoDB
+#     record = {
+#         "username": req.username,
+#         "email": req.email,
+#         "loanID": req.loanID,
+#         "file_name": req.file_name,
+#         "original_data": req.raw_json,
+#         "cleaned_data": cleaned,
+#         "created_at": timestamp,
+#         "updated_at": timestamp,   # both same at insertion
+#     }
+#     await db["uploadedData"].insert_one(record)
+
+#     return {"message": "Upload saved successfully", "cleaned_json": cleaned}
+
 @app.post("/clean-json")
 async def clean_json(req: CleanJsonRequest):
-    # Clean JSON
     cleaned = clean_borrower_documents_from_dict(
         data=req.raw_json,
         threshold=req.threshold,
@@ -53,10 +80,8 @@ async def clean_json(req: CleanJsonRequest):
         employer_indicators=req.employer_indicators,
     )
 
-    # Current timestamp in required format
     timestamp = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")
 
-    # Save into MongoDB
     record = {
         "username": req.username,
         "email": req.email,
@@ -64,9 +89,22 @@ async def clean_json(req: CleanJsonRequest):
         "file_name": req.file_name,
         "original_data": req.raw_json,
         "cleaned_data": cleaned,
-        "created_at": timestamp,
-        "updated_at": timestamp,   # both same at insertion
+        "updated_at": timestamp,
     }
-    await db["uploadedData"].insert_one(record)
 
-    return {"message": "Upload saved successfully", "cleaned_json": cleaned}
+    existing = await db["uploadedData"].find_one({
+        "loanID": req.loanID,
+        "email": req.email
+    })
+
+    if existing:
+        await db["uploadedData"].update_one(
+            {"loanID": req.loanID, "email": req.email},
+            {"$set": record}
+        )
+    else:
+        record["created_at"] = timestamp
+        await db["uploadedData"].insert_one(record)
+
+    return {"message": "Data saved successfully", "cleaned_json": cleaned}
+
