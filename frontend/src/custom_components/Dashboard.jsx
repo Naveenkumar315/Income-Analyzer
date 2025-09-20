@@ -17,6 +17,7 @@ const Dashboard = () => {
   const [loanId, setLoanId] = useState("");
   const [data, setData] = useState([]);
   const [activeStep, setActiveStep] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     handleCheckData();
@@ -24,15 +25,16 @@ const Dashboard = () => {
 
   const handleCheckData = async () => {
     try {
-      const Loggined_email = sessionStorage.getItem("email") || "";
-      const res = await api.post("/uploaded-data/by-email", {
-        email: Loggined_email,
-      });
+      setLoading(true);
+      const email = sessionStorage.getItem("email") || "";
+      const res = await api.post("/uploaded-data/by-email", { email });
       if (res.data && res.data.length > 0) {
         setData(transformUploadedData(res.data));
       }
     } catch (err) {
       console.error("Error fetching uploaded data", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -55,17 +57,6 @@ const Dashboard = () => {
       actions: "",
     }));
 
-  const columns = [
-    { id: "loanId", label: "Loan ID" },
-    { id: "fileName", label: "File Name" },
-    { id: "borrower", label: "Borrower Name" },
-    { id: "loanType", label: "Loan Type" },
-    { id: "status", label: "Status", isCustom: true },
-    { id: "lastUpdated", label: "Last Updated" },
-    { id: "uploadedBy", label: "Uploaded By" },
-    { id: "actions", label: "Actions", isCustom: true },
-  ];
-
   const handleStepChange = (step) => {
     setActiveStep(step);
     setShowSection((prev) => ({
@@ -77,20 +68,51 @@ const Dashboard = () => {
     }));
   };
 
+  const goBack = () => {
+    if (showSection.startAnalyzing) {
+      setShowSection((prev) => ({
+        ...prev,
+        startAnalyzing: false,
+        extractedSection: true,
+      }));
+    } else if (showSection.extractedSection) {
+      setShowSection((prev) => ({
+        ...prev,
+        extractedSection: false,
+        provideLoanIDSection: true,
+      }));
+    } else if (showSection.provideLoanIDSection) {
+      setShowSection((prev) => ({
+        ...prev,
+        provideLoanIDSection: false,
+        processLoanSection: true,
+      }));
+    }
+  };
+
+  const columns = [
+    { id: "loanId", label: "Loan ID" },
+    { id: "fileName", label: "File Name" },
+    { id: "borrower", label: "Borrower Name" },
+    { id: "loanType", label: "Loan Type" },
+    { id: "status", label: "Status", isCustom: true },
+    { id: "lastUpdated", label: "Last Updated" },
+    { id: "uploadedBy", label: "Uploaded By" },
+    { id: "actions", label: "Actions", isCustom: true },
+  ];
+
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {!showSection.processLoanSection && !showSection.provideLoanIDSection && (
         <StepChips activeStep={activeStep} onStepChange={handleStepChange} />
       )}
 
-      <div
-        className="bg-white rounded-lg p-2 flex-1 overflow-auto"
-        style={{ boxShadow: "rgba(0, 0, 0, 0.16) 0px 1px 4px" }}
-      >
+      <div className="bg-white rounded-lg p-2 flex-1 overflow-auto shadow">
         {showSection.processLoanSection && (
           <ProcessLoanTable
             columns={columns}
             data={data}
+            loading={loading}
             setShowSection={setShowSection}
           />
         )}
@@ -100,6 +122,7 @@ const Dashboard = () => {
             setShowSection={setShowSection}
             setLoanId={setLoanId}
             loanId={loanId}
+            goBack={goBack}
           />
         )}
 
@@ -109,6 +132,7 @@ const Dashboard = () => {
             setShowSection={setShowSection}
             loanId={loanId}
             setActiveStep={setActiveStep}
+            goBack={goBack}
           />
         )}
 
@@ -116,6 +140,7 @@ const Dashboard = () => {
           <UnderwritingRuleResult
             showSection={showSection}
             setShowSection={setShowSection}
+            goBack={goBack}
           />
         )}
       </div>

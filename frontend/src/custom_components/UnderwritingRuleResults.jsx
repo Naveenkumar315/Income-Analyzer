@@ -15,10 +15,9 @@ import SummarySection from "./SummarySection";
 
 const Tabs = ["Rule Results", "Summary", "Insights"];
 
-const UnderwritingRuleResult = () => {
+const UnderwritingRuleResult = ({ goBack }) => {
   const [value, setValue] = useState(Tabs[0]);
   const [expanded, setExpanded] = useState(false);
-
 
   const data = [
     {
@@ -81,6 +80,9 @@ const UnderwritingRuleResult = () => {
 
   return (
     <>
+      <p onClick={goBack} className="text-blue-400 cursor-pointer">
+        ← Back
+      </p>
       <div className="flex  items-center">
         <ResultTab Tabs={Tabs} value={value} setValue={setValue} />
         <Button variant="result_download" label={"Download"} width={200} />
@@ -88,8 +90,8 @@ const UnderwritingRuleResult = () => {
 
       <div className="mt-2 border-b-1 border-gray-300"></div>
 
-      {
-        value === "Summary" && (<>
+      {value === "Summary" && (
+        <>
           <div className="text-[#26a3dd] mt-2">
             Underwriting Summary{" "}
             <span className="text-black">(LN-20250915-001)</span>
@@ -124,10 +126,10 @@ const UnderwritingRuleResult = () => {
           <div className="w-full">
             <SummarySection summary_data={summary_data} />
           </div>
-        </>)
-      }
-      {
-        value === "Rule Results" && (<>
+        </>
+      )}
+      {value === "Rule Results" && (
+        <>
           <div className="text-[#26a3dd] mt-2">
             Underwriting Rule Results{" "}
             <span className="text-black">(LN-20250915-001)</span>
@@ -167,7 +169,6 @@ const UnderwritingRuleResult = () => {
             </div>
           </div>
 
-
           <div className="w-full ">
             <div className="space-y-3 max-h-[calc(55vh-100px)] overflow-auto">
               {data.map((item, idx) => {
@@ -176,38 +177,65 @@ const UnderwritingRuleResult = () => {
 
                 // status styles + icons
                 const statusConfig = {
-                  Pass: { color: "text-green-600", icon: <CheckCircleIcon className="text-green-500 text-base" /> },
-                  Fail: { color: "text-red-600", icon: <CancelOutlinedIcon className="text-red-500 text-base" /> },
-                  Error: { color: "text-yellow-600", icon: <ErrorIcon className="text-yellow-500 text-base" /> },
-                  Default: { color: "text-gray-600", icon: <CheckCircleIcon className="text-green-500 text-base" /> },
+                  Pass: {
+                    color: "text-green-600",
+                    icon: (
+                      <CheckCircleIcon className="text-green-500 text-base" />
+                    ),
+                  },
+                  Fail: {
+                    color: "text-red-600",
+                    icon: (
+                      <CancelOutlinedIcon className="text-red-500 text-base" />
+                    ),
+                  },
+                  Error: {
+                    color: "text-yellow-600",
+                    icon: <ErrorIcon className="text-yellow-500 text-base" />,
+                  },
+                  Default: {
+                    color: "text-gray-600",
+                    icon: (
+                      <CheckCircleIcon className="text-green-500 text-base" />
+                    ),
+                  },
                 };
-                const { color, icon } = statusConfig[status] || statusConfig.Default;
+                const { color, icon } =
+                  statusConfig[status] || statusConfig.Default;
 
                 return (
                   <Accordion
                     key={idx}
                     className={`!shadow-sm mt-3 
-                    ${expanded === idx ? "!border-2 !border-[#26a3dd]" : "!border !border-gray-200"}`}
+                    ${
+                      expanded === idx
+                        ? "!border-2 !border-[#26a3dd]"
+                        : "!border !border-gray-200"
+                    }`}
                     expanded={expanded === idx}
                     onChange={() => setExpanded(expanded === idx ? false : idx)}
                   >
-
                     {/* HEADER */}
                     <AccordionSummary
                       expandIcon={<ExpandMoreIcon />}
                       aria-controls={`panel-${idx}-content`}
                       id={`panel-${idx}-header`}
                       className="!bg-gray-100 !rounded-t-lg"
-
                     >
                       <div className="flex justify-between items-center w-full">
                         {/* Left side: Rule number + truncated rule text */}
-                        <Typography variant="body2" component="span" className="font-medium text-gray-800 truncate max-w-[70%]">
+                        <Typography
+                          variant="body2"
+                          component="span"
+                          className="font-medium text-gray-800 truncate max-w-[70%]"
+                        >
                           {`Rule ${idx + 1}: `}
                         </Typography>
 
                         {/* Right side: Status */}
-                        <div className={`flex items-center gap-1 text-sm font-medium `}>
+                        <div
+                          className={`flex items-center gap-1 text-sm font-medium `}
+                        >
                           <span className="font-bold">Status: </span>
                           {icon}
                           <span>{status}</span>
@@ -220,11 +248,15 @@ const UnderwritingRuleResult = () => {
                       <div className="space-y-3 text-sm">
                         <div>
                           <div className="font-semibold">Rule Text:</div>
-                          <p className="mt-1 text-gray-600">{result?.rule || item.rule}</p>
+                          <p className="mt-1 text-gray-600">
+                            {result?.rule || item.rule}
+                          </p>
                         </div>
                         <div className="">
                           <div className="font-semibold">Commentary:</div>
-                          <p className="mt-1 rounded p-2 bg-blue-50 text-[#26a3dd]">{result?.commentary || "—"}</p>
+                          <p className="mt-1 rounded p-2 bg-blue-50 text-[#26a3dd]">
+                            {result?.commentary || "—"}
+                          </p>
                         </div>
                       </div>
                     </AccordionDetails>
@@ -233,10 +265,10 @@ const UnderwritingRuleResult = () => {
               })}
             </div>
           </div>
-        </>)
-      }
-      {
-        value === "Insights" && (<>
+        </>
+      )}
+      {value === "Insights" && (
+        <>
           <div className="text-[#26a3dd] mt-2">
             Underwriting Insights{" "}
             <span className="text-black">(LN-20250915-001)</span>
@@ -249,17 +281,10 @@ const UnderwritingRuleResult = () => {
               <span>Description</span>
             </div>
           </div>
-
-        </>)
-      }
-
-
-
+        </>
+      )}
     </>
   );
 };
-
-
-
 
 export default UnderwritingRuleResult;
