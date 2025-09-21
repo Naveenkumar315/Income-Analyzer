@@ -1,8 +1,10 @@
+import React from "react";
+
 const Button = ({
   variant = "primary",
   label,
   width = 150,
-  onClick = () => { },
+  onClick = () => {},
   disabled = false,
 }) => {
   let baseStyle =
@@ -21,11 +23,13 @@ const Button = ({
   } else if (variant === "start-analyze") {
     variantStyle = "text-white bg-gradient-to-r from-[#26a3dd] to-[#95bfd3]";
   } else if (variant === "upload-doc") {
-    variantStyle = "text-black border border-[#26a3dd] border-2 border-l-2 border-t-1 border-r-1 border-b-2";
+    variantStyle =
+      "text-black border border-[#26a3dd] border-2 border-l-2 border-t-1 border-r-1 border-b-2";
   } else if (variant == "result_download") {
     variantStyle = "text-white bg-gradient-to-r from-[#26a3dd] to-[#95bfd3]";
   } else if (variant == "upload-document") {
-    variantStyle = "text-black border border-[#26a3dd] border-2 border-l-2 border-t-2 border-r-1 border-b-1";
+    variantStyle =
+      "text-black border border-[#26a3dd] border-2 border-l-2 border-t-2 border-r-1 border-b-1";
   } else {
     variantStyle = "bg-[#999999] text-white";
   }
@@ -40,10 +44,10 @@ const Button = ({
       style={{ width: `${width}px` }}
       onClick={onClick}
       disabled={disabled}
-    >
+  >
       {label}
     </button>
   );
 };
 
-export default Button;
+export default React.memo(Button);

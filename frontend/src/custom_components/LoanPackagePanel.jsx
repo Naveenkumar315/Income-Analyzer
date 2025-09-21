@@ -1,16 +1,17 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import DescriptionIcon from "@mui/icons-material/Description";
 import Checkbox from "@mui/material/Checkbox";
 
-export default function LoanPackagePanel({
+const LoanPackagePanel = ({
   borrower,
   category,
   docs,
   fileSelectMode = false,
   onFileSelect = () => {},
-}) {
+}) => {
+  debugger;
   const [openDocs, setOpenDocs] = useState({});
 
   useEffect(() => {
@@ -115,7 +116,8 @@ export default function LoanPackagePanel({
                   )}
                   <DescriptionIcon className="text-sky-600" />
                   <span className="font-semibold text-gray-800">
-                    {formatDocTitle(doc)}
+                    {/* {formatDocTitle(doc)} */}
+                    {category} - {idx + 1}
                   </span>
                   <span className="text-sm text-gray-500 ml-2">
                     {fieldCount} Fields Extracted
@@ -176,4 +178,5 @@ export default function LoanPackagePanel({
       </div>
     </div>
   );
-}
+};
+export default React.memo(LoanPackagePanel);

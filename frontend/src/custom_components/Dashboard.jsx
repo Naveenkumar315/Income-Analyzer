@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import LoanExatraction from "./LoanExtraction";
 import ProcessLoanTable from "./ProcessLoanTable";
 import UploadedDocument from "./UploadedDocument";
@@ -149,4 +149,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default React.memo(Dashboard);

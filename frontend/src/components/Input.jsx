@@ -1,6 +1,7 @@
-import { useId, useState } from "react";
+import React, { useId, useState } from "react";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
+
 const Input = ({
   id = "",
   label = "",
@@ -72,4 +73,4 @@ const Input = ({
   );
 };
 
-export default Input;
+export default React.memo(Input);

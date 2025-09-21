@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Button from "../components/Button";
 import UploadedModel from "./UploadedModel";
 import DescriptionIcon from "@mui/icons-material/Description";
@@ -481,4 +481,4 @@ const LoanExatraction = ({
   );
 };
 
-export default LoanExatraction;
+export default React.memo(LoanExatraction);
