@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import auth
 
@@ -71,35 +71,33 @@ async def clean_json(req: CleanJsonRequest):
 
     return {"message": "Upload saved successfully", "cleaned_json": cleaned}
 
+
+
 @app.post("/update-cleaned-data")
-async def update_cleaned_data(req: CleanJsonRequest):
-    # Find existing record
-    existing = await db["uploadedData"].find_one(
-        {"loanID": req.loanID, "email": req.email}
-    )
+async def update_cleaned_data(
+    email: str = Body(...),
+    loanID: str = Body(...),
+    raw_json: dict = Body(...)
+):
+    """Update existing cleaned_data with new borrower/file merges or moves"""
 
-    if not existing:
-        raise HTTPException(status_code=404, detail="Record not found")
-
-    # Current cleaned_data from DB
-    current_cleaned = existing.get("cleaned_data", {})
-
-    # New cleaned_data from client (merge or modification)
-    # 👇 this will come from frontend after merge
-    new_cleaned = req.raw_json  
-
-    # Timestamp
     timestamp = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")
 
-    # Update only cleaned_data + updated_at
+    existing = await db["uploadedData"].find_one({"loanID": loanID, "email": email})
+    if not existing:
+        return {"message": "No record found", "cleaned_json": {}}
+
+    # Save new cleaned_data
     await db["uploadedData"].update_one(
-        {"loanID": req.loanID, "email": req.email},
-        {"$set": {"cleaned_data": new_cleaned, "updated_at": timestamp}},
+        {"loanID": loanID, "email": email},
+        {"$set": {"cleaned_data": raw_json, "updated_at": timestamp}}
     )
 
+    # Return updated cleaned_json from DB
+    updated = await db["uploadedData"].find_one({"loanID": loanID, "email": email})
     return {
         "message": "Cleaned data updated successfully",
-        "cleaned_json": new_cleaned,
+        "cleaned_json": updated.get("cleaned_data", {}),
     }
 
 
