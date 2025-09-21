@@ -9,7 +9,6 @@ import LoanPackagePanel from "./LoanPackagePanel";
 import PersonSharpIcon from "@mui/icons-material/PersonSharp";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-
 import { FaFolder, FaFolderOpen } from "react-icons/fa";
 import BackLink from "./BackLink";
 import EnterBorrowerName from "./EnterBorrowerName";
@@ -20,7 +19,7 @@ import { TbArrowMerge } from "react-icons/tb";
 import CloseIcon from "@mui/icons-material/Close";
 import api from "../api/client";
 
-const LoanExatraction = ({
+const LoanExtraction = ({
   showSection = {},
   setShowSection = () => {},
   goBack,
@@ -34,10 +33,7 @@ const LoanExatraction = ({
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [openBorrowers, setOpenBorrowers] = useState({});
   const [openCategories, setOpenCategories] = useState({});
-  const [addBorrower, setAddBorrower] = useState({
-    model: false,
-    borrowerName: "",
-  });
+  const [addBorrower, setAddBorrower] = useState({ model: false });
 
   // Merge states
   const [selectMode, setSelectMode] = useState(false);
@@ -46,147 +42,129 @@ const LoanExatraction = ({
 
   // set rawData when upload context changes
   useEffect(() => {
-    setRawData(normalized_json || {});
+    try {
+      setRawData(normalized_json || {});
+    } catch (err) {
+      console.error("Error setting rawData:", err);
+    }
   }, [normalized_json]);
 
-  // convenience: borrower list
   const borrowers = rawData ? Object.keys(rawData) : [];
 
   // initial select first borrower/category
   useEffect(() => {
-    if (borrowers.length > 0 && !selectedBorrower) {
-      const firstBorrower = borrowers[0];
-      const categories = Object.keys(rawData[firstBorrower] || {});
-      setSelectedBorrower(firstBorrower);
-      if (categories.length > 0) setSelectedCategory(categories[0]);
-      setOpenBorrowers({ [firstBorrower]: true });
+    try {
+      if (borrowers.length > 0 && !selectedBorrower) {
+        const firstBorrower = borrowers[0];
+        const categories = Object.keys(rawData[firstBorrower] || {});
+        setSelectedBorrower(firstBorrower);
+        if (categories.length > 0) setSelectedCategory(categories[0]);
+        setOpenBorrowers({ [firstBorrower]: true });
+      }
+    } catch (err) {
+      console.error("Error initializing borrower selection:", err);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [borrowers, rawData]);
 
-  const toggleBorrower = (name) =>
-    setOpenBorrowers((prev) => ({ ...prev, [name]: !prev[name] }));
-
-  const toggleCategory = (borrower, category) => {
-    const key = `${borrower}_${category}`;
-    setOpenCategories((prev) => ({ ...prev, [key]: !prev[key] }));
+  const toggleBorrower = (name) => {
+    try {
+      setOpenBorrowers((prev) => ({ ...prev, [name]: !prev[name] }));
+    } catch (err) {
+      console.error("Error toggling borrower:", err);
+    }
   };
 
-  const HandleProcess = () =>
-    setShowSection((prev) => ({
-      ...prev,
-      processLoanSection: false,
-      provideLoanIDSection: false,
-      extractedSection: false,
-      uploadedModel: false,
-      startAnalyzing: true,
-    }));
+  const toggleCategory = (borrower, category) => {
+    try {
+      const key = `${borrower}_${category}`;
+      setOpenCategories((prev) => ({ ...prev, [key]: !prev[key] }));
+    } catch (err) {
+      console.error("Error toggling category:", err);
+    }
+  };
 
-  // helper: present short doc title
+  const HandleProcess = () => {
+    try {
+      setShowSection((prev) => ({
+        ...prev,
+        processLoanSection: false,
+        provideLoanIDSection: false,
+        extractedSection: false,
+        uploadedModel: false,
+        startAnalyzing: true,
+      }));
+    } catch (err) {
+      console.error("Error handling process:", err);
+    }
+  };
+
   function formatDocTitle(doc = "") {
-    const title =
-      (typeof doc === "string" && doc) ||
-      doc?.Title ||
-      doc?.title ||
-      doc?.fileName ||
-      doc?.file_name ||
-      doc?.name ||
-      "";
+    try {
+      const title =
+        (typeof doc === "string" && doc) ||
+        doc?.Title ||
+        doc?.title ||
+        doc?.fileName ||
+        doc?.file_name ||
+        doc?.name ||
+        "";
 
-    // pick a human-friendly piece:
-    // - split on "~" or long hashes and take left part
-    // - remove underscores/hyphens and numbers at end
-    let s = String(title || "");
-    s = s.split("~")[0];
-    s = s.replace(/\.(pdf|png|jpg|jpeg|tiff)$/i, "");
-    s = s.replace(/[_-]+/g, " ");
-    s = s.replace(/\s{2,}/g, " ");
-    s = s.replace(/\b\d+\b.*$/g, ""); // strip trailing numbers/hashes
-    s = s.trim();
-    // if still long, try to keep the last two words (often useful)
-    if (s.length > 60) {
-      const parts = s.split(" ");
-      s = parts.slice(-3).join(" ");
+      let s = String(title || "");
+      s = s.split("~")[0];
+      s = s.replace(/\.(pdf|png|jpg|jpeg|tiff)$/i, "");
+      s = s.replace(/[_-]+/g, " ");
+      s = s.replace(/\s{2,}/g, " ");
+      s = s.replace(/\b\d+\b.*$/g, "");
+      s = s.trim();
+      if (s.length > 60) {
+        const parts = s.split(" ");
+        s = parts.slice(-3).join(" ");
+      }
+      return s || "";
+    } catch (err) {
+      console.error("Error formatting document title:", err);
+      return "";
     }
-    return s || "";
   }
 
-  // helper: normalize backend cleaned_json into object-of-objects
-  function normalizeToObjectOfObjects(cleaned) {
-    // if already an object mapping borrower -> categories -> docs
-    if (cleaned && typeof cleaned === "object" && !Array.isArray(cleaned)) {
-      return cleaned;
-    }
-
-    // if it's an array of { borrower: <name>, docs: {...} } or similar
-    if (Array.isArray(cleaned)) {
-      const out = {};
-      cleaned.forEach((item) => {
-        if (item && typeof item === "object") {
-          // try several shapes
-          if ("borrower" in item && (item.docs || item.cleaned || item.data)) {
-            out[item.borrower] = item.docs || item.cleaned || item.data || {};
-          } else if (item.borrower && item.category && item.documents) {
-            // less likely shape — attempt to accumulate
-            out[item.borrower] = out[item.borrower] || {};
-            out[item.borrower][item.category] = item.documents;
-          } else {
-            // fallback: attempt to take keys except known metadata
-            const name =
-              item.borrower || item.name || Object.keys(item)[0] || "unknown";
-            // if item[name] is object of categories
-            if (item[name] && typeof item[name] === "object") {
-              out[name] = item[name];
-            } else {
-              // can't make sense — skip
-            }
-          }
-        }
-      });
-      return out;
-    }
-
-    return {};
-  }
-
-  // merge flow: selectedBase (A) + targetBorrower (B) -> newName
   const handleMerge = async (targetBorrower, newName) => {
-    if (!selectedBase || !targetBorrower) return;
+    try {
+      if (!selectedBase || !targetBorrower) return;
 
-    const email = sessionStorage.getItem("email");
-    const loanID = sessionStorage.getItem("loanId");
-    const username = sessionStorage.getItem("username") || "User";
+      const email = sessionStorage.getItem("email");
+      const loanID = sessionStorage.getItem("loanId");
+      const username = sessionStorage.getItem("username") || "User";
 
-    // deep clone current rawData
-    const mergedData = JSON.parse(JSON.stringify(rawData));
+      const mergedData = JSON.parse(JSON.stringify(rawData));
 
-    // merge categories
-    const baseCats = mergedData[selectedBase] || {};
-    const targetCats = mergedData[targetBorrower] || {};
-    const unionCats = { ...baseCats };
+      const baseCats = mergedData[selectedBase] || {};
+      const targetCats = mergedData[targetBorrower] || {};
+      const unionCats = { ...baseCats };
 
-    Object.keys(targetCats).forEach((cat) => {
-      if (!Array.isArray(unionCats[cat])) unionCats[cat] = [];
-      unionCats[cat] = unionCats[cat].concat(targetCats[cat]);
-    });
+      Object.keys(targetCats).forEach((cat) => {
+        if (!Array.isArray(unionCats[cat])) unionCats[cat] = [];
+        unionCats[cat] = unionCats[cat].concat(targetCats[cat]);
+      });
 
-    delete mergedData[selectedBase];
-    delete mergedData[targetBorrower];
-    mergedData[newName] = unionCats;
+      delete mergedData[selectedBase];
+      delete mergedData[targetBorrower];
+      mergedData[newName] = unionCats;
 
-    // 🔥 Call new update API
-    const res = await api.post("/update-cleaned-data", {
-      username,
-      email,
-      loanID,
-      file_name: "merge_update",
-      raw_json: mergedData, // we treat this as cleaned_data now
-    });
+      const res = await api.post("/update-cleaned-data", {
+        username,
+        email,
+        loanID,
+        file_name: "merge_update",
+        raw_json: mergedData,
+      });
 
-    // Update UI
-    set_normalized_json(res.data.cleaned_json);
-    setSelectMode(false);
-    setSelectedBase(null);
+      set_normalized_json(res.data.cleaned_json);
+      setSelectMode(false);
+      setSelectedBase(null);
+    } catch (err) {
+      console.error("Error merging borrowers:", err);
+    }
   };
 
   return (
@@ -227,7 +205,6 @@ const LoanExatraction = ({
               <div className="w-[25%] border-r border-gray-300 p-2 overflow-auto">
                 <div className="font-semibold mb-2 text-[#26a3dd] flex justify-between items-center">
                   <span>Loan Package</span>
-
                   {selectMode ? (
                     <div className="flex items-center gap-3">
                       <TbArrowMerge
@@ -255,12 +232,9 @@ const LoanExatraction = ({
                 {/* borrower tree */}
                 <ul>
                   {borrowers.map((name) => {
-                    // define categories here (inside loop) — this avoids "categories is not defined"
                     const categories = Object.keys(rawData[name] || {});
-
                     return (
                       <li key={name} className="mb-2">
-                        {/* Borrower row */}
                         <div
                           className={`flex items-center justify-between p-2 cursor-pointer hover:bg-gray-50 ${
                             name === selectedBorrower
@@ -292,7 +266,6 @@ const LoanExatraction = ({
                           )}
                         </div>
 
-                        {/* Categories list */}
                         {openBorrowers[name] && (
                           <ul className="ml-6 mt-1">
                             {categories.length === 0 && (
@@ -300,22 +273,17 @@ const LoanExatraction = ({
                                 No categories
                               </li>
                             )}
-
                             {categories.map((cat) => {
-                              // docs for this borrower/category
                               const docs = rawData[name]?.[cat] ?? [];
                               const docCount = Array.isArray(docs)
                                 ? docs.length
                                 : 0;
-
                               const categoryKey = `${name}_${cat}`;
-
                               return (
                                 <li key={cat} className="mb-1">
                                   <div
                                     onClick={() => {
                                       toggleCategory(name, cat);
-                                      // set selected borrower + category when clicked
                                       setSelectedBorrower(name);
                                       setSelectedCategory(cat);
                                     }}
@@ -332,24 +300,19 @@ const LoanExatraction = ({
                                     ) : (
                                       <FaFolder className="text-gray-500" />
                                     )}
-
                                     <span className="truncate">{cat}</span>
                                     <span className="ml-auto text-xs text-gray-500">
                                       ({docCount})
                                     </span>
                                   </div>
 
-                                  {/* files under category */}
                                   <ul className="ml-6 mt-1">
                                     {Array.isArray(docs) && docs.length > 0 ? (
                                       docs.map((doc, idx) => (
                                         <li
                                           key={idx}
                                           className="text-xs text-gray-600 py-0.5 truncate"
-                                          title={
-                                            (doc && (doc.Title || doc.title)) ||
-                                            ""
-                                          }
+                                          title={doc?.Title || doc?.title || ""}
                                         >
                                           {formatDocTitle(doc)}
                                         </li>
@@ -419,6 +382,8 @@ const LoanExatraction = ({
         <EnterBorrowerName
           setAddBorrower={setAddBorrower}
           addBorrower={addBorrower}
+          from_name={addBorrower.from || ""}
+          to_name={addBorrower.to || ""}
         />
       )}
 
@@ -435,10 +400,8 @@ const LoanExatraction = ({
               key={b}
               onClick={() => {
                 setAnchorEl(null);
-                // open modal with onSave that calls handleMerge
                 setAddBorrower({
                   model: true,
-                  borrowerName: "",
                   from: selectedBase,
                   to: b,
                   onSave: (newName) => handleMerge(b, newName),
@@ -453,4 +416,4 @@ const LoanExatraction = ({
   );
 };
 
-export default LoanExatraction;
+export default LoanExtraction;
