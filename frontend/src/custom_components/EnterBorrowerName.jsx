@@ -3,7 +3,11 @@ import Input from "../components/Input";
 import Modal from "@mui/material/Modal";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
-import Button from "../components/Button"; // your custom Button
+import Button from "../components/Button";
+import { useState } from "react";
+import Radio from "@mui/material/Radio";
+import RadioGroup from "@mui/material/RadioGroup";
+import FormControlLabel from "@mui/material/FormControlLabel";
 
 const style = {
   position: "absolute",
@@ -23,15 +27,28 @@ const EnterBorrowerName = ({
   setAddBorrower = () => {},
   addBorrower = {},
 }) => {
+  const [mergeChoice, setMergeChoice] = useState("from"); // default for merge
+  const [customName, setCustomName] = useState("");
+
   const CloseModel = () => {
     setAddBorrower((prev) => ({ ...prev, model: false }));
   };
 
-  const handleChange = (e) => {
-    setAddBorrower((prev) => ({
-      ...prev,
-      borrowerName: e.target.value,
-    }));
+  const handleSave = () => {
+    let finalName = "";
+
+    if (addBorrower.mode === "add") {
+      finalName = addBorrower.borrowerName.trim();
+    } else {
+      if (mergeChoice === "from") finalName = from_name;
+      else if (mergeChoice === "to") finalName = to_name;
+      else finalName = customName.trim();
+    }
+
+    if (finalName) {
+      addBorrower.onSave(finalName);
+      CloseModel();
+    }
   };
 
   return (
@@ -49,26 +66,59 @@ const EnterBorrowerName = ({
 
         {/* Description */}
         <Typography className="text-gray-600 text-sm">
-          {addBorrower.mode === "add" ? (
-            "Enter a new borrower name to add to this loan package."
-          ) : (
-            <>
-              Enter a New Borrower name to merge{" "}
-              <span className="font-bold text-gray-800">{from_name}</span> with{" "}
-              <span className="font-bold text-gray-800">{to_name}</span>
-            </>
-          )}
+          {addBorrower.mode === "add"
+            ? "Enter a new borrower name to add to this loan package."
+            : `Choose which name to keep, or enter a new one.`}
         </Typography>
 
-        {/* Input */}
-        <div className="mt-2">
+        {/* Input Section */}
+        {addBorrower.mode === "add" ? (
           <Input
-            label="Enter Borrower Name"
+            label="Borrower Name"
             placeholder="Borrower Name"
-            onChange={handleChange}
-            value={addBorrower?.borrowerName}
+            value={addBorrower.borrowerName}
+            onChange={(e) =>
+              setAddBorrower((prev) => ({
+                ...prev,
+                borrowerName: e.target.value,
+              }))
+            }
           />
-        </div>
+        ) : (
+          <div className="text-left">
+            <RadioGroup
+              value={mergeChoice}
+              onChange={(e) => setMergeChoice(e.target.value)}
+            >
+              <FormControlLabel
+                value="from"
+                control={<Radio />}
+                label={`Keep "${from_name}"`}
+              />
+              <FormControlLabel
+                value="to"
+                control={<Radio />}
+                label={`Keep "${to_name}"`}
+              />
+              <FormControlLabel
+                value="custom"
+                control={<Radio />}
+                label="Enter new name"
+              />
+            </RadioGroup>
+
+            {mergeChoice === "custom" && (
+              <div className="mt-2">
+                <Input
+                  label="Custom Borrower Name"
+                  placeholder="Borrower Name"
+                  value={customName}
+                  onChange={(e) => setCustomName(e.target.value)}
+                />
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Buttons */}
         <div className="flex justify-center gap-4 mt-4">
@@ -81,12 +131,7 @@ const EnterBorrowerName = ({
           <Button
             variant="primary"
             label="Save"
-            onClick={() => {
-              if (addBorrower.borrowerName.trim()) {
-                addBorrower.onSave(addBorrower.borrowerName);
-              }
-              CloseModel();
-            }}
+            onClick={handleSave}
             className="px-8"
           />
         </div>
