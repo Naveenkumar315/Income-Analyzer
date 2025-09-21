@@ -114,6 +114,7 @@ const Dashboard = () => {
             data={data}
             loading={loading}
             setShowSection={setShowSection}
+            onRefresh={handleCheckData}
           />
         )}
 

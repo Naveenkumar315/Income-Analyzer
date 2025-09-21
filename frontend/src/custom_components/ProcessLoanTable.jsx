@@ -1,9 +1,21 @@
 import Button from "../components/Button";
 import CustomTable from "./CustomTable";
-import { Chip, Avatar, TextField, MenuItem, Select } from "@mui/material";
+import {
+  Chip,
+  Avatar,
+  TextField,
+  IconButton,
+  MenuItem,
+  Select,
+  Tooltip,
+} from "@mui/material";
 import CheckIcon from "@mui/icons-material/Check";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import ErrorOutlineOutlinedIcon from "@mui/icons-material/ErrorOutlineOutlined";
+import SearchIcon from "@mui/icons-material/Search";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import { useState, useMemo } from "react";
 
 const ProcessLoanTable = ({
@@ -11,31 +23,47 @@ const ProcessLoanTable = ({
   data = [],
   setShowSection = () => {},
   loading,
+  onRefresh = () => {}, // 🔹 pass refresh from Dashboard
 }) => {
   const [expandedRow, setExpandedRow] = useState(null);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
 
   const handle_section_change = () => {
-    try {
-      setShowSection((prev) => ({
-        ...prev,
-        processLoanSection: false,
-        provideLoanIDSection: true,
-        extractedSection: false,
-      }));
-    } catch (Ex) {
-      console.error("error in handle_section_change fn", Ex);
-    }
+    setShowSection((prev) => ({
+      ...prev,
+      processLoanSection: false,
+      provideLoanIDSection: true,
+      extractedSection: false,
+    }));
   };
 
-  // 🔹 Derived filtered data
-  const filteredData = useMemo(() => {
-    return data.filter((row) => {
-      // status filter
+  // 🔹 Sorting logic
+  const handleSort = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        // toggle direction
+        return {
+          key,
+          direction:
+            prev.direction === "asc"
+              ? "desc"
+              : prev.direction === "desc"
+              ? null
+              : "asc",
+        };
+      }
+      return { key, direction: "asc" };
+    });
+  };
+
+  // 🔹 Derived filtered & sorted data
+  const processedData = useMemo(() => {
+    let filtered = data.filter((row) => {
       if (statusFilter !== "All" && row.status !== statusFilter) return false;
 
-      // search filter
       if (search) {
         const q = search.toLowerCase();
         return (
@@ -48,13 +76,26 @@ const ProcessLoanTable = ({
       }
       return true;
     });
-  }, [data, search, statusFilter]);
+
+    if (sortConfig.key && sortConfig.direction) {
+      filtered = [...filtered].sort((a, b) => {
+        const valA = a[sortConfig.key] || "";
+        const valB = b[sortConfig.key] || "";
+        if (valA < valB) return sortConfig.direction === "asc" ? -1 : 1;
+        if (valA > valB) return sortConfig.direction === "asc" ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return filtered;
+  }, [data, search, statusFilter, sortConfig]);
 
   return (
     <div className="p-2 bg-white rounded-lg min-h-[400px]">
       {/* Header */}
       <div className="flex items-center justify-between">
         <span className="font-bold text-lg">Processed Loans</span>
+
         <Button
           label="Add Loan Package +"
           variant="add-loan"
@@ -63,37 +104,58 @@ const ProcessLoanTable = ({
         />
       </div>
 
-      {/* 🔹 Search & Filter Controls */}
-      <div className="flex items-center justify-between my-4 gap-4">
-        <TextField
-          variant="outlined"
-          size="small"
-          placeholder="Search loans..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="flex-1"
-        />
+      {/* Status Filter */}
+      <div className="flex items-center justify-end my-4">
+        <div className="flex gap-3 items-center">
+          {/* Search */}
+          {searchOpen ? (
+            <TextField
+              variant="outlined"
+              size="small"
+              placeholder="Search loans..."
+              value={search}
+              autoFocus
+              onChange={(e) => setSearch(e.target.value)}
+              onBlur={() => !search && setSearchOpen(false)}
+            />
+          ) : (
+            <Tooltip title="Search">
+              <IconButton onClick={() => setSearchOpen(true)}>
+                <SearchIcon />
+              </IconButton>
+            </Tooltip>
+          )}
 
-        <Select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          size="small"
-        >
-          <MenuItem value="All">All Status</MenuItem>
-          <MenuItem value="Completed">Completed</MenuItem>
-          <MenuItem value="Pending">Pending</MenuItem>
-          <MenuItem value="Error">Error</MenuItem>
-        </Select>
+          {/* Refresh */}
+          <Tooltip title="Refresh">
+            <IconButton onClick={onRefresh}>
+              <RefreshIcon />
+            </IconButton>
+          </Tooltip>
+          <Select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            size="small"
+          >
+            <MenuItem value="All">All Status</MenuItem>
+            <MenuItem value="Completed">Completed</MenuItem>
+            <MenuItem value="Pending">Pending</MenuItem>
+            <MenuItem value="Error">Error</MenuItem>
+          </Select>
+        </div>
       </div>
-
-      <div className="border-t border-gray-300 mb-4"></div>
 
       {/* Table */}
       <CustomTable
-        columns={columns}
-        data={filteredData}
+        columns={[
+          { id: "sno", label: "S.No", isCustom: true }, // 🔹 new column
+          ...columns,
+        ]}
+        data={processedData}
         loading={loading}
         renderCustomCells={(field, row, rowIndex) => {
+          if (field === "sno") return rowIndex + 1;
+
           if (field === "borrower") {
             if (Array.isArray(row.borrower) && row.borrower.length > 0) {
               const maxVisible = 2;
@@ -195,6 +257,8 @@ const ProcessLoanTable = ({
 
           return null;
         }}
+        sortConfig={sortConfig}
+        onSort={handleSort}
       />
     </div>
   );

@@ -11,7 +11,17 @@ import {
   CircularProgress,
 } from "@mui/material";
 
-const CustomTable = ({ columns, data, renderCustomCells, loading = false }) => {
+import { FaArrowUp } from "react-icons/fa";
+import { FaArrowDown } from "react-icons/fa";
+
+const CustomTable = ({
+  columns,
+  data,
+  renderCustomCells,
+  loading = false,
+  sortConfig,
+  onSort,
+}) => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
@@ -33,17 +43,19 @@ const CustomTable = ({ columns, data, renderCustomCells, loading = false }) => {
           {/* HEADER */}
           <TableHead>
             <TableRow className="bg-[#12699D]">
-              {columns.map((col, idx) => (
+              {columns.map((col) => (
                 <TableCell
-                  key={idx}
-                  sx={{
-                    backgroundColor: "#12699D",
-                    color: "white",
-                    fontWeight: 600,
-                    zIndex: 999,
-                  }}
+                  key={col.id}
+                  onClick={() => onSort && onSort(col.id)}
+                  style={{ cursor: "pointer" }}
                 >
                   {col.label}
+                  {sortConfig?.key === col.id &&
+                    (sortConfig.direction === "asc" ? (
+                      <FaArrowUp fontSize="small" />
+                    ) : sortConfig.direction === "desc" ? (
+                      <FaArrowDown fontSize="small" />
+                    ) : null)}
                 </TableCell>
               ))}
             </TableRow>
