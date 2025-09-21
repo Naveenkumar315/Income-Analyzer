@@ -40,7 +40,7 @@ const LoanExatraction = ({
   });
 
   const [selectMode, setSelectMode] = useState(false);
-  const [selectedBase, setSelectedBase] = useState(null); // borrower select
+  const [selectedBase, setSelectedBase] = useState(null); // borrower selection
   const [selectedFiles, setSelectedFiles] = useState([]); // category-level selections
   const [anchorEl, setAnchorEl] = useState(null);
   const [moveAnchorEl, setMoveAnchorEl] = useState(null);
@@ -160,22 +160,29 @@ const LoanExatraction = ({
                   <span>Loan Package</span>
                   {selectMode ? (
                     <div className="flex items-center gap-3">
+                      {/* Merge: only active if borrower selected and no files */}
                       <TbArrowMerge
                         className={`cursor-pointer ${
-                          selectedBase ? "text-blue-500" : "text-gray-300"
-                        }`}
-                        onClick={(e) =>
-                          selectedBase && setAnchorEl(e.currentTarget)
-                        }
-                      />
-                      <TbArrowRight
-                        className={`cursor-pointer ${
-                          selectedFiles.length
+                          selectedBase && selectedFiles.length === 0
                             ? "text-blue-500"
                             : "text-gray-300"
                         }`}
                         onClick={(e) =>
-                          selectedFiles.length &&
+                          selectedBase &&
+                          selectedFiles.length === 0 &&
+                          setAnchorEl(e.currentTarget)
+                        }
+                      />
+                      {/* Move: only active if files selected and no borrower */}
+                      <TbArrowRight
+                        className={`cursor-pointer ${
+                          selectedFiles.length > 0 && !selectedBase
+                            ? "text-blue-500"
+                            : "text-gray-300"
+                        }`}
+                        onClick={(e) =>
+                          selectedFiles.length > 0 &&
+                          !selectedBase &&
                           setMoveAnchorEl(e.currentTarget)
                         }
                       />
@@ -212,7 +219,11 @@ const LoanExatraction = ({
                               <Checkbox
                                 size="small"
                                 checked={selectedBase === name}
-                                onChange={() => setSelectedBase(name)}
+                                onChange={() => {
+                                  // selecting borrower clears file selections
+                                  setSelectedFiles([]);
+                                  setSelectedBase(name);
+                                }}
                                 onClick={(e) => e.stopPropagation()}
                               />
                             )}
@@ -248,6 +259,8 @@ const LoanExatraction = ({
                                         size="small"
                                         checked={isSelected}
                                         onChange={(e) => {
+                                          // selecting a category clears borrower selection
+                                          setSelectedBase(null);
                                           if (e.target.checked) {
                                             setSelectedFiles((prev) => [
                                               ...prev,
