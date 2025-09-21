@@ -54,7 +54,7 @@ const Dashboard = () => {
         minute: "2-digit",
         hour12: true,
       }),
-      uploadedBy: sessionStorage.getItem("username") || item.borrower || "",
+      uploadedBy: item.uploadedBy || sessionStorage.getItem("username") || "",
       actions: "",
     }));
 
@@ -95,7 +95,6 @@ const Dashboard = () => {
     { id: "loanId", label: "Loan ID" },
     { id: "fileName", label: "File Name" },
     { id: "borrower", label: "Borrower Name" },
-    { id: "loanType", label: "Loan Type" },
     { id: "status", label: "Status", isCustom: true },
     { id: "lastUpdated", label: "Last Updated" },
     { id: "uploadedBy", label: "Uploaded By" },
