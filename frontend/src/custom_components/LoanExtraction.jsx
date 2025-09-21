@@ -22,6 +22,8 @@ import CloseIcon from "@mui/icons-material/Close";
 import api from "../api/client";
 import ConfirmMoveModal from "./ConfirmMoveModal";
 
+import { toast } from "react-toastify";
+
 const LoanExatraction = ({
   showSection = {},
   setShowSection = () => {},
@@ -53,69 +55,91 @@ const LoanExatraction = ({
   const toggleBorrower = (name) =>
     setOpenBorrowers((prev) => ({ ...prev, [name]: !prev[name] }));
 
-  // ✅ Folder merge
+  // Folder merge
   const handleMerge = async (targetBorrower, newName) => {
     if (!selectedBase) return;
-    const mergedData = JSON.parse(JSON.stringify(rawData));
-    const baseCats = mergedData[selectedBase] || {};
-    const targetCats = mergedData[targetBorrower] || {};
-    const unionCats = { ...baseCats };
 
-    Object.keys(targetCats).forEach((cat) => {
-      if (!Array.isArray(unionCats[cat])) unionCats[cat] = [];
-      unionCats[cat] = unionCats[cat].concat(targetCats[cat]);
-    });
+    try {
+      const mergedData = JSON.parse(JSON.stringify(rawData));
+      const baseCats = mergedData[selectedBase] || {};
+      const targetCats = mergedData[targetBorrower] || {};
+      const unionCats = { ...baseCats };
 
-    delete mergedData[selectedBase];
-    delete mergedData[targetBorrower];
-    mergedData[newName] = unionCats;
+      Object.keys(targetCats).forEach((cat) => {
+        if (!Array.isArray(unionCats[cat])) unionCats[cat] = [];
+        unionCats[cat] = unionCats[cat].concat(targetCats[cat]);
+      });
 
-    const res = await api.post("/update-cleaned-data", {
-      email: sessionStorage.getItem("email"),
-      loanID: sessionStorage.getItem("loanId"),
-      raw_json: mergedData,
-    });
+      delete mergedData[selectedBase];
+      delete mergedData[targetBorrower];
+      mergedData[newName] = unionCats;
 
-    setRawData(res.data.cleaned_json);
-    setSelectMode(false);
-    setSelectedBase(null);
+      const res = await api.post("/update-cleaned-data", {
+        email: sessionStorage.getItem("email") || "",
+        loanID: sessionStorage.getItem("loanId") || "",
+        username: sessionStorage.getItem("username") || "",
+        action: "folder_merge",
+        raw_json: mergedData || {},
+      });
+
+      setRawData(res.data.cleaned_json);
+      setSelectMode(false);
+      setSelectedBase(null);
+
+      toast.success(
+        `Borrowers ${selectedBase} and ${targetBorrower} merged into ${newName}`
+      );
+    } catch (err) {
+      console.error("Error in handleMerge:", err);
+      toast.error("Failed to merge borrowers. Please try again.");
+    }
   };
 
-  // ✅ File (category) move
+  //  File (category) move
   const handleMove = async (toBorrower) => {
     if (!selectedFiles.length) return;
-    const mergedData = JSON.parse(JSON.stringify(rawData));
 
-    selectedFiles.forEach(({ borrower, category }) => {
-      const docs = mergedData[borrower][category] || [];
-      if (!mergedData[toBorrower][category])
-        mergedData[toBorrower][category] = [];
-      mergedData[toBorrower][category] =
-        mergedData[toBorrower][category].concat(docs);
-      mergedData[borrower][category] = [];
-    });
+    try {
+      const mergedData = JSON.parse(JSON.stringify(rawData));
 
-    // cleanup empty categories
-    Object.keys(mergedData).forEach((b) => {
-      Object.keys(mergedData[b] || {}).forEach((cat) => {
-        if (
-          Array.isArray(mergedData[b][cat]) &&
-          mergedData[b][cat].length === 0
-        ) {
-          delete mergedData[b][cat];
-        }
+      selectedFiles.forEach(({ borrower, category }) => {
+        const docs = mergedData[borrower][category] || [];
+        if (!mergedData[toBorrower][category])
+          mergedData[toBorrower][category] = [];
+        mergedData[toBorrower][category] =
+          mergedData[toBorrower][category].concat(docs);
+        mergedData[borrower][category] = [];
       });
-    });
 
-    const res = await api.post("/update-cleaned-data", {
-      email: sessionStorage.getItem("email"),
-      loanID: sessionStorage.getItem("loanId"),
-      raw_json: mergedData,
-    });
+      // cleanup empty categories
+      Object.keys(mergedData).forEach((b) => {
+        Object.keys(mergedData[b] || {}).forEach((cat) => {
+          if (
+            Array.isArray(mergedData[b][cat]) &&
+            mergedData[b][cat].length === 0
+          ) {
+            delete mergedData[b][cat];
+          }
+        });
+      });
 
-    setRawData(res.data.cleaned_json);
-    setSelectMode(false);
-    setSelectedFiles([]);
+      const res = await api.post("/update-cleaned-data", {
+        email: sessionStorage.getItem("email") || "",
+        loanID: sessionStorage.getItem("loanId") || "",
+        username: sessionStorage.getItem("username") || "",
+        action: "file_merge",
+        raw_json: mergedData || {},
+      });
+
+      setRawData(res.data.cleaned_json);
+      setSelectMode(false);
+      setSelectedFiles([]);
+
+      toast.success(`Moved ${selectedFiles.length} file(s) to ${toBorrower}`);
+    } catch (err) {
+      console.error("Error in handleMove:", err);
+      toast.error("Failed to move files. Please try again.");
+    }
   };
 
   return (
@@ -369,10 +393,23 @@ const LoanExatraction = ({
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={() => setAnchorEl(null)}
+        PaperProps={{
+          sx: {
+            minWidth: 220,
+            borderRadius: "8px",
+            padding: "4px 0",
+          },
+        }}
       >
+        {/* Title */}
+        <div className="px-4 py-2 text-sm font-semibold text-[#097aaf] border-b border-gray-200">
+          Merge borrower with
+        </div>
+
+        {/* Borrower list */}
         {borrowers
           .filter((b) => b !== selectedBase)
-          .map((b) => (
+          .map((b, idx, arr) => (
             <MenuItem
               key={b}
               onClick={() => {
@@ -384,8 +421,14 @@ const LoanExatraction = ({
                   onSave: (newName) => handleMerge(b, newName),
                 });
               }}
+              className="text-sm text-gray-700 hover:bg-blue-50"
+              sx={{ paddingY: 1.2, paddingX: 2 }}
             >
               {b}
+              {/* Divider between items, not after last */}
+              {idx < arr.length - 1 && (
+                <hr className="absolute bottom-0 left-0 right-0 border-gray-100" />
+              )}
             </MenuItem>
           ))}
       </Menu>
@@ -395,10 +438,23 @@ const LoanExatraction = ({
         anchorEl={moveAnchorEl}
         open={Boolean(moveAnchorEl)}
         onClose={() => setMoveAnchorEl(null)}
+        PaperProps={{
+          sx: {
+            minWidth: 220,
+            borderRadius: "8px",
+            padding: "4px 0",
+          },
+        }}
       >
+        {/* Title */}
+        <div className="px-4 py-2 text-sm font-semibold text-[#097aaf] border-b border-gray-200">
+          Move files to
+        </div>
+
+        {/* Borrower list */}
         {borrowers
           .filter((b) => !selectedFiles.some((f) => f.borrower === b))
-          .map((b) => (
+          .map((b, idx, arr) => (
             <MenuItem
               key={b}
               onClick={() => {
@@ -409,8 +465,14 @@ const LoanExatraction = ({
                   files: selectedFiles,
                 });
               }}
+              className="text-sm text-gray-700 hover:bg-blue-50"
+              sx={{ paddingY: 1.2, paddingX: 2 }}
             >
               {b}
+              {/* Divider between items, not after last */}
+              {idx < arr.length - 1 && (
+                <hr className="absolute bottom-0 left-0 right-0 border-gray-100" />
+              )}
             </MenuItem>
           ))}
       </Menu>
