@@ -144,14 +144,15 @@ const LoanExatraction = ({
 
   return (
     <>
-      <BackLink onClick={goBack} />
+      {/* <BackLink onClick={goBack} /> */}
 
       <div className="h-full flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex justify-between items-center pb-3 shrink-0">
-          <span className="font-medium">
+          <div className="font-medium flex gap-5">
+            <BackLink onClick={goBack} />
             Upload & Extract Files {sessionStorage.getItem("loanId") || ""}
-          </span>
+          </div>
           {isUploaded?.uploaded && (
             <div className="flex gap-2">
               <Button
