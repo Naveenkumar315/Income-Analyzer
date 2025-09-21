@@ -9,6 +9,7 @@ import {
   Paper,
   TablePagination,
   CircularProgress,
+  Tooltip,
 } from "@mui/material";
 
 import { FaArrowUp, FaArrowDown } from "react-icons/fa";
@@ -47,31 +48,33 @@ const CustomTable = ({
                   key={col.id}
                   onClick={() => onSort && onSort(col.id)}
                   sx={{
-                    cursor: "pointer",
-                    backgroundColor: "#097aaf", // 🔹 new blue color
+                    cursor: onSort ? "pointer" : "default",
+                    backgroundColor: "#097aaf",
                     color: "white",
                     fontWeight: "bold",
                     transition: "background-color 0.2s ease-in-out",
                     "&:hover": {
-                      backgroundColor: "#066185", // 🔹 darker hover
+                      backgroundColor: onSort ? "#066185" : "#097aaf",
                     },
                   }}
                 >
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "4px",
-                    }}
-                  >
-                    {col.label}
-                    {sortConfig?.key === col.id &&
-                      (sortConfig.direction === "asc" ? (
-                        <FaArrowUp size={12} />
-                      ) : sortConfig.direction === "desc" ? (
-                        <FaArrowDown size={12} />
-                      ) : null)}
-                  </span>
+                  <Tooltip title={`Sort by ${col.label}`} arrow>
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px",
+                      }}
+                    >
+                      {col.label}
+                      {sortConfig?.key === col.id &&
+                        (sortConfig.direction === "asc" ? (
+                          <FaArrowUp size={12} />
+                        ) : sortConfig.direction === "desc" ? (
+                          <FaArrowDown size={12} />
+                        ) : null)}
+                    </span>
+                  </Tooltip>
                 </TableCell>
               ))}
             </TableRow>
