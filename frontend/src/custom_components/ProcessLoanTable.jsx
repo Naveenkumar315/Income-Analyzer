@@ -104,9 +104,9 @@ const ProcessLoanTable = ({
           }
 
           if (field === "borrower") {
-            if (Array.isArray(row.borrower)) {
+            if (Array.isArray(row.borrower) && row.borrower.length > 0) {
               return (
-                <select className="border rounded px-2 py-1">
+                <select className="border rounded px-2 py-1 w-full">
                   {row.borrower.map((b, idx) => (
                     <option key={idx} value={b}>
                       {b}
@@ -115,7 +115,7 @@ const ProcessLoanTable = ({
                 </select>
               );
             }
-            return row.borrower || "-";
+            return "-";
           }
 
           return null;
