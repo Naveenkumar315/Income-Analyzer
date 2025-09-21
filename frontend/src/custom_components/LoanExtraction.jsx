@@ -9,6 +9,7 @@ import LoanPackagePanel from "./LoanPackagePanel";
 import PersonSharpIcon from "@mui/icons-material/PersonSharp";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+
 import { FaFolder, FaFolderOpen } from "react-icons/fa";
 import BackLink from "./BackLink";
 import EnterBorrowerName from "./EnterBorrowerName";
@@ -16,155 +17,105 @@ import Checkbox from "@mui/material/Checkbox";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import { TbArrowMerge } from "react-icons/tb";
+import { TbArrowRight } from "react-icons/tb";
 import CloseIcon from "@mui/icons-material/Close";
 import api from "../api/client";
+import ConfirmMoveModal from "./ConfirmMoveModal";
 
-const LoanExtraction = ({
+const LoanExatraction = ({
   showSection = {},
   setShowSection = () => {},
   goBack,
 }) => {
-  const { isUploaded, normalized_json, set_normalized_json } = useUpload();
+  const { isUploaded, normalized_json } = useUpload();
 
-  // UI & data state
   const [rulesModel, setRulesModel] = useState(false);
   const [rawData, setRawData] = useState(normalized_json || {});
   const [selectedBorrower, setSelectedBorrower] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [openBorrowers, setOpenBorrowers] = useState({});
-  const [openCategories, setOpenCategories] = useState({});
-  const [addBorrower, setAddBorrower] = useState({ model: false });
+  const [addBorrower, setAddBorrower] = useState({
+    model: false,
+    borrowerName: "",
+  });
 
-  // Merge states
   const [selectMode, setSelectMode] = useState(false);
-  const [selectedBase, setSelectedBase] = useState(null);
+  const [selectedBase, setSelectedBase] = useState(null); // borrower select
+  const [selectedFiles, setSelectedFiles] = useState([]); // category-level selections
   const [anchorEl, setAnchorEl] = useState(null);
+  const [moveAnchorEl, setMoveAnchorEl] = useState(null);
+  const [moveModal, setMoveModal] = useState(null);
 
-  // set rawData when upload context changes
-  useEffect(() => {
-    try {
-      setRawData(normalized_json || {});
-    } catch (err) {
-      console.error("Error setting rawData:", err);
-    }
-  }, [normalized_json]);
+  useEffect(() => setRawData(normalized_json || {}), [normalized_json]);
 
   const borrowers = rawData ? Object.keys(rawData) : [];
 
-  // initial select first borrower/category
-  useEffect(() => {
-    try {
-      if (borrowers.length > 0 && !selectedBorrower) {
-        const firstBorrower = borrowers[0];
-        const categories = Object.keys(rawData[firstBorrower] || {});
-        setSelectedBorrower(firstBorrower);
-        if (categories.length > 0) setSelectedCategory(categories[0]);
-        setOpenBorrowers({ [firstBorrower]: true });
-      }
-    } catch (err) {
-      console.error("Error initializing borrower selection:", err);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [borrowers, rawData]);
+  const toggleBorrower = (name) =>
+    setOpenBorrowers((prev) => ({ ...prev, [name]: !prev[name] }));
 
-  const toggleBorrower = (name) => {
-    try {
-      setOpenBorrowers((prev) => ({ ...prev, [name]: !prev[name] }));
-    } catch (err) {
-      console.error("Error toggling borrower:", err);
-    }
-  };
-
-  const toggleCategory = (borrower, category) => {
-    try {
-      const key = `${borrower}_${category}`;
-      setOpenCategories((prev) => ({ ...prev, [key]: !prev[key] }));
-    } catch (err) {
-      console.error("Error toggling category:", err);
-    }
-  };
-
-  const HandleProcess = () => {
-    try {
-      setShowSection((prev) => ({
-        ...prev,
-        processLoanSection: false,
-        provideLoanIDSection: false,
-        extractedSection: false,
-        uploadedModel: false,
-        startAnalyzing: true,
-      }));
-    } catch (err) {
-      console.error("Error handling process:", err);
-    }
-  };
-
-  function formatDocTitle(doc = "") {
-    try {
-      const title =
-        (typeof doc === "string" && doc) ||
-        doc?.Title ||
-        doc?.title ||
-        doc?.fileName ||
-        doc?.file_name ||
-        doc?.name ||
-        "";
-
-      let s = String(title || "");
-      s = s.split("~")[0];
-      s = s.replace(/\.(pdf|png|jpg|jpeg|tiff)$/i, "");
-      s = s.replace(/[_-]+/g, " ");
-      s = s.replace(/\s{2,}/g, " ");
-      s = s.replace(/\b\d+\b.*$/g, "");
-      s = s.trim();
-      if (s.length > 60) {
-        const parts = s.split(" ");
-        s = parts.slice(-3).join(" ");
-      }
-      return s || "";
-    } catch (err) {
-      console.error("Error formatting document title:", err);
-      return "";
-    }
-  }
-
+  // ✅ Folder merge
   const handleMerge = async (targetBorrower, newName) => {
-    try {
-      if (!selectedBase || !targetBorrower) return;
+    if (!selectedBase) return;
+    const mergedData = JSON.parse(JSON.stringify(rawData));
+    const baseCats = mergedData[selectedBase] || {};
+    const targetCats = mergedData[targetBorrower] || {};
+    const unionCats = { ...baseCats };
 
-      const email = sessionStorage.getItem("email");
-      const loanID = sessionStorage.getItem("loanId");
-      const username = sessionStorage.getItem("username") || "User";
+    Object.keys(targetCats).forEach((cat) => {
+      if (!Array.isArray(unionCats[cat])) unionCats[cat] = [];
+      unionCats[cat] = unionCats[cat].concat(targetCats[cat]);
+    });
 
-      const mergedData = JSON.parse(JSON.stringify(rawData));
+    delete mergedData[selectedBase];
+    delete mergedData[targetBorrower];
+    mergedData[newName] = unionCats;
 
-      const baseCats = mergedData[selectedBase] || {};
-      const targetCats = mergedData[targetBorrower] || {};
-      const unionCats = { ...baseCats };
+    const res = await api.post("/update-cleaned-data", {
+      email: sessionStorage.getItem("email"),
+      loanID: sessionStorage.getItem("loanId"),
+      raw_json: mergedData,
+    });
 
-      Object.keys(targetCats).forEach((cat) => {
-        if (!Array.isArray(unionCats[cat])) unionCats[cat] = [];
-        unionCats[cat] = unionCats[cat].concat(targetCats[cat]);
+    setRawData(res.data.cleaned_json);
+    setSelectMode(false);
+    setSelectedBase(null);
+  };
+
+  // ✅ File (category) move
+  const handleMove = async (toBorrower) => {
+    if (!selectedFiles.length) return;
+    const mergedData = JSON.parse(JSON.stringify(rawData));
+
+    selectedFiles.forEach(({ borrower, category }) => {
+      const docs = mergedData[borrower][category] || [];
+      if (!mergedData[toBorrower][category])
+        mergedData[toBorrower][category] = [];
+      mergedData[toBorrower][category] =
+        mergedData[toBorrower][category].concat(docs);
+      mergedData[borrower][category] = [];
+    });
+
+    // cleanup empty categories
+    Object.keys(mergedData).forEach((b) => {
+      Object.keys(mergedData[b] || {}).forEach((cat) => {
+        if (
+          Array.isArray(mergedData[b][cat]) &&
+          mergedData[b][cat].length === 0
+        ) {
+          delete mergedData[b][cat];
+        }
       });
+    });
 
-      delete mergedData[selectedBase];
-      delete mergedData[targetBorrower];
-      mergedData[newName] = unionCats;
+    const res = await api.post("/update-cleaned-data", {
+      email: sessionStorage.getItem("email"),
+      loanID: sessionStorage.getItem("loanId"),
+      raw_json: mergedData,
+    });
 
-      const res = await api.post("/update-cleaned-data", {
-        username,
-        email,
-        loanID,
-        file_name: "merge_update",
-        raw_json: mergedData,
-      });
-
-      set_normalized_json(res.data.cleaned_json);
-      setSelectMode(false);
-      setSelectedBase(null);
-    } catch (err) {
-      console.error("Error merging borrowers:", err);
-    }
+    setRawData(res.data.cleaned_json);
+    setSelectMode(false);
+    setSelectedFiles([]);
   };
 
   return (
@@ -184,38 +135,56 @@ const LoanExtraction = ({
                 width={200}
                 label="Upload Documents"
                 onClick={() =>
-                  setShowSection((prev) => ({ ...prev, uploadedModel: true }))
+                  setShowSection((p) => ({ ...p, uploadedModel: true }))
                 }
               />
               <Button
                 variant="start-analyze"
                 width={200}
                 label="Start Analyzing"
-                onClick={HandleProcess}
+                onClick={() =>
+                  setShowSection((p) => ({ ...p, startAnalyzing: true }))
+                }
               />
             </div>
           )}
         </div>
 
-        {/* Main layout */}
+        {/* Main */}
         <div className="flex flex-1 min-h-0 border-t border-gray-300">
           {isUploaded?.uploaded ? (
             <>
-              {/* Borrower + categories */}
+              {/* Left Borrower Tree */}
               <div className="w-[25%] border-r border-gray-300 p-2 overflow-auto">
                 <div className="font-semibold mb-2 text-[#26a3dd] flex justify-between items-center">
                   <span>Loan Package</span>
                   {selectMode ? (
                     <div className="flex items-center gap-3">
                       <TbArrowMerge
-                        className="text-blue-500 cursor-pointer"
-                        onClick={(e) => setAnchorEl(e.currentTarget)}
+                        className={`cursor-pointer ${
+                          selectedBase ? "text-blue-500" : "text-gray-300"
+                        }`}
+                        onClick={(e) =>
+                          selectedBase && setAnchorEl(e.currentTarget)
+                        }
+                      />
+                      <TbArrowRight
+                        className={`cursor-pointer ${
+                          selectedFiles.length
+                            ? "text-blue-500"
+                            : "text-gray-300"
+                        }`}
+                        onClick={(e) =>
+                          selectedFiles.length &&
+                          setMoveAnchorEl(e.currentTarget)
+                        }
                       />
                       <CloseIcon
                         className="text-red-400 cursor-pointer"
                         onClick={() => {
                           setSelectMode(false);
                           setSelectedBase(null);
+                          setSelectedFiles([]);
                         }}
                       />
                     </div>
@@ -229,18 +198,13 @@ const LoanExtraction = ({
                   )}
                 </div>
 
-                {/* borrower tree */}
                 <ul>
                   {borrowers.map((name) => {
                     const categories = Object.keys(rawData[name] || {});
                     return (
                       <li key={name} className="mb-2">
                         <div
-                          className={`flex items-center justify-between p-2 cursor-pointer hover:bg-gray-50 ${
-                            name === selectedBorrower
-                              ? "border-l-4 border-[#26a3dd] font-medium bg-gray-100 rounded-r-md"
-                              : "border-gray-200"
-                          }`}
+                          className="flex items-center justify-between p-2 cursor-pointer hover:bg-gray-50"
                           onClick={() => toggleBorrower(name)}
                         >
                           <div className="flex items-center gap-2">
@@ -248,52 +212,62 @@ const LoanExtraction = ({
                               <Checkbox
                                 size="small"
                                 checked={selectedBase === name}
-                                onChange={() =>
-                                  setSelectedBase((prev) =>
-                                    prev === name ? null : name
-                                  )
-                                }
+                                onChange={() => setSelectedBase(name)}
                                 onClick={(e) => e.stopPropagation()}
                               />
                             )}
                             <PersonSharpIcon fontSize="small" />
-                            <span className="capitalize">{name}</span>
+                            <span>{name}</span>
                           </div>
                           {openBorrowers[name] ? (
-                            <ExpandLessIcon fontSize="small" />
+                            <ExpandLessIcon />
                           ) : (
-                            <ExpandMoreIcon fontSize="small" />
+                            <ExpandMoreIcon />
                           )}
                         </div>
 
+                        {/* Categories */}
                         {openBorrowers[name] && (
                           <ul className="ml-6 mt-1">
-                            {categories.length === 0 && (
-                              <li className="text-xs text-gray-400 italic ml-2">
-                                No categories
-                              </li>
-                            )}
                             {categories.map((cat) => {
-                              const docs = rawData[name]?.[cat] ?? [];
-                              const docCount = Array.isArray(docs)
-                                ? docs.length
-                                : 0;
-                              const categoryKey = `${name}_${cat}`;
+                              const docs = rawData[name][cat] || [];
+                              const isSelected = selectedFiles.some(
+                                (f) => f.borrower === name && f.category === cat
+                              );
                               return (
                                 <li key={cat} className="mb-1">
                                   <div
+                                    className="flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors hover:bg-gray-100"
                                     onClick={() => {
-                                      toggleCategory(name, cat);
                                       setSelectedBorrower(name);
                                       setSelectedCategory(cat);
                                     }}
-                                    className={`flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors ${
-                                      name === selectedBorrower &&
-                                      cat === selectedCategory
-                                        ? "bg-blue-100 text-blue-600 font-semibold"
-                                        : "text-gray-700 hover:bg-gray-100"
-                                    }`}
                                   >
+                                    {selectMode && (
+                                      <Checkbox
+                                        size="small"
+                                        checked={isSelected}
+                                        onChange={(e) => {
+                                          if (e.target.checked) {
+                                            setSelectedFiles((prev) => [
+                                              ...prev,
+                                              { borrower: name, category: cat },
+                                            ]);
+                                          } else {
+                                            setSelectedFiles((prev) =>
+                                              prev.filter(
+                                                (f) =>
+                                                  !(
+                                                    f.borrower === name &&
+                                                    f.category === cat
+                                                  )
+                                              )
+                                            );
+                                          }
+                                        }}
+                                        onClick={(e) => e.stopPropagation()}
+                                      />
+                                    )}
                                     {name === selectedBorrower &&
                                     cat === selectedCategory ? (
                                       <FaFolderOpen className="text-blue-500" />
@@ -302,27 +276,9 @@ const LoanExtraction = ({
                                     )}
                                     <span className="truncate">{cat}</span>
                                     <span className="ml-auto text-xs text-gray-500">
-                                      ({docCount})
+                                      ({docs.length})
                                     </span>
                                   </div>
-
-                                  <ul className="ml-6 mt-1">
-                                    {Array.isArray(docs) && docs.length > 0 ? (
-                                      docs.map((doc, idx) => (
-                                        <li
-                                          key={idx}
-                                          className="text-xs text-gray-600 py-0.5 truncate"
-                                          title={doc?.Title || doc?.title || ""}
-                                        >
-                                          {formatDocTitle(doc)}
-                                        </li>
-                                      ))
-                                    ) : (
-                                      <li className="text-xs text-gray-400 italic">
-                                        No documents
-                                      </li>
-                                    )}
-                                  </ul>
                                 </li>
                               );
                             })}
@@ -334,19 +290,13 @@ const LoanExtraction = ({
                 </ul>
               </div>
 
-              {/* Right document panel */}
+              {/* Right Panel */}
               <div className="w-[75%] p-4 overflow-auto">
                 {selectedBorrower && selectedCategory ? (
                   <LoanPackagePanel
                     borrower={selectedBorrower}
                     category={selectedCategory}
-                    docs={
-                      Array.isArray(
-                        rawData?.[selectedBorrower]?.[selectedCategory]
-                      )
-                        ? rawData[selectedBorrower][selectedCategory]
-                        : []
-                    }
+                    docs={rawData[selectedBorrower][selectedCategory] || []}
                   />
                 ) : (
                   <div className="text-gray-400 flex items-center justify-center h-full">
@@ -360,8 +310,8 @@ const LoanExtraction = ({
           )}
         </div>
 
-        {/* floating button */}
-        <div className="fixed bottom-4 right-4 w-[50px] h-[50px] rounded-3xl bg-[#12699D] shadow-lg flex items-center justify-center cursor-pointer">
+        {/* Rules Button */}
+        <div className="fixed bottom-4 right-4 w-[50px] h-[50px] bg-[#12699D] rounded-full flex items-center justify-center">
           <DescriptionIcon
             onClick={() => setRulesModel(true)}
             className="text-white"
@@ -377,7 +327,7 @@ const LoanExtraction = ({
         )}
       </div>
 
-      {/* Enter borrower modal */}
+      {/* Merge Modal */}
       {addBorrower?.model && (
         <EnterBorrowerName
           setAddBorrower={setAddBorrower}
@@ -387,7 +337,21 @@ const LoanExtraction = ({
         />
       )}
 
-      {/* Merge dropdown menu */}
+      {/* Confirm Move */}
+      {moveModal && (
+        <ConfirmMoveModal
+          fromBorrower={moveModal.from}
+          toBorrower={moveModal.to}
+          files={moveModal.files}
+          onCancel={() => setMoveModal(null)}
+          onConfirm={() => {
+            handleMove(moveModal.to);
+            setMoveModal(null);
+          }}
+        />
+      )}
+
+      {/* Merge Dropdown */}
       <Menu
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
@@ -412,8 +376,33 @@ const LoanExtraction = ({
             </MenuItem>
           ))}
       </Menu>
+
+      {/* Move Dropdown */}
+      <Menu
+        anchorEl={moveAnchorEl}
+        open={Boolean(moveAnchorEl)}
+        onClose={() => setMoveAnchorEl(null)}
+      >
+        {borrowers
+          .filter((b) => !selectedFiles.some((f) => f.borrower === b))
+          .map((b) => (
+            <MenuItem
+              key={b}
+              onClick={() => {
+                setMoveAnchorEl(null);
+                setMoveModal({
+                  from: selectedFiles[0].borrower,
+                  to: b,
+                  files: selectedFiles,
+                });
+              }}
+            >
+              {b}
+            </MenuItem>
+          ))}
+      </Menu>
     </>
   );
 };
 
-export default LoanExtraction;
+export default LoanExatraction;

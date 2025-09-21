@@ -2,8 +2,15 @@ import { useState, useEffect } from "react";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import DescriptionIcon from "@mui/icons-material/Description";
+import Checkbox from "@mui/material/Checkbox";
 
-export default function LoanPackagePanel({ borrower, category, docs }) {
+export default function LoanPackagePanel({
+  borrower,
+  category,
+  docs,
+  fileSelectMode = false,
+  onFileSelect = () => {},
+}) {
   const [openDocs, setOpenDocs] = useState({});
 
   useEffect(() => {
@@ -76,16 +83,40 @@ export default function LoanPackagePanel({ borrower, category, docs }) {
               key={idx}
               className="border border-gray-300 rounded-md bg-white shadow-sm"
             >
+              {/* Dropdown header */}
               <div
                 className="flex items-center justify-between px-4 py-3 bg-gray-50 cursor-pointer rounded-t-md hover:bg-gray-100"
                 onClick={() => toggleDoc(idx)}
               >
                 <div className="flex items-center gap-2">
+                  {fileSelectMode && (
+                    <Checkbox
+                      size="small"
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          onFileSelect((prev) => [
+                            ...prev,
+                            { borrower, category, index: idx },
+                          ]);
+                        } else {
+                          onFileSelect((prev) =>
+                            prev.filter(
+                              (f) =>
+                                !(
+                                  f.borrower === borrower &&
+                                  f.category === category &&
+                                  f.index === idx
+                                )
+                            )
+                          );
+                        }
+                      }}
+                    />
+                  )}
                   <DescriptionIcon className="text-sky-600" />
                   <span className="font-semibold text-gray-800">
-                    {formatCategory(category)}
+                    {formatDocTitle(doc)}
                   </span>
-
                   <span className="text-sm text-gray-500 ml-2">
                     {fieldCount} Fields Extracted
                   </span>
@@ -97,6 +128,7 @@ export default function LoanPackagePanel({ borrower, category, docs }) {
                 )}
               </div>
 
+              {/* Dropdown body */}
               {openDocs[idx] && (
                 <div className="p-4">
                   <table className="w-full text-left border-collapse text-sm">
