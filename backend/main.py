@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Body
+from fastapi import FastAPI, HTTPException, Body, Query
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import auth
 
@@ -101,4 +101,10 @@ async def update_cleaned_data(
     }
 
 
+
+@app.get("/check-loanid")
+async def check_loanid(email: str = Query(...), loanID: str = Query(...)):
+    """Check if a loanID already exists for a given email"""
+    existing = await db["uploadedData"].find_one({"loanID": loanID, "email": email})
+    return {"exists": bool(existing)}
 

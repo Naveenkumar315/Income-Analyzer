@@ -1,38 +1,67 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Button from "../components/Button";
 import Input from "../components/Input";
 import BackLink from "./BackLink";
+import api from "../api/client"; // axios instance
 
 const UploadedDocument = ({
   setShowSection = () => {},
   loanId = "",
   setLoanId,
-  goBack, // <- added
+  goBack,
 }) => {
-  const handle_loanid_change = (e) => {
-    try {
-      const id_value = e.target.value || "";
-      setLoanId(id_value);
-    } catch (ex) {
-      console.error("error in handle_loanid_change fn", ex);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [checking, setChecking] = useState(false);
+  const [isUnique, setIsUnique] = useState(true);
+
+  // Debounce loanId validation
+  useEffect(() => {
+    if (!loanId) {
+      setIsUnique(true);
+      setErrorMsg("");
+      return;
     }
+
+    const timeout = setTimeout(async () => {
+      try {
+        setChecking(true);
+        const email = sessionStorage.getItem("email");
+        const res = await api.get("/check-loanid", {
+          params: { email, loanID: loanId },
+        });
+        if (res.data.exists) {
+          setIsUnique(false);
+          setErrorMsg("This Loan ID already exists for your account.");
+        } else {
+          setIsUnique(true);
+          setErrorMsg("");
+        }
+      } catch (err) {
+        console.error("Error checking loanId:", err);
+      } finally {
+        setChecking(false);
+      }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timeout);
+  }, [loanId]);
+
+  const handle_loanid_change = (e) => {
+    const id_value = e.target.value || "";
+    setLoanId(id_value);
   };
 
   const handle_continue = () => {
-    if (!loanId.trim()) return;
+    if (!loanId.trim() || !isUnique) return;
 
     sessionStorage.setItem("loanId", loanId);
-    try {
-      setShowSection((prev) => ({
-        ...prev,
-        extractedSection: true,
-        uploadedModel: true,
-        processLoanSection: false,
-        provideLoanIDSection: false,
-      }));
-    } catch (ex) {
-      console.error("error in handle_continue fn", ex);
-    }
+    setShowSection((prev) => ({
+      ...prev,
+      extractedSection: true,
+      uploadedModel: true,
+      processLoanSection: false,
+      provideLoanIDSection: false,
+    }));
   };
 
   return (
@@ -41,7 +70,6 @@ const UploadedDocument = ({
       style={{ height: "80dvh" }}
     >
       <div className="bg-white rounded-xl shadow-md p-10 w-full max-w-md text-center relative">
-        {/* Back button */}
         {goBack && (
           <div className="absolute left-4 top-4">
             <BackLink onClick={goBack} />
@@ -59,15 +87,16 @@ const UploadedDocument = ({
             placeholder="Enter"
             name="loanId"
             value={loanId}
-            onChange={(e) => handle_loanid_change(e)}
+            onChange={handle_loanid_change}
           />
+          {errorMsg && <p className="text-red-500 text-sm mt-1">{errorMsg}</p>}
         </div>
 
         <div className="mt-6">
           <Button
-            label="Continue"
-            disabled={!loanId.length}
-            onClick={() => handle_continue()}
+            label={checking ? "Checking..." : "Continue"}
+            disabled={!loanId.length || !isUnique || checking}
+            onClick={handle_continue}
           />
         </div>
       </div>
