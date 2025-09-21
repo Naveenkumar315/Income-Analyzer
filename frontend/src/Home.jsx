@@ -20,8 +20,8 @@ const Home = () => {
         tabValue={tab}
         onTabChange={(e, v) => setTab(v)}
         logout={logout}
-        username={username}
-        email={email}
+        username={username || sessionStorage.getItem("username")}
+        email={email || sessionStorage.getItem("email")}
       />
 
       {/* Main Content fills rest of viewport */}

@@ -43,7 +43,7 @@ const Dashboard = () => {
     resData.map((item) => ({
       loanId: item.loanID || "",
       fileName: item.file_name || "",
-      borrower: item.borrower || "",
+      borrower: item.borrower || [], // 🔹 now an array
       loanType: "Wager",
       status: "Completed",
       lastUpdated: new Date(item.updated_at).toLocaleString("en-US", {

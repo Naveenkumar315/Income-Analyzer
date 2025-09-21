@@ -102,6 +102,22 @@ const ProcessLoanTable = ({
               </div>
             );
           }
+
+          if (field === "borrower") {
+            if (Array.isArray(row.borrower)) {
+              return (
+                <select className="border rounded px-2 py-1">
+                  {row.borrower.map((b, idx) => (
+                    <option key={idx} value={b}>
+                      {b}
+                    </option>
+                  ))}
+                </select>
+              );
+            }
+            return row.borrower || "-";
+          }
+
           return null;
         }}
       />

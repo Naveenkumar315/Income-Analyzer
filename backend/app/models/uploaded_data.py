@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 
@@ -11,4 +11,4 @@ class UploadedDataOut(BaseModel):
     loanID: Optional[str]
     file_name: Optional[str]
     updated_at: Optional[datetime]
-    borrower: Optional[str]
+    borrower:  List[str]
