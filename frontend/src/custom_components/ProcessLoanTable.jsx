@@ -1,3 +1,4 @@
+// ProcessLoanTable.jsx
 import Button from "../components/Button";
 import CustomTable from "./CustomTable";
 import {
@@ -14,8 +15,6 @@ import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import ErrorOutlineOutlinedIcon from "@mui/icons-material/ErrorOutlineOutlined";
 import SearchIcon from "@mui/icons-material/Search";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import { useState, useMemo } from "react";
 
 const ProcessLoanTable = ({
@@ -23,7 +22,7 @@ const ProcessLoanTable = ({
   data = [],
   setShowSection = () => {},
   loading,
-  onRefresh = () => {}, // 🔹 pass refresh from Dashboard
+  onRefresh = () => {},
 }) => {
   const [expandedRow, setExpandedRow] = useState(null);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -32,82 +31,124 @@ const ProcessLoanTable = ({
   const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
 
   const handle_section_change = () => {
-    setShowSection((prev) => ({
-      ...prev,
-      processLoanSection: false,
-      provideLoanIDSection: true,
-      extractedSection: false,
-    }));
+    try {
+      setShowSection((prev) => ({
+        ...prev,
+        processLoanSection: false,
+        provideLoanIDSection: true,
+        extractedSection: false,
+      }));
+    } catch (Ex) {
+      console.error("error in handle_section_change fn", Ex);
+    }
   };
 
-  // 🔹 Sorting logic
+  // Add stable sno + original index so S.No sorting has something to compare
+  const dataWithIndex = useMemo(
+    () =>
+      (data || []).map((r, i) => {
+        return {
+          ...r,
+          _originalIndex: i,
+          sno: i + 1, // stable serial number based on original dataset order
+        };
+      }),
+    [data]
+  );
+
   const handleSort = (key) => {
     setSortConfig((prev) => {
       if (prev.key === key) {
-        // toggle direction
-        return {
-          key,
-          direction:
-            prev.direction === "asc"
-              ? "desc"
-              : prev.direction === "desc"
-              ? null
-              : "asc",
-        };
+        // cycle asc -> desc -> none
+        const nextDir =
+          prev.direction === "asc"
+            ? "desc"
+            : prev.direction === "desc"
+            ? null
+            : "asc";
+        return { key: nextDir ? key : null, direction: nextDir };
       }
       return { key, direction: "asc" };
     });
   };
 
-  // 🔹 Derived filtered & sorted data
+  // helper to get comparable value for sorting
+  const getComparableValue = (row, key) => {
+    if (!key) return "";
+    if (key === "sno") return Number(row.sno ?? row._originalIndex ?? 0);
+
+    const v = row[key];
+    if (Array.isArray(v)) return v.join(" ").toLowerCase();
+    if (v === null || v === undefined) return "";
+    if (typeof v === "string") return v.toLowerCase();
+    return v;
+  };
+
+  // build filtered + sorted data
   const processedData = useMemo(() => {
-    let filtered = data.filter((row) => {
+    let filtered = dataWithIndex.filter((row) => {
       if (statusFilter !== "All" && row.status !== statusFilter) return false;
 
-      if (search) {
+      if (search && search.trim()) {
         const q = search.toLowerCase();
-        return (
-          row.loanId.toLowerCase().includes(q) ||
-          row.fileName.toLowerCase().includes(q) ||
-          (Array.isArray(row.borrower) &&
-            row.borrower.some((b) => b.toLowerCase().includes(q))) ||
-          row.uploadedBy.toLowerCase().includes(q)
-        );
+        const loanIdMatch = (row.loanId || "")
+          .toString()
+          .toLowerCase()
+          .includes(q);
+        const fileNameMatch = (row.fileName || "")
+          .toString()
+          .toLowerCase()
+          .includes(q);
+        const borrowerMatch =
+          Array.isArray(row.borrower) &&
+          row.borrower.some((b) => (b || "").toLowerCase().includes(q));
+        const uploadedByMatch = (row.uploadedBy || "")
+          .toString()
+          .toLowerCase()
+          .includes(q);
+        return loanIdMatch || fileNameMatch || borrowerMatch || uploadedByMatch;
       }
+
       return true;
     });
 
-    if (sortConfig.key && sortConfig.direction) {
+    if (sortConfig && sortConfig.key && sortConfig.direction) {
+      const key = sortConfig.key;
+      const dir = sortConfig.direction === "asc" ? 1 : -1;
       filtered = [...filtered].sort((a, b) => {
-        const valA = a[sortConfig.key] || "";
-        const valB = b[sortConfig.key] || "";
-        if (valA < valB) return sortConfig.direction === "asc" ? -1 : 1;
-        if (valA > valB) return sortConfig.direction === "asc" ? 1 : -1;
-        return 0;
+        const av = getComparableValue(a, key);
+        const bv = getComparableValue(b, key);
+
+        // numbers compare
+        if (typeof av === "number" && typeof bv === "number") {
+          return (av - bv) * dir;
+        }
+
+        // fallback to localeCompare for strings (numeric option helps 'LDNA-2' vs 'LDNA-10')
+        return (
+          String(av).localeCompare(String(bv), undefined, { numeric: true }) *
+          dir
+        );
       });
     }
 
     return filtered;
-  }, [data, search, statusFilter, sortConfig]);
+  }, [dataWithIndex, search, statusFilter, sortConfig]);
+
+  // merge SNo column at front of columns list
+  const tableColumns = useMemo(() => {
+    // ensure we insert S.No as first column
+    const hasSno = columns.some((c) => c.id === "sno");
+    if (hasSno) return columns;
+    return [{ id: "sno", label: "S.No", isCustom: true }, ...columns];
+  }, [columns]);
 
   return (
     <div className="p-2 bg-white rounded-lg min-h-[400px]">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between my-4">
         <span className="font-bold text-lg">Processed Loans</span>
 
-        <Button
-          label="Add Loan Package +"
-          variant="add-loan"
-          onClick={() => handle_section_change()}
-          width={200}
-        />
-      </div>
-
-      {/* Status Filter */}
-      <div className="flex items-center justify-end my-4">
         <div className="flex gap-3 items-center">
-          {/* Search */}
           {searchOpen ? (
             <TextField
               variant="outlined"
@@ -116,7 +157,10 @@ const ProcessLoanTable = ({
               value={search}
               autoFocus
               onChange={(e) => setSearch(e.target.value)}
-              onBlur={() => !search && setSearchOpen(false)}
+              onBlur={() => {
+                if (!search) setSearchOpen(false);
+              }}
+              sx={{ minWidth: 260 }}
             />
           ) : (
             <Tooltip title="Search">
@@ -126,12 +170,16 @@ const ProcessLoanTable = ({
             </Tooltip>
           )}
 
-          {/* Refresh */}
           <Tooltip title="Refresh">
-            <IconButton onClick={onRefresh}>
+            <IconButton
+              onClick={() => {
+                onRefresh();
+              }}
+            >
               <RefreshIcon />
             </IconButton>
           </Tooltip>
+
           <Select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -142,25 +190,34 @@ const ProcessLoanTable = ({
             <MenuItem value="Pending">Pending</MenuItem>
             <MenuItem value="Error">Error</MenuItem>
           </Select>
+
+          <Button
+            label="Add Loan Package +"
+            variant="add-loan"
+            onClick={() => handle_section_change()}
+            width={200}
+          />
         </div>
       </div>
 
-      {/* Table */}
+      {/* <div className="flex items-center justify-end my-4 gap-3"></div> */}
+
       <CustomTable
-        columns={[
-          { id: "sno", label: "S.No", isCustom: true }, // 🔹 new column
-          ...columns,
-        ]}
+        columns={tableColumns}
         data={processedData}
         loading={loading}
+        sortConfig={sortConfig}
+        onSort={handleSort}
         renderCustomCells={(field, row, rowIndex) => {
-          if (field === "sno") return rowIndex + 1;
+          if (field === "sno") {
+            // use stable sno on row (not page index)
+            return row.sno ?? row._originalIndex + 1;
+          }
 
           if (field === "borrower") {
             if (Array.isArray(row.borrower) && row.borrower.length > 0) {
               const maxVisible = 2;
               const isExpanded = expandedRow === rowIndex;
-
               return (
                 <div className="flex flex-wrap gap-1 items-center">
                   {row.borrower
@@ -169,6 +226,7 @@ const ProcessLoanTable = ({
                       <span
                         key={idx}
                         className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full"
+                        title={b}
                       >
                         {b}
                       </span>
@@ -182,7 +240,7 @@ const ProcessLoanTable = ({
                       className="text-xs text-blue-500 hover:underline"
                     >
                       {isExpanded
-                        ? " -less"
+                        ? "show less"
                         : `+${row.borrower.length - maxVisible} more`}
                     </button>
                   )}
@@ -255,10 +313,9 @@ const ProcessLoanTable = ({
             );
           }
 
-          return null;
+          // default fallback - display raw value
+          return row[field] ?? "-";
         }}
-        sortConfig={sortConfig}
-        onSort={handleSort}
       />
     </div>
   );
