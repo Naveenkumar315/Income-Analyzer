@@ -18,8 +18,8 @@ const style = {
 };
 
 const EnterBorrowerName = ({
-  from_name = "Hamilton Lewis",
-  to_name = "Lewis Hamilton",
+  from_name = "",
+  to_name = "",
   setAddBorrower = () => {},
   addBorrower = {},
 }) => {
@@ -44,14 +44,20 @@ const EnterBorrowerName = ({
 
         {/* Title */}
         <Typography variant="h6" className="font-semibold text-gray-800">
-          Merge Borrowers
+          {addBorrower.mode === "add" ? "Add Borrower" : "Merge Borrowers"}
         </Typography>
 
         {/* Description */}
         <Typography className="text-gray-600 text-sm">
-          Enter a New Borrower name to merge{" "}
-          <span className="font-bold text-gray-800">{from_name}</span> with{" "}
-          <span className="font-bold text-gray-800">{to_name}</span>
+          {addBorrower.mode === "add" ? (
+            "Enter a new borrower name to add to this loan package."
+          ) : (
+            <>
+              Enter a New Borrower name to merge{" "}
+              <span className="font-bold text-gray-800">{from_name}</span> with{" "}
+              <span className="font-bold text-gray-800">{to_name}</span>
+            </>
+          )}
         </Typography>
 
         {/* Input */}
@@ -68,7 +74,7 @@ const EnterBorrowerName = ({
         <div className="flex justify-center gap-4 mt-4">
           <Button
             variant="secondary"
-            label="No"
+            label="Cancel"
             onClick={CloseModel}
             className="px-8"
           />

@@ -42,8 +42,8 @@ const LoanExatraction = ({
   });
 
   const [selectMode, setSelectMode] = useState(false);
-  const [selectedBase, setSelectedBase] = useState(null); // borrower selection
-  const [selectedFiles, setSelectedFiles] = useState([]); // category-level selections
+  const [selectedBase, setSelectedBase] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState([]);
   const [anchorEl, setAnchorEl] = useState(null);
   const [moveAnchorEl, setMoveAnchorEl] = useState(null);
   const [moveModal, setMoveModal] = useState(null);
@@ -95,7 +95,7 @@ const LoanExatraction = ({
     }
   };
 
-  //  File (category) move
+  // File (category) move
   const handleMove = async (toBorrower) => {
     if (!selectedFiles.length) return;
 
@@ -111,7 +111,6 @@ const LoanExatraction = ({
         mergedData[borrower][category] = [];
       });
 
-      // cleanup empty categories
       Object.keys(mergedData).forEach((b) => {
         Object.keys(mergedData[b] || {}).forEach((cat) => {
           if (
@@ -142,10 +141,33 @@ const LoanExatraction = ({
     }
   };
 
+  // Add Borrower
+  const handleAddBorrower = async (newName) => {
+    if (!newName.trim()) return;
+
+    try {
+      const mergedData = JSON.parse(JSON.stringify(rawData));
+      mergedData[newName] = {};
+
+      const res = await api.post("/update-cleaned-data", {
+        email: sessionStorage.getItem("email") || "",
+        loanID: sessionStorage.getItem("loanId") || "",
+        username: sessionStorage.getItem("username") || "",
+        action: "add_borrower",
+        raw_json: mergedData || {},
+      });
+
+      setRawData(res.data.cleaned_json);
+      setAddBorrower({ model: false, borrowerName: "" });
+      toast.success(`Borrower "${newName}" added`);
+    } catch (err) {
+      console.error("Error adding borrower:", err);
+      toast.error("Failed to add borrower. Please try again.");
+    }
+  };
+
   return (
     <>
-      {/* <BackLink onClick={goBack} /> */}
-
       <div className="h-full flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex justify-between items-center pb-3 shrink-0">
@@ -185,7 +207,6 @@ const LoanExatraction = ({
                   <span>Loan Package</span>
                   {selectMode ? (
                     <div className="flex items-center gap-3">
-                      {/* Merge: only active if borrower selected and no files */}
                       <TbArrowMerge
                         className={`cursor-pointer ${
                           selectedBase && selectedFiles.length === 0
@@ -198,7 +219,6 @@ const LoanExatraction = ({
                           setAnchorEl(e.currentTarget)
                         }
                       />
-                      {/* Move: only active if files selected and no borrower */}
                       <TbArrowRight
                         className={`cursor-pointer ${
                           selectedFiles.length > 0 && !selectedBase
@@ -245,7 +265,6 @@ const LoanExatraction = ({
                                 size="small"
                                 checked={selectedBase === name}
                                 onChange={() => {
-                                  // selecting borrower clears file selections
                                   setSelectedFiles([]);
                                   setSelectedBase(name);
                                 }}
@@ -262,7 +281,6 @@ const LoanExatraction = ({
                           )}
                         </div>
 
-                        {/* Categories */}
                         {openBorrowers[name] && (
                           <ul className="ml-6 mt-1">
                             {categories.map((cat) => {
@@ -284,7 +302,6 @@ const LoanExatraction = ({
                                         size="small"
                                         checked={isSelected}
                                         onChange={(e) => {
-                                          // selecting a category clears borrower selection
                                           setSelectedBase(null);
                                           if (e.target.checked) {
                                             setSelectedFiles((prev) => [
@@ -325,6 +342,23 @@ const LoanExatraction = ({
                       </li>
                     );
                   })}
+
+                  {/* Add Borrower Button */}
+                  <li className="mt-3 p-2">
+                    <button
+                      className="text-blue-500 text-sm hover:underline"
+                      onClick={() =>
+                        setAddBorrower({
+                          model: true,
+                          borrowerName: "",
+                          mode: "add",
+                          onSave: (name) => handleAddBorrower(name),
+                        })
+                      }
+                    >
+                      + Add Borrower
+                    </button>
+                  </li>
                 </ul>
               </div>
 
@@ -348,7 +382,6 @@ const LoanExatraction = ({
           )}
         </div>
 
-        {/* Rules Button */}
         <div className="fixed bottom-4 right-4 w-[50px] h-[50px] bg-[#12699D] rounded-full flex items-center justify-center">
           <DescriptionIcon
             onClick={() => setRulesModel(true)}
@@ -365,7 +398,7 @@ const LoanExatraction = ({
         )}
       </div>
 
-      {/* Merge Modal */}
+      {/* Add / Merge Modal */}
       {addBorrower?.model && (
         <EnterBorrowerName
           setAddBorrower={setAddBorrower}
@@ -395,19 +428,12 @@ const LoanExatraction = ({
         open={Boolean(anchorEl)}
         onClose={() => setAnchorEl(null)}
         PaperProps={{
-          sx: {
-            minWidth: 220,
-            borderRadius: "8px",
-            padding: "4px 0",
-          },
+          sx: { minWidth: 220, borderRadius: "8px", padding: "4px 0" },
         }}
       >
-        {/* Title */}
         <div className="px-4 py-2 text-sm font-semibold text-[#097aaf] border-b border-gray-200">
           Merge borrower with
         </div>
-
-        {/* Borrower list */}
         {borrowers
           .filter((b) => b !== selectedBase)
           .map((b, idx, arr) => (
@@ -426,7 +452,6 @@ const LoanExatraction = ({
               sx={{ paddingY: 1.2, paddingX: 2 }}
             >
               {b}
-              {/* Divider between items, not after last */}
               {idx < arr.length - 1 && (
                 <hr className="absolute bottom-0 left-0 right-0 border-gray-100" />
               )}
@@ -440,19 +465,12 @@ const LoanExatraction = ({
         open={Boolean(moveAnchorEl)}
         onClose={() => setMoveAnchorEl(null)}
         PaperProps={{
-          sx: {
-            minWidth: 220,
-            borderRadius: "8px",
-            padding: "4px 0",
-          },
+          sx: { minWidth: 220, borderRadius: "8px", padding: "4px 0" },
         }}
       >
-        {/* Title */}
         <div className="px-4 py-2 text-sm font-semibold text-[#097aaf] border-b border-gray-200">
           Move files to
         </div>
-
-        {/* Borrower list */}
         {borrowers
           .filter((b) => !selectedFiles.some((f) => f.borrower === b))
           .map((b, idx, arr) => (
@@ -470,7 +488,6 @@ const LoanExatraction = ({
               sx={{ paddingY: 1.2, paddingX: 2 }}
             >
               {b}
-              {/* Divider between items, not after last */}
               {idx < arr.length - 1 && (
                 <hr className="absolute bottom-0 left-0 right-0 border-gray-100" />
               )}
