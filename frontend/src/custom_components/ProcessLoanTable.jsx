@@ -12,7 +12,8 @@ const ProcessLoanTable = ({
   setShowSection = () => {},
   loading,
 }) => {
-  const [showAll, setShowAll] = useState(false);
+  const [expandedRow, setExpandedRow] = useState(null); // track row expanded
+
   const handle_section_change = () => {
     try {
       setShowSection((prev) => ({
@@ -25,6 +26,7 @@ const ProcessLoanTable = ({
       console.error("error in handle_section_change fn", Ex);
     }
   };
+
   return (
     <div className="p-2 bg-white rounded-lg min-h-[400px]">
       <div className="flex items-center justify-between">
@@ -42,15 +44,16 @@ const ProcessLoanTable = ({
         columns={columns}
         data={data}
         loading={loading}
-        renderCustomCells={(field, row) => {
+        renderCustomCells={(field, row, rowIndex) => {
           if (field === "borrower") {
             if (Array.isArray(row.borrower) && row.borrower.length > 0) {
               const maxVisible = 2;
+              const isExpanded = expandedRow === rowIndex;
 
               return (
                 <div className="flex flex-wrap gap-1 items-center">
                   {row.borrower
-                    .slice(0, showAll ? row.borrower.length : maxVisible)
+                    .slice(0, isExpanded ? row.borrower.length : maxVisible)
                     .map((b, idx) => (
                       <span
                         key={idx}
@@ -60,12 +63,16 @@ const ProcessLoanTable = ({
                       </span>
                     ))}
 
-                  {row.borrower.length > maxVisible && !showAll && (
+                  {row.borrower.length > maxVisible && (
                     <button
-                      onClick={() => setShowAll(true)}
+                      onClick={() =>
+                        setExpandedRow(isExpanded ? null : rowIndex)
+                      }
                       className="text-xs text-blue-500 hover:underline"
                     >
-                      +{row.borrower.length - maxVisible} more
+                      {isExpanded
+                        ? " -less"
+                        : `+${row.borrower.length - maxVisible} more`}
                     </button>
                   )}
                 </div>
@@ -86,7 +93,7 @@ const ProcessLoanTable = ({
                 ),
                 label: "Completed",
                 sx: {
-                  backgroundColor: "#C8E6C9", // light green
+                  backgroundColor: "#C8E6C9",
                   color: "green",
                   fontWeight: "bold",
                 },
@@ -100,7 +107,7 @@ const ProcessLoanTable = ({
                 ),
                 label: "Pending",
                 sx: {
-                  backgroundColor: "#FFF9C4", // light yellow
+                  backgroundColor: "#FFF9C4",
                   color: "goldenrod",
                   fontWeight: "bold",
                 },
@@ -117,7 +124,7 @@ const ProcessLoanTable = ({
                 ),
                 label: "Error",
                 sx: {
-                  backgroundColor: "#FFCDD2", // light red
+                  backgroundColor: "#FFCDD2",
                   color: "red",
                   fontWeight: "bold",
                 },
