@@ -4,6 +4,7 @@ import { Chip, Avatar } from "@mui/material";
 import CheckIcon from "@mui/icons-material/Check";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import ErrorOutlineOutlinedIcon from "@mui/icons-material/ErrorOutlineOutlined";
+import { useState } from "react";
 
 const ProcessLoanTable = ({
   columns = [],
@@ -11,6 +12,7 @@ const ProcessLoanTable = ({
   setShowSection = () => {},
   loading,
 }) => {
+  const [showAll, setShowAll] = useState(false);
   const handle_section_change = () => {
     try {
       setShowSection((prev) => ({
@@ -41,6 +43,37 @@ const ProcessLoanTable = ({
         data={data}
         loading={loading}
         renderCustomCells={(field, row) => {
+          if (field === "borrower") {
+            if (Array.isArray(row.borrower) && row.borrower.length > 0) {
+              const maxVisible = 2;
+
+              return (
+                <div className="flex flex-wrap gap-1 items-center">
+                  {row.borrower
+                    .slice(0, showAll ? row.borrower.length : maxVisible)
+                    .map((b, idx) => (
+                      <span
+                        key={idx}
+                        className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full"
+                      >
+                        {b}
+                      </span>
+                    ))}
+
+                  {row.borrower.length > maxVisible && !showAll && (
+                    <button
+                      onClick={() => setShowAll(true)}
+                      className="text-xs text-blue-500 hover:underline"
+                    >
+                      +{row.borrower.length - maxVisible} more
+                    </button>
+                  )}
+                </div>
+              );
+            }
+            return "-";
+          }
+
           if (field === "status") {
             let chipProps = {};
 
@@ -93,6 +126,7 @@ const ProcessLoanTable = ({
 
             return <Chip {...chipProps} />;
           }
+
           if (field === "actions") {
             return (
               <div className="flex items-center space-x-2">
@@ -101,21 +135,6 @@ const ProcessLoanTable = ({
                 <button className="hover:underline">Download</button>
               </div>
             );
-          }
-
-          if (field === "borrower") {
-            if (Array.isArray(row.borrower) && row.borrower.length > 0) {
-              return (
-                <select className="border rounded px-2 py-1 w-full">
-                  {row.borrower.map((b, idx) => (
-                    <option key={idx} value={b}>
-                      {b}
-                    </option>
-                  ))}
-                </select>
-              );
-            }
-            return "-";
           }
 
           return null;
