@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../api/client";
+import "../styles/custom-loader.css"; // adjust path as needed
 
 export default function useCurrentUser() {
   const [user, setUser] = useState(null);
@@ -22,10 +23,17 @@ export default function useCurrentUser() {
   }, []);
 
   const logout = () => {
+    const loader = document.getElementById("custom-loader");
+    if (loader) loader.style.display = "flex"; // show loader
+
     localStorage.clear();
     sessionStorage.clear();
     setUser(null);
-    window.location.href = "/";
+
+    // simulate small delay before redirect to show loader
+    setTimeout(() => {
+      window.location.href = "/";
+    }, 1000);
   };
 
   return { user, loading, logout };

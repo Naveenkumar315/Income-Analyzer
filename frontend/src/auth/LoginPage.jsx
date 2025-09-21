@@ -48,7 +48,7 @@ export default function LoginPage() {
       sessionStorage.setItem("username", username);
       sessionStorage.setItem("email", email);
 
-      toast.success("Login successful!");
+      // toast.success("Login successful!");
       navigate("/home");
     } catch (err) {
       console.error("Login error:", err);
