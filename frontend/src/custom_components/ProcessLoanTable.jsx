@@ -1,10 +1,10 @@
 import Button from "../components/Button";
 import CustomTable from "./CustomTable";
-import { Chip, Avatar } from "@mui/material";
+import { Chip, Avatar, TextField, MenuItem, Select } from "@mui/material";
 import CheckIcon from "@mui/icons-material/Check";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import ErrorOutlineOutlinedIcon from "@mui/icons-material/ErrorOutlineOutlined";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 const ProcessLoanTable = ({
   columns = [],
@@ -12,7 +12,9 @@ const ProcessLoanTable = ({
   setShowSection = () => {},
   loading,
 }) => {
-  const [expandedRow, setExpandedRow] = useState(null); // track row expanded
+  const [expandedRow, setExpandedRow] = useState(null);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
 
   const handle_section_change = () => {
     try {
@@ -27,11 +29,32 @@ const ProcessLoanTable = ({
     }
   };
 
+  // 🔹 Derived filtered data
+  const filteredData = useMemo(() => {
+    return data.filter((row) => {
+      // status filter
+      if (statusFilter !== "All" && row.status !== statusFilter) return false;
+
+      // search filter
+      if (search) {
+        const q = search.toLowerCase();
+        return (
+          row.loanId.toLowerCase().includes(q) ||
+          row.fileName.toLowerCase().includes(q) ||
+          (Array.isArray(row.borrower) &&
+            row.borrower.some((b) => b.toLowerCase().includes(q))) ||
+          row.uploadedBy.toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [data, search, statusFilter]);
+
   return (
     <div className="p-2 bg-white rounded-lg min-h-[400px]">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <span className="font-bold text-lg">Processed Loans</span>
-
         <Button
           label="Add Loan Package +"
           variant="add-loan"
@@ -39,10 +62,36 @@ const ProcessLoanTable = ({
           width={200}
         />
       </div>
-      <div className="border-t border-gray-300 my-6"></div>
+
+      {/* 🔹 Search & Filter Controls */}
+      <div className="flex items-center justify-between my-4 gap-4">
+        <TextField
+          variant="outlined"
+          size="small"
+          placeholder="Search loans..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="flex-1"
+        />
+
+        <Select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          size="small"
+        >
+          <MenuItem value="All">All Status</MenuItem>
+          <MenuItem value="Completed">Completed</MenuItem>
+          <MenuItem value="Pending">Pending</MenuItem>
+          <MenuItem value="Error">Error</MenuItem>
+        </Select>
+      </div>
+
+      <div className="border-t border-gray-300 mb-4"></div>
+
+      {/* Table */}
       <CustomTable
         columns={columns}
-        data={data}
+        data={filteredData}
         loading={loading}
         renderCustomCells={(field, row, rowIndex) => {
           if (field === "borrower") {
