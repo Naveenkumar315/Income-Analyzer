@@ -11,8 +11,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 
-import { FaArrowUp } from "react-icons/fa";
-import { FaArrowDown } from "react-icons/fa";
+import { FaArrowUp, FaArrowDown } from "react-icons/fa";
 
 const CustomTable = ({
   columns,
@@ -42,20 +41,37 @@ const CustomTable = ({
         <Table stickyHeader>
           {/* HEADER */}
           <TableHead>
-            <TableRow className="bg-[#12699D]">
+            <TableRow>
               {columns.map((col) => (
                 <TableCell
                   key={col.id}
                   onClick={() => onSort && onSort(col.id)}
-                  style={{ cursor: "pointer" }}
+                  sx={{
+                    cursor: "pointer",
+                    backgroundColor: "#097aaf", // 🔹 new blue color
+                    color: "white",
+                    fontWeight: "bold",
+                    transition: "background-color 0.2s ease-in-out",
+                    "&:hover": {
+                      backgroundColor: "#066185", // 🔹 darker hover
+                    },
+                  }}
                 >
-                  {col.label}
-                  {sortConfig?.key === col.id &&
-                    (sortConfig.direction === "asc" ? (
-                      <FaArrowUp fontSize="small" />
-                    ) : sortConfig.direction === "desc" ? (
-                      <FaArrowDown fontSize="small" />
-                    ) : null)}
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                    }}
+                  >
+                    {col.label}
+                    {sortConfig?.key === col.id &&
+                      (sortConfig.direction === "asc" ? (
+                        <FaArrowUp size={12} />
+                      ) : sortConfig.direction === "desc" ? (
+                        <FaArrowDown size={12} />
+                      ) : null)}
+                  </span>
                 </TableCell>
               ))}
             </TableRow>
@@ -92,7 +108,7 @@ const CustomTable = ({
                   {columns.map((col, colIndex) => (
                     <TableCell key={colIndex}>
                       {col.isCustom && renderCustomCells
-                        ? renderCustomCells(col.id, row)
+                        ? renderCustomCells(col.id, row, rowIndex)
                         : row[col.id]}
                     </TableCell>
                   ))}
