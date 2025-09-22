@@ -21,7 +21,7 @@ import api from "../api/client";
 import ConfirmMoveModal from "./ConfirmMoveModal";
 import { toast } from "react-toastify";
 
-const LoanExatraction = ({
+const LoanExtraction = ({
   showSection = {},
   setShowSection = () => {},
   goBack,
@@ -32,8 +32,7 @@ const LoanExatraction = ({
 
   const [originalData, setOriginalData] = useState({});
   const [modifiedData, setModifiedData] = useState({});
-  const [activeTab, setActiveTab] = useState("modified"); // default
-  const [tabsVisible, setTabsVisible] = useState(false);
+  const [activeTab, setActiveTab] = useState("original");
 
   const [selectedBorrower, setSelectedBorrower] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -50,11 +49,12 @@ const LoanExatraction = ({
   const [moveAnchorEl, setMoveAnchorEl] = useState(null);
   const [moveModal, setMoveModal] = useState(null);
 
-  // initialize
+  // initialize original and modified data
   useEffect(() => {
     if (normalized_json) {
-      setOriginalData(JSON.parse(JSON.stringify(normalized_json))); // snapshot
-      setModifiedData(JSON.parse(JSON.stringify(normalized_json)));
+      const snapshot = JSON.parse(JSON.stringify(normalized_json));
+      setOriginalData(snapshot);
+      setModifiedData(snapshot);
     }
   }, [normalized_json]);
 
@@ -63,13 +63,6 @@ const LoanExatraction = ({
 
   const toggleBorrower = (name) =>
     setOpenBorrowers((prev) => ({ ...prev, [name]: !prev[name] }));
-
-  const revealTabs = () => {
-    if (!tabsVisible) {
-      setTabsVisible(true);
-      setActiveTab("modified");
-    }
-  };
 
   // --- Add Borrower ---
   const handleAddBorrower = async (name) => {
@@ -83,7 +76,7 @@ const LoanExatraction = ({
         raw_json: updated,
       });
       setModifiedData(res.data.cleaned_json);
-      revealTabs();
+      setActiveTab("modified");
       toast.success(`Borrower "${name}" added`);
     } catch (err) {
       console.error("Error adding borrower:", err);
@@ -118,7 +111,7 @@ const LoanExatraction = ({
       setModifiedData(res.data.cleaned_json);
       setSelectMode(false);
       setSelectedBase(null);
-      revealTabs();
+      setActiveTab("modified");
 
       toast.success(
         `Borrowers ${selectedBase} and ${targetBorrower} merged into ${newName}`
@@ -164,7 +157,7 @@ const LoanExatraction = ({
       setModifiedData(res.data.cleaned_json);
       setSelectMode(false);
       setSelectedFiles([]);
-      revealTabs();
+      setActiveTab("modified");
 
       toast.success(`Moved ${selectedFiles.length} file(s) to ${toBorrower}`);
     } catch (err) {
@@ -188,36 +181,68 @@ const LoanExatraction = ({
             <>
               {/* Borrower Panel */}
               <div className="w-[25%] border-r border-gray-300 flex flex-col">
-                {/* Header area */}
-                <div className="border-b border-gray-200 flex-shrink-0 bg-white">
-                  {/* Line 1: Tabs */}
-                  {tabsVisible ? (
-                    <div className="flex px-4">
-                      {["original", "modified"].map((tab) => (
-                        <button
-                          key={tab}
-                          onClick={() => setActiveTab(tab)}
-                          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                            activeTab === tab
-                              ? "border-blue-600 text-blue-600"
-                              : "border-transparent text-gray-500 hover:text-blue-600 hover:border-gray-300"
+                {/* Tabs */}
+                <div className="flex px-4 border-b border-gray-200 bg-white">
+                  {["original", "modified"].map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                        activeTab === tab
+                          ? "border-blue-600 text-blue-600"
+                          : "border-transparent text-gray-500 hover:text-blue-600 hover:border-gray-300"
+                      }`}
+                    >
+                      {tab === "original" ? "Original Data" : "Modified Data"}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Modified tab actions */}
+                {activeTab === "modified" && (
+                  <div className="flex justify-between items-center px-4 py-2 border-b border-gray-100">
+                    {selectMode ? (
+                      <div className="flex items-center gap-3">
+                        <TbArrowMerge
+                          className={`cursor-pointer ${
+                            selectedBase && selectedFiles.length === 0
+                              ? "text-blue-500"
+                              : "text-gray-300"
                           }`}
-                        >
-                          {tab === "original"
-                            ? "Original Data"
-                            : "Modified Data"}
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    // Before any edits → just title
-                    <div className="flex justify-between items-center px-4 py-2">
-                      <span className="font-semibold text-[#26a3dd]">
-                        Borrowers
-                      </span>
+                          size={20}
+                          onClick={(e) =>
+                            selectedBase &&
+                            selectedFiles.length === 0 &&
+                            setAnchorEl(e.currentTarget)
+                          }
+                        />
+                        <TbArrowRight
+                          className={`cursor-pointer ${
+                            selectedFiles.length > 0 && !selectedBase
+                              ? "text-blue-500"
+                              : "text-gray-300"
+                          }`}
+                          size={20}
+                          onClick={(e) =>
+                            selectedFiles.length > 0 &&
+                            !selectedBase &&
+                            setMoveAnchorEl(e.currentTarget)
+                          }
+                        />
+                        <CloseIcon
+                          className="text-red-400 cursor-pointer"
+                          fontSize="small"
+                          onClick={() => {
+                            setSelectMode(false);
+                            setSelectedBase(null);
+                            setSelectedFiles([]);
+                          }}
+                        />
+                      </div>
+                    ) : (
                       <div className="flex gap-4">
                         <button
-                          className="text-sm not-last:text-[#26a3dd] cursor-pointer"
+                          className="text-sm text-blue-600 hover:underline"
                           onClick={() =>
                             setAddBorrower({
                               model: true,
@@ -229,81 +254,15 @@ const LoanExatraction = ({
                           Add Borrower
                         </button>
                         <button
-                          className="text-sm text-[#26a3dd] cursor-pointer"
+                          className="text-sm text-gray-600 hover:text-blue-600"
                           onClick={() => setSelectMode(true)}
                         >
                           Select
                         </button>
                       </div>
-                    </div>
-                  )}
-
-                  {/* Line 2: Only show in Modified tab */}
-                  {tabsVisible && activeTab === "modified" && (
-                    <div className="flex justify-between items-center px-4 py-2 border-t border-gray-100">
-                      {selectMode ? (
-                        <div className="flex items-center gap-3">
-                          <TbArrowMerge
-                            className={`cursor-pointer ${
-                              selectedBase && selectedFiles.length === 0
-                                ? "text-[#26a3dd]"
-                                : "text-gray-300"
-                            }`}
-                            size={20}
-                            onClick={(e) =>
-                              selectedBase &&
-                              selectedFiles.length === 0 &&
-                              setAnchorEl(e.currentTarget)
-                            }
-                          />
-                          <TbArrowRight
-                            className={`cursor-pointer ${
-                              selectedFiles.length > 0 && !selectedBase
-                                ? "text-[#26a3dd]"
-                                : "text-gray-300"
-                            }`}
-                            size={20}
-                            onClick={(e) =>
-                              selectedFiles.length > 0 &&
-                              !selectedBase &&
-                              setMoveAnchorEl(e.currentTarget)
-                            }
-                          />
-                          <CloseIcon
-                            className="text-red-400 cursor-pointer"
-                            fontSize="small"
-                            onClick={() => {
-                              setSelectMode(false);
-                              setSelectedBase(null);
-                              setSelectedFiles([]);
-                            }}
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex gap-4">
-                          <button
-                            className="text-sm text-[#26a3dd] cursor-pointer"
-                            onClick={() =>
-                              setAddBorrower({
-                                model: true,
-                                borrowerName: "",
-                                onSave: handleAddBorrower,
-                              })
-                            }
-                          >
-                            Add Borrower
-                          </button>
-                          <button
-                            className="text-sm text-[#26a3dd] cursor-pointer"
-                            onClick={() => setSelectMode(true)}
-                          >
-                            Select
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Borrower List */}
                 <div className="flex-1 overflow-y-auto px-4 py-2">
@@ -384,6 +343,14 @@ const LoanExatraction = ({
                       category={selectedCategory}
                       docs={
                         currentData[selectedBorrower][selectedCategory] || []
+                      }
+                      fileSelectMode={activeTab === "modified" && selectMode}
+                      onFileSelect={(file) =>
+                        setSelectedFiles((prev) =>
+                          prev.some((f) => f.doc === file.doc)
+                            ? prev
+                            : [...prev, file]
+                        )
                       }
                     />
                   ) : (
@@ -500,4 +467,4 @@ const LoanExatraction = ({
   );
 };
 
-export default React.memo(LoanExatraction);
+export default React.memo(LoanExtraction);
