@@ -3,7 +3,7 @@ import Input from "../components/Input";
 import Modal from "@mui/material/Modal";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
-import Button from "../components/Button"; // your custom Button
+import Button from "../components/Button";
 
 const style = {
   position: "absolute",
@@ -18,8 +18,8 @@ const style = {
 };
 
 const EnterBorrowerName = ({
-  from_name = "Hamilton Lewis",
-  to_name = "Lewis Hamilton",
+  from_name = "",
+  to_name = "",
   setAddBorrower = () => {},
   addBorrower = {},
 }) => {
@@ -34,27 +34,31 @@ const EnterBorrowerName = ({
     }));
   };
 
+  const isMerge = Boolean(from_name && to_name);
+
   return (
     <Modal open={addBorrower.model} onClose={CloseModel}>
       <Box sx={style} className="text-center flex flex-col gap-6">
-        {/* Icon */}
         <div className="flex justify-center">
           <TbArrowMerge className="text-blue-500 text-3xl" />
         </div>
 
-        {/* Title */}
         <Typography variant="h6" className="font-semibold text-gray-800">
-          Merge Borrowers
+          {isMerge ? "Merge Borrowers" : "Add Borrower"}
         </Typography>
 
-        {/* Description */}
         <Typography className="text-gray-600 text-sm">
-          Enter a New Borrower name to merge{" "}
-          <span className="font-bold text-gray-800">{from_name}</span> with{" "}
-          <span className="font-bold text-gray-800">{to_name}</span>
+          {isMerge ? (
+            <>
+              Enter a New Borrower name to merge{" "}
+              <span className="font-bold text-gray-800">{from_name}</span> with{" "}
+              <span className="font-bold text-gray-800">{to_name}</span>
+            </>
+          ) : (
+            "Enter a new borrower name to add to the loan package"
+          )}
         </Typography>
 
-        {/* Input */}
         <div className="mt-2">
           <Input
             label="Enter Borrower Name"
@@ -64,11 +68,10 @@ const EnterBorrowerName = ({
           />
         </div>
 
-        {/* Buttons */}
         <div className="flex justify-center gap-4 mt-4">
           <Button
             variant="secondary"
-            label="No"
+            label="Cancel"
             onClick={CloseModel}
             className="px-8"
           />
@@ -77,7 +80,7 @@ const EnterBorrowerName = ({
             label="Save"
             onClick={() => {
               if (addBorrower.borrowerName.trim()) {
-                addBorrower.onSave(addBorrower.borrowerName);
+                addBorrower.onSave(addBorrower.borrowerName.trim());
               }
               CloseModel();
             }}
