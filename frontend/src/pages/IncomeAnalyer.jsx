@@ -10,12 +10,8 @@ const IncomeAnalyzer = () => {
     setShowSection,
     loanId,
     setLoanId,
-    data,
-    setData,
     activeStep,
     setActiveStep,
-    loading,
-    setLoading,
     goBack,
   } = useUpload();
 
@@ -27,6 +23,7 @@ const IncomeAnalyzer = () => {
       extractedSection: false,
     }));
   }, []);
+
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <div className="bg-white rounded-lg p-2 flex-1 overflow-auto shadow">

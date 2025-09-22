@@ -15,6 +15,7 @@ const Header = ({
   logout = () => {},
   username = "User",
   email = "",
+  incomeTabVisible = false,
 }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -30,11 +31,17 @@ const Header = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Build tab list conditionally
+  const tabs = ["Dashboard"];
+  if (incomeTabVisible) tabs.push("Income Analyzer");
+  tabs.push("View Rules");
+  tabs.push("Settings");
+
   return (
     <header className="h-16 bg-white flex items-center px-6 shadow-md relative">
       {/* Left Section (Logo) */}
       <div className="flex-1">
-        <img src="/loandna_logo.png" alt="Logo" className="h-10 w-[50px" />
+        <img src="/loandna_logo.png" alt="Logo" className="h-10 w-[50px]" />
       </div>
 
       {/* Center Section (Tabs) */}
@@ -57,22 +64,20 @@ const Header = ({
             }}
             textColor="inherit"
           >
-            {["Dashboard", "Income Analyzer", "View Rules", "Settings"].map(
-              (label, index) => (
-                <Tab
-                  key={index}
-                  label={label}
-                  disableRipple
-                  sx={{
-                    minHeight: "64px",
-                    fontWeight: tabValue === index ? "bold" : "normal",
-                    color: tabValue === index ? "#26a3dd" : "#6B7280",
-                    "&:hover": { backgroundColor: "transparent" },
-                    textTransform: "none",
-                  }}
-                />
-              )
-            )}
+            {tabs.map((label, index) => (
+              <Tab
+                key={index}
+                label={label}
+                disableRipple
+                sx={{
+                  minHeight: "64px",
+                  fontWeight: tabValue === index ? "bold" : "normal",
+                  color: tabValue === index ? "#26a3dd" : "#6B7280",
+                  "&:hover": { backgroundColor: "transparent" },
+                  textTransform: "none",
+                }}
+              />
+            ))}
           </Tabs>
         </Box>
       </div>
@@ -100,12 +105,9 @@ const Header = ({
             <div className="absolute right-0 mt-2 w-64 bg-white shadow-xl rounded-lg border z-1000 p-4">
               {/* Profile section */}
               <div className="flex items-center space-x-3 pb-4 border-b">
-                {/* Circle avatar with initials */}
                 <div className="flex items-center justify-center w-12 h-12 rounded-full bg-[#12699D] text-white font-bold text-lg">
                   {username ? username[0].toUpperCase() : "U"}
                 </div>
-
-                {/* User details */}
                 <div>
                   <div className="text-gray-900 font-semibold text-base">
                     {username || "Unknown User"}

@@ -7,7 +7,7 @@ import api from "../api/client";
 import StepChips from "../custom_components/StepChips";
 import { useUpload } from "../context/UploadContext";
 
-const Dashboard = () => {
+const Dashboard = ({ onAddLoanPackage }) => {
   const {
     showSection,
     setShowSection,
@@ -21,21 +21,10 @@ const Dashboard = () => {
     setLoading,
     goBack,
   } = useUpload();
-  // const [showSection, setShowSection] = useState({
-  //   processLoanSection: true,
-  //   provideLoanIDSection: false,
-  //   extractedSection: false,
-  //   uploadedModel: false,
-  //   startAnalyzing: false,
-  // });
-  // const [loanId, setLoanId] = useState("");
-  // const [data, setData] = useState([]);
-  // const [activeStep, setActiveStep] = useState(0);
-  // const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     handleCheckData();
-  }, []);
+  }, [showSection]);
 
   const handleCheckData = async () => {
     try {
@@ -57,7 +46,7 @@ const Dashboard = () => {
     resData.map((item) => ({
       loanId: item.loanID || "",
       fileName: item.file_name || "",
-      borrower: item.borrower || [], // 🔹 now an array
+      borrower: item.borrower || [],
       loanType: "Wager",
       status: "Completed",
       lastUpdated: new Date(item.updated_at).toLocaleString("en-US", {
@@ -72,39 +61,6 @@ const Dashboard = () => {
       actions: "",
     }));
 
-  const handleStepChange = (step) => {
-    setActiveStep(step);
-    setShowSection((prev) => ({
-      ...prev,
-      processLoanSection: false,
-      provideLoanIDSection: false,
-      extractedSection: step !== 1,
-      startAnalyzing: step === 1,
-    }));
-  };
-
-  // const goBack = () => {
-  //   if (showSection.startAnalyzing) {
-  //     setShowSection((prev) => ({
-  //       ...prev,
-  //       startAnalyzing: false,
-  //       extractedSection: true,
-  //     }));
-  //   } else if (showSection.extractedSection) {
-  //     setShowSection((prev) => ({
-  //       ...prev,
-  //       extractedSection: false,
-  //       provideLoanIDSection: true,
-  //     }));
-  //   } else if (showSection.provideLoanIDSection) {
-  //     setShowSection((prev) => ({
-  //       ...prev,
-  //       provideLoanIDSection: false,
-  //       processLoanSection: true,
-  //     }));
-  //   }
-  // };
-
   const columns = [
     { id: "loanId", label: "Loan ID" },
     { id: "fileName", label: "File Name" },
@@ -117,47 +73,27 @@ const Dashboard = () => {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      {!showSection.processLoanSection && !showSection.provideLoanIDSection && (
-        <StepChips activeStep={activeStep} onStepChange={handleStepChange} />
-      )}
-
       <div className="bg-white rounded-lg p-2 flex-1 overflow-auto shadow">
         {showSection.processLoanSection && (
-          <ProcessLoanTable
-            columns={columns}
-            data={data}
-            loading={loading}
-            setShowSection={setShowSection}
-            onRefresh={handleCheckData}
-          />
+          <>
+            {/* <div className="flex justify-end mb-2">
+              <button
+                onClick={onAddLoanPackage}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Add Loan Package
+              </button>
+            </div> */}
+            <ProcessLoanTable
+              columns={columns}
+              data={data}
+              loading={loading}
+              setShowSection={setShowSection}
+              onRefresh={handleCheckData}
+              onAddLoanPackage={onAddLoanPackage}
+            />
+          </>
         )}
-
-        {/* {showSection.provideLoanIDSection && (
-          <UploadedDocument
-            setShowSection={setShowSection}
-            setLoanId={setLoanId}
-            loanId={loanId}
-            goBack={goBack}
-          />
-        )}
-
-        {showSection.extractedSection && (
-          <LoanExatraction
-            showSection={showSection}
-            setShowSection={setShowSection}
-            loanId={loanId}
-            setActiveStep={setActiveStep}
-            goBack={goBack}
-          />
-        )}
-
-        {showSection.startAnalyzing && (
-          <UnderwritingRuleResult
-            showSection={showSection}
-            setShowSection={setShowSection}
-            goBack={goBack}
-          />
-        )} */}
       </div>
     </div>
   );

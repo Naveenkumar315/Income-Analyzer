@@ -12,6 +12,12 @@ const Home = () => {
   const initial = name ? name.charAt(0).toUpperCase() : "?";
 
   const [tab, setTab] = useState(0);
+  const [incomeTabVisible, setIncomeTabVisible] = useState(false);
+
+  const handleAddLoanPackage = () => {
+    setIncomeTabVisible(true); // show the tab
+    setTab(1); // jump to Income Analyzer
+  };
 
   return (
     <div className="flex flex-col h-screen">
@@ -23,13 +29,20 @@ const Home = () => {
         logout={logout}
         username={username || sessionStorage.getItem("username")}
         email={email || sessionStorage.getItem("email")}
+        incomeTabVisible={incomeTabVisible}
       />
 
       {/* Main Content fills rest of viewport */}
       <main className="flex-1 overflow-hidden bg-gray-100">
         <div className="h-full overflow-auto p-4">
-          {tab === 0 && <Dashboard username={username} email={email} />}
-          {tab === 1 && <IncomeAnalyzer />}
+          {tab === 0 && (
+            <Dashboard
+              username={username}
+              email={email}
+              onAddLoanPackage={handleAddLoanPackage}
+            />
+          )}
+          {incomeTabVisible && tab === 1 && <IncomeAnalyzer />}
           {tab === 2 && <Rules />}
         </div>
       </main>

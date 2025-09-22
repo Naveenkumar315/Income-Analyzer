@@ -1,9 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
-// Create context
 const UploadContext = createContext();
 
-// Provider component
 export const UploadProvider = ({ children }) => {
   const [isUploaded, setIsUploaded] = useState({ uploaded: false });
   const [showSection, setShowSection] = useState({
@@ -71,5 +69,4 @@ export const UploadProvider = ({ children }) => {
   );
 };
 
-// Custom hook (nice shortcut)
 export const useUpload = () => useContext(UploadContext);

@@ -23,6 +23,7 @@ const ProcessLoanTable = ({
   setShowSection = () => {},
   loading,
   onRefresh = () => {},
+  onAddLoanPackage = () => {},
 }) => {
   const [expandedRow, setExpandedRow] = useState(null);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -194,7 +195,7 @@ const ProcessLoanTable = ({
           <Button
             label="Add Loan Package +"
             variant="add-loan"
-            onClick={() => handle_section_change()}
+            onClick={onAddLoanPackage}
             width={200}
           />
         </div>
