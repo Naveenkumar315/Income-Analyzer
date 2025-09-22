@@ -24,6 +24,15 @@ const Home = () => {
   } = useUpload();
 
   const handleAddLoanPackage = () => {
+    // Set initial state for Income Analyzer
+    setShowSection({
+      processLoanSection: false,
+      provideLoanIDSection: true,
+      extractedSection: false,
+      uploadedModel: false,
+      startAnalyzing: false,
+    });
+
     setIncomeTabVisible(true); // show the tab
     setTab(1); // jump to Income Analyzer
   };
