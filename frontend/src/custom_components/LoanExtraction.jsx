@@ -21,7 +21,11 @@ import api from "../api/client";
 import ConfirmMoveModal from "./ConfirmMoveModal";
 import { toast } from "react-toastify";
 
-const LoanExatraction = ({ showSection = {}, setShowSection = () => {}, goBack }) => {
+const LoanExatraction = ({
+  showSection = {},
+  setShowSection = () => {},
+  goBack,
+}) => {
   const { isUploaded, normalized_json } = useUpload();
 
   const [rulesModel, setRulesModel] = useState(false);
@@ -34,7 +38,10 @@ const LoanExatraction = ({ showSection = {}, setShowSection = () => {}, goBack }
   const [selectedBorrower, setSelectedBorrower] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [openBorrowers, setOpenBorrowers] = useState({});
-  const [addBorrower, setAddBorrower] = useState({ model: false, borrowerName: "" });
+  const [addBorrower, setAddBorrower] = useState({
+    model: false,
+    borrowerName: "",
+  });
 
   const [selectMode, setSelectMode] = useState(false);
   const [selectedBase, setSelectedBase] = useState(null);
@@ -129,14 +136,18 @@ const LoanExatraction = ({ showSection = {}, setShowSection = () => {}, goBack }
       const mergedData = JSON.parse(JSON.stringify(modifiedData));
       selectedFiles.forEach(({ borrower, category }) => {
         const docs = mergedData[borrower][category] || [];
-        if (!mergedData[toBorrower][category]) mergedData[toBorrower][category] = [];
+        if (!mergedData[toBorrower][category])
+          mergedData[toBorrower][category] = [];
         mergedData[toBorrower][category] =
           mergedData[toBorrower][category].concat(docs);
         mergedData[borrower][category] = [];
       });
       Object.keys(mergedData).forEach((b) => {
         Object.keys(mergedData[b] || {}).forEach((cat) => {
-          if (Array.isArray(mergedData[b][cat]) && mergedData[b][cat].length === 0) {
+          if (
+            Array.isArray(mergedData[b][cat]) &&
+            mergedData[b][cat].length === 0
+          ) {
             delete mergedData[b][cat];
           }
         });
@@ -192,17 +203,21 @@ const LoanExatraction = ({ showSection = {}, setShowSection = () => {}, goBack }
                               : "border-transparent text-gray-500 hover:text-blue-600 hover:border-gray-300"
                           }`}
                         >
-                          {tab === "original" ? "Original Data" : "Modified Data"}
+                          {tab === "original"
+                            ? "Original Data"
+                            : "Modified Data"}
                         </button>
                       ))}
                     </div>
                   ) : (
                     // Before any edits → just title
                     <div className="flex justify-between items-center px-4 py-2">
-                      <span className="font-semibold text-[#26a3dd]">Borrowers</span>
+                      <span className="font-semibold text-[#26a3dd]">
+                        Borrowers
+                      </span>
                       <div className="flex gap-4">
                         <button
-                          className="text-sm text-blue-600 hover:underline"
+                          className="text-sm not-last:text-[#26a3dd] cursor-pointer"
                           onClick={() =>
                             setAddBorrower({
                               model: true,
@@ -214,7 +229,7 @@ const LoanExatraction = ({ showSection = {}, setShowSection = () => {}, goBack }
                           Add Borrower
                         </button>
                         <button
-                          className="text-sm text-gray-600 hover:text-blue-600"
+                          className="text-sm text-[#26a3dd] cursor-pointer"
                           onClick={() => setSelectMode(true)}
                         >
                           Select
@@ -231,7 +246,7 @@ const LoanExatraction = ({ showSection = {}, setShowSection = () => {}, goBack }
                           <TbArrowMerge
                             className={`cursor-pointer ${
                               selectedBase && selectedFiles.length === 0
-                                ? "text-blue-500"
+                                ? "text-[#26a3dd]"
                                 : "text-gray-300"
                             }`}
                             size={20}
@@ -244,7 +259,7 @@ const LoanExatraction = ({ showSection = {}, setShowSection = () => {}, goBack }
                           <TbArrowRight
                             className={`cursor-pointer ${
                               selectedFiles.length > 0 && !selectedBase
-                                ? "text-blue-500"
+                                ? "text-[#26a3dd]"
                                 : "text-gray-300"
                             }`}
                             size={20}
@@ -267,7 +282,7 @@ const LoanExatraction = ({ showSection = {}, setShowSection = () => {}, goBack }
                       ) : (
                         <div className="flex gap-4">
                           <button
-                            className="text-sm text-blue-600 hover:underline"
+                            className="text-sm text-[#26a3dd] cursor-pointer"
                             onClick={() =>
                               setAddBorrower({
                                 model: true,
@@ -279,7 +294,7 @@ const LoanExatraction = ({ showSection = {}, setShowSection = () => {}, goBack }
                             Add Borrower
                           </button>
                           <button
-                            className="text-sm text-gray-600 hover:text-blue-600"
+                            className="text-sm text-[#26a3dd] cursor-pointer"
                             onClick={() => setSelectMode(true)}
                           >
                             Select
@@ -316,7 +331,11 @@ const LoanExatraction = ({ showSection = {}, setShowSection = () => {}, goBack }
                               <PersonSharpIcon fontSize="small" />
                               <span className="font-medium">{name}</span>
                             </div>
-                            {openBorrowers[name] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                            {openBorrowers[name] ? (
+                              <ExpandLessIcon />
+                            ) : (
+                              <ExpandMoreIcon />
+                            )}
                           </div>
                           {openBorrowers[name] && (
                             <ul className="ml-8 mt-2 space-y-1">
@@ -326,7 +345,8 @@ const LoanExatraction = ({ showSection = {}, setShowSection = () => {}, goBack }
                                   <li key={cat}>
                                     <div
                                       className={`flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer hover:bg-gray-100 ${
-                                        selectedBorrower === name && selectedCategory === cat
+                                        selectedBorrower === name &&
+                                        selectedCategory === cat
                                           ? "bg-blue-50 border border-blue-300"
                                           : ""
                                       }`}
@@ -336,7 +356,9 @@ const LoanExatraction = ({ showSection = {}, setShowSection = () => {}, goBack }
                                       }}
                                     >
                                       <FaFolder className="text-gray-500" />
-                                      <span className="truncate text-sm">{cat}</span>
+                                      <span className="truncate text-sm">
+                                        {cat}
+                                      </span>
                                       <span className="ml-auto text-xs text-gray-500">
                                         ({docs.length})
                                       </span>
@@ -360,7 +382,9 @@ const LoanExatraction = ({ showSection = {}, setShowSection = () => {}, goBack }
                     <LoanPackagePanel
                       borrower={selectedBorrower}
                       category={selectedCategory}
-                      docs={currentData[selectedBorrower][selectedCategory] || []}
+                      docs={
+                        currentData[selectedBorrower][selectedCategory] || []
+                      }
                     />
                   ) : (
                     <div className="text-gray-400 flex items-center justify-center h-full">
@@ -383,8 +407,13 @@ const LoanExatraction = ({ showSection = {}, setShowSection = () => {}, goBack }
           />
         </div>
 
-        <UnderwritingRulesModel rulesModel={rulesModel} OpenRulesModel={setRulesModel} />
-        {showSection.uploadedModel && <UploadedModel setShowSection={setShowSection} />}
+        <UnderwritingRulesModel
+          rulesModel={rulesModel}
+          OpenRulesModel={setRulesModel}
+        />
+        {showSection.uploadedModel && (
+          <UploadedModel setShowSection={setShowSection} />
+        )}
       </div>
 
       {/* Add/Merge Modal */}
@@ -412,7 +441,11 @@ const LoanExatraction = ({ showSection = {}, setShowSection = () => {}, goBack }
       )}
 
       {/* Merge Dropdown */}
-      <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={() => setAnchorEl(null)}
+      >
         <div className="px-4 py-2 text-sm font-semibold text-[#097aaf] border-b border-gray-200">
           Merge borrower with
         </div>
