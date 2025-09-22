@@ -4,7 +4,6 @@ import SearchIcon from "@mui/icons-material/Search";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
-import Box from "@mui/material/Box";
 
 const label = { inputProps: { "aria-label": "Switch demo" } };
 
@@ -20,7 +19,6 @@ const Header = ({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  // Close dropdown if clicked outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -38,52 +36,49 @@ const Header = ({
   tabs.push("Settings");
 
   return (
-    <header className="h-16 bg-white flex items-center px-6 shadow-md relative">
-      {/* Left Section (Logo) */}
-      <div className="flex-1">
-        <img src="/loandna_logo.png" alt="Logo" className="h-10 w-[50px]" />
+    <header className="h-16 bg-white flex items-center justify-between px-6 shadow-md relative">
+      {/* Left: Logo */}
+      <div className="flex items-center">
+        <img src="/loandna_logo.png" alt="Logo" className="h-10 w-auto" />
       </div>
 
-      {/* Center Section (Tabs) */}
+      {/* Center: Tabs */}
       <div className="flex-1 flex justify-center">
-        <Box sx={{ width: "100%" }}>
-          <Tabs
-            value={tabValue}
-            onChange={onTabChange}
-            aria-label="header tabs"
-            sx={{
-              minHeight: "64px",
-              alignItems: "flex-end",
-            }}
-            TabIndicatorProps={{
-              style: {
-                backgroundColor: "#26a3dd",
-                height: 3,
-                bottom: 0,
-              },
-            }}
-            textColor="inherit"
-          >
-            {tabs.map((label, index) => (
-              <Tab
-                key={index}
-                label={label}
-                disableRipple
-                sx={{
-                  minHeight: "64px",
-                  fontWeight: tabValue === index ? "bold" : "normal",
-                  color: tabValue === index ? "#26a3dd" : "#6B7280",
-                  "&:hover": { backgroundColor: "transparent" },
-                  textTransform: "none",
-                }}
-              />
-            ))}
-          </Tabs>
-        </Box>
+        <Tabs
+          value={tabValue}
+          onChange={onTabChange}
+          aria-label="header tabs"
+          sx={{
+            minHeight: "64px",
+          }}
+          TabIndicatorProps={{
+            style: {
+              backgroundColor: "#26a3dd",
+              height: 3,
+              bottom: 0,
+            },
+          }}
+          textColor="inherit"
+        >
+          {tabs.map((label, index) => (
+            <Tab
+              key={index}
+              label={label}
+              disableRipple
+              sx={{
+                minHeight: "64px",
+                fontWeight: tabValue === index ? "bold" : "normal",
+                color: tabValue === index ? "#26a3dd" : "#6B7280",
+                "&:hover": { backgroundColor: "transparent" },
+                textTransform: "none",
+              }}
+            />
+          ))}
+        </Tabs>
       </div>
 
-      {/* Right Section */}
-      <div className="flex-1 flex justify-end items-center gap-4">
+      {/* Right: User controls */}
+      <div className="flex items-center gap-4">
         <Switch {...label} defaultChecked />
         <button className="text-gray-600 hover:text-blue-600">
           <SearchIcon />
