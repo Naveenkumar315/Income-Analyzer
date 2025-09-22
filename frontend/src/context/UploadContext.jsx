@@ -18,6 +18,11 @@ export const UploadProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [normalized_json, set_normalized_json] = useState(null);
 
+  // Add state to track Income Analyzer progress
+  const [incomeAnalyzerInitialized, setIncomeAnalyzerInitialized] =
+    useState(false);
+  const [incomeAnalyzerState, setIncomeAnalyzerState] = useState(null);
+
   useEffect(() => {
     console.log("++++++", normalized_json);
   }, [normalized_json]);
@@ -44,6 +49,52 @@ export const UploadProvider = ({ children }) => {
     }
   };
 
+  // Function to save Income Analyzer state when switching away
+  const saveIncomeAnalyzerState = () => {
+    if (
+      showSection.extractedSection ||
+      showSection.startAnalyzing ||
+      showSection.provideLoanIDSection
+    ) {
+      setIncomeAnalyzerState({
+        showSection: { ...showSection },
+        loanId,
+        isUploaded: { ...isUploaded },
+        normalized_json,
+        activeStep,
+      });
+      setIncomeAnalyzerInitialized(true);
+    }
+  };
+
+  // Function to restore Income Analyzer state when switching back
+  const restoreIncomeAnalyzerState = () => {
+    if (incomeAnalyzerInitialized && incomeAnalyzerState) {
+      setShowSection(incomeAnalyzerState.showSection);
+      setLoanId(incomeAnalyzerState.loanId);
+      setIsUploaded(incomeAnalyzerState.isUploaded);
+      set_normalized_json(incomeAnalyzerState.normalized_json);
+      setActiveStep(incomeAnalyzerState.activeStep);
+    }
+  };
+
+  // Function to reset Income Analyzer state
+  const resetIncomeAnalyzerState = () => {
+    setIncomeAnalyzerInitialized(false);
+    setIncomeAnalyzerState(null);
+    setShowSection({
+      processLoanSection: false,
+      provideLoanIDSection: true,
+      extractedSection: false,
+      uploadedModel: false,
+      startAnalyzing: false,
+    });
+    setLoanId("");
+    setIsUploaded({ uploaded: false });
+    set_normalized_json(null);
+    setActiveStep(0);
+  };
+
   return (
     <UploadContext.Provider
       value={{
@@ -62,6 +113,12 @@ export const UploadProvider = ({ children }) => {
         loading,
         setLoading,
         goBack,
+        // New functions for state management
+        saveIncomeAnalyzerState,
+        restoreIncomeAnalyzerState,
+        resetIncomeAnalyzerState,
+        incomeAnalyzerInitialized,
+        incomeAnalyzerState,
       }}
     >
       {children}

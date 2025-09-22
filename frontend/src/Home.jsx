@@ -15,17 +15,28 @@ const Home = () => {
   const [tab, setTab] = useState(0);
   const [incomeTabVisible, setIncomeTabVisible] = useState(false);
 
-  const { setShowSection } = useUpload();
+  const {
+    setShowSection,
+    saveIncomeAnalyzerState,
+    restoreIncomeAnalyzerState,
+    resetIncomeAnalyzerState,
+    incomeAnalyzerInitialized,
+  } = useUpload();
 
   const handleAddLoanPackage = () => {
     setIncomeTabVisible(true); // show the tab
     setTab(1); // jump to Income Analyzer
   };
 
-  // Reset sections when switching tabs
-  useEffect(() => {
-    if (tab === 0) {
-      // Reset Dashboard state
+  // Handle tab switching with state preservation
+  const handleTabChange = (e, newTab) => {
+    // Save current state when leaving Income Analyzer tab
+    if (tab === 1) {
+      saveIncomeAnalyzerState();
+    }
+
+    // Reset Dashboard state when switching to Dashboard
+    if (newTab === 0) {
       setShowSection({
         processLoanSection: true,
         provideLoanIDSection: false,
@@ -34,24 +45,44 @@ const Home = () => {
         startAnalyzing: false,
       });
     }
-    if (tab === 1) {
-      // Reset Income Analyzer state
-      setShowSection({
-        processLoanSection: false,
-        provideLoanIDSection: true,
-        extractedSection: false,
-        uploadedModel: false,
-        startAnalyzing: false,
-      });
+
+    // Handle Income Analyzer tab
+    if (newTab === 1) {
+      if (incomeAnalyzerInitialized) {
+        // Restore previous state if user has been here before
+        restoreIncomeAnalyzerState();
+      } else {
+        // First time accessing Income Analyzer - start fresh
+        setShowSection({
+          processLoanSection: false,
+          provideLoanIDSection: true,
+          extractedSection: false,
+          uploadedModel: false,
+          startAnalyzing: false,
+        });
+      }
     }
-  }, [tab, setShowSection]);
+
+    setTab(newTab);
+  };
+
+  // Initialize Dashboard state on first load
+  useEffect(() => {
+    setShowSection({
+      processLoanSection: true,
+      provideLoanIDSection: false,
+      extractedSection: false,
+      uploadedModel: false,
+      startAnalyzing: false,
+    });
+  }, []); // Only run once on mount
 
   return (
     <div className="flex flex-col h-screen">
       <Header
         initial={initial}
         tabValue={tab}
-        onTabChange={(e, v) => setTab(v)}
+        onTabChange={handleTabChange}
         logout={logout}
         username={username || sessionStorage.getItem("username")}
         email={email || sessionStorage.getItem("email")}

@@ -2,7 +2,6 @@ import { useUpload } from "../context/UploadContext";
 import UnderwritingRuleResult from "../custom_components/UnderwritingRuleResults";
 import UploadedDocument from "../custom_components/UploadedDocument";
 import LoanExatraction from "../custom_components/LoanExtraction";
-import { useEffect } from "react";
 
 const IncomeAnalyzer = () => {
   const {
@@ -15,14 +14,8 @@ const IncomeAnalyzer = () => {
     goBack,
   } = useUpload();
 
-  useEffect(() => {
-    setShowSection((prev) => ({
-      ...prev,
-      processLoanSection: false,
-      provideLoanIDSection: true,
-      extractedSection: false,
-    }));
-  }, []);
+  // Remove the useEffect that was resetting the state
+  // The state management is now handled in Home.jsx
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -57,4 +50,5 @@ const IncomeAnalyzer = () => {
     </div>
   );
 };
+
 export default IncomeAnalyzer;
