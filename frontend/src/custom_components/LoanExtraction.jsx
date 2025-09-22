@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import Button from "../components/Button";
 import UploadedModel from "./UploadedModel";
 import DescriptionIcon from "@mui/icons-material/Description";
 import UnderwritingRulesModel from "./UnderwritingRulesModel";
@@ -19,6 +18,7 @@ import { TbArrowMerge, TbArrowRight } from "react-icons/tb";
 import CloseIcon from "@mui/icons-material/Close";
 import api from "../api/client";
 import ConfirmMoveModal from "./ConfirmMoveModal";
+import ConfirmMergeModal from "./ConfirmMergeModal";
 import { toast } from "react-toastify";
 
 const LoanExtraction = ({
@@ -43,11 +43,12 @@ const LoanExtraction = ({
   });
 
   const [selectMode, setSelectMode] = useState(false);
-  const [selectedBase, setSelectedBase] = useState(null);
-  const [selectedFiles, setSelectedFiles] = useState([]);
-  const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedBorrowers, setSelectedBorrowers] = useState([]);
+  const [selectedFiles, setSelectedFiles] = useState([]); // now stores whole categories
   const [moveAnchorEl, setMoveAnchorEl] = useState(null);
   const [moveModal, setMoveModal] = useState(null);
+  const [mergeAnchorEl, setMergeAnchorEl] = useState(null);
+  const [mergeModal, setMergeModal] = useState(null);
 
   // initialize original and modified data
   useEffect(() => {
@@ -85,20 +86,22 @@ const LoanExtraction = ({
   };
 
   // --- Merge Borrowers ---
-  const handleMerge = async (targetBorrower, newName) => {
-    if (!selectedBase) return;
+  const handleMerge = async (targetBorrower) => {
+    if (selectedBorrowers.length === 0) return;
     try {
       const mergedData = JSON.parse(JSON.stringify(modifiedData));
-      const baseCats = mergedData[selectedBase] || {};
-      const targetCats = mergedData[targetBorrower] || {};
-      const unionCats = { ...baseCats };
-      Object.keys(targetCats).forEach((cat) => {
-        if (!Array.isArray(unionCats[cat])) unionCats[cat] = [];
-        unionCats[cat] = unionCats[cat].concat(targetCats[cat]);
+      const others = selectedBorrowers.filter((b) => b !== targetBorrower);
+
+      let baseCats = mergedData[targetBorrower] || {};
+      others.forEach((b) => {
+        const targetCats = mergedData[b] || {};
+        Object.keys(targetCats).forEach((cat) => {
+          if (!Array.isArray(baseCats[cat])) baseCats[cat] = [];
+          baseCats[cat] = baseCats[cat].concat(targetCats[cat]);
+        });
+        delete mergedData[b];
       });
-      delete mergedData[selectedBase];
-      delete mergedData[targetBorrower];
-      mergedData[newName] = unionCats;
+      mergedData[targetBorrower] = baseCats;
 
       const res = await api.post("/update-cleaned-data", {
         email: sessionStorage.getItem("email") || "",
@@ -110,31 +113,35 @@ const LoanExtraction = ({
 
       setModifiedData(res.data.cleaned_json);
       setSelectMode(false);
-      setSelectedBase(null);
+      setSelectedBorrowers([]);
       setActiveTab("modified");
+      setMergeModal(null);
 
-      toast.success(
-        `Borrowers ${selectedBase} and ${targetBorrower} merged into ${newName}`
-      );
+      toast.success(`Merged ${others.join(", ")} into ${targetBorrower}`);
     } catch (err) {
       console.error("Error in handleMerge:", err);
       toast.error("Failed to merge borrowers. Please try again.");
     }
   };
 
-  // --- Move Files ---
+  // --- Move Categories ---
   const handleMove = async (toBorrower) => {
     if (!selectedFiles.length) return;
     try {
       const mergedData = JSON.parse(JSON.stringify(modifiedData));
-      selectedFiles.forEach(({ borrower, category }) => {
-        const docs = mergedData[borrower][category] || [];
-        if (!mergedData[toBorrower][category])
+
+      selectedFiles.forEach(({ borrower, category, docs }) => {
+        if (!mergedData[toBorrower][category]) {
           mergedData[toBorrower][category] = [];
+        }
         mergedData[toBorrower][category] =
           mergedData[toBorrower][category].concat(docs);
+
+        // Clear original category
         mergedData[borrower][category] = [];
       });
+
+      // Clean up empty categories
       Object.keys(mergedData).forEach((b) => {
         Object.keys(mergedData[b] || {}).forEach((cat) => {
           if (
@@ -159,10 +166,12 @@ const LoanExtraction = ({
       setSelectedFiles([]);
       setActiveTab("modified");
 
-      toast.success(`Moved ${selectedFiles.length} file(s) to ${toBorrower}`);
+      toast.success(
+        `Moved ${selectedFiles.length} categories to ${toBorrower}`
+      );
     } catch (err) {
       console.error("Error in handleMove:", err);
-      toast.error("Failed to move files. Please try again.");
+      toast.error("Failed to move categories. Please try again.");
     }
   };
 
@@ -203,29 +212,29 @@ const LoanExtraction = ({
                   <div className="flex justify-between items-center px-4 py-2 border-b border-gray-100">
                     {selectMode ? (
                       <div className="flex items-center gap-3">
+                        {/* Merge button */}
                         <TbArrowMerge
                           className={`cursor-pointer ${
-                            selectedBase && selectedFiles.length === 0
+                            selectedBorrowers.length > 0
                               ? "text-blue-500"
                               : "text-gray-300"
                           }`}
                           size={20}
                           onClick={(e) =>
-                            selectedBase &&
-                            selectedFiles.length === 0 &&
-                            setAnchorEl(e.currentTarget)
+                            selectedBorrowers.length > 0 &&
+                            setMergeAnchorEl(e.currentTarget)
                           }
                         />
+                        {/* Move button */}
                         <TbArrowRight
                           className={`cursor-pointer ${
-                            selectedFiles.length > 0 && !selectedBase
+                            selectedFiles.length > 0
                               ? "text-blue-500"
                               : "text-gray-300"
                           }`}
                           size={20}
                           onClick={(e) =>
                             selectedFiles.length > 0 &&
-                            !selectedBase &&
                             setMoveAnchorEl(e.currentTarget)
                           }
                         />
@@ -234,7 +243,7 @@ const LoanExtraction = ({
                           fontSize="small"
                           onClick={() => {
                             setSelectMode(false);
-                            setSelectedBase(null);
+                            setSelectedBorrowers([]);
                             setSelectedFiles([]);
                           }}
                         />
@@ -279,10 +288,13 @@ const LoanExtraction = ({
                               {activeTab === "modified" && selectMode && (
                                 <Checkbox
                                   size="small"
-                                  checked={selectedBase === name}
-                                  onChange={() => {
-                                    setSelectedFiles([]);
-                                    setSelectedBase(name);
+                                  checked={selectedBorrowers.includes(name)}
+                                  onChange={(e) => {
+                                    setSelectedBorrowers((prev) =>
+                                      e.target.checked
+                                        ? [...prev, name]
+                                        : prev.filter((b) => b !== name)
+                                    );
                                   }}
                                   onClick={(e) => e.stopPropagation()}
                                 />
@@ -296,10 +308,16 @@ const LoanExtraction = ({
                               <ExpandMoreIcon />
                             )}
                           </div>
+
+                          {/* Categories with checkboxes */}
                           {openBorrowers[name] && (
                             <ul className="ml-8 mt-2 space-y-1">
                               {categories.map((cat) => {
                                 const docs = currentData[name][cat] || [];
+                                const isChecked = selectedFiles.some(
+                                  (f) =>
+                                    f.borrower === name && f.category === cat
+                                );
                                 return (
                                   <li key={cat}>
                                     <div
@@ -314,8 +332,38 @@ const LoanExtraction = ({
                                         setSelectedCategory(cat);
                                       }}
                                     >
+                                      {activeTab === "modified" &&
+                                        selectMode && (
+                                          <Checkbox
+                                            size="small"
+                                            checked={isChecked}
+                                            onClick={(e) => e.stopPropagation()}
+                                            onChange={(e) => {
+                                              if (e.target.checked) {
+                                                setSelectedFiles((prev) => [
+                                                  ...prev,
+                                                  {
+                                                    borrower: name,
+                                                    category: cat,
+                                                    docs,
+                                                  },
+                                                ]);
+                                              } else {
+                                                setSelectedFiles((prev) =>
+                                                  prev.filter(
+                                                    (f) =>
+                                                      !(
+                                                        f.borrower === name &&
+                                                        f.category === cat
+                                                      )
+                                                  )
+                                                );
+                                              }
+                                            }}
+                                          />
+                                        )}
                                       <FaFolder className="text-gray-500" />
-                                      <span className="truncate text-sm">
+                                      <span className="truncate text-sm font-medium">
                                         {cat}
                                       </span>
                                       <span className="ml-auto text-xs text-gray-500">
@@ -343,14 +391,6 @@ const LoanExtraction = ({
                       category={selectedCategory}
                       docs={
                         currentData[selectedBorrower][selectedCategory] || []
-                      }
-                      fileSelectMode={activeTab === "modified" && selectMode}
-                      onFileSelect={(file) =>
-                        setSelectedFiles((prev) =>
-                          prev.some((f) => f.doc === file.doc)
-                            ? prev
-                            : [...prev, file]
-                        )
                       }
                     />
                   ) : (
@@ -383,7 +423,7 @@ const LoanExtraction = ({
         )}
       </div>
 
-      {/* Add/Merge Modal */}
+      {/* Add Borrower Modal */}
       {addBorrower?.model && (
         <EnterBorrowerName
           setAddBorrower={setAddBorrower}
@@ -393,7 +433,17 @@ const LoanExtraction = ({
         />
       )}
 
-      {/* Confirm Move */}
+      {/* Confirm Merge Modal */}
+      {mergeModal && (
+        <ConfirmMergeModal
+          borrowers={selectedBorrowers}
+          target={mergeModal.target}
+          onCancel={() => setMergeModal(null)}
+          onConfirm={() => handleMerge(mergeModal.target)}
+        />
+      )}
+
+      {/* Confirm Move Modal */}
       {moveModal && (
         <ConfirmMoveModal
           fromBorrower={moveModal.from}
@@ -409,26 +459,21 @@ const LoanExtraction = ({
 
       {/* Merge Dropdown */}
       <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={() => setAnchorEl(null)}
+        anchorEl={mergeAnchorEl}
+        open={Boolean(mergeAnchorEl)}
+        onClose={() => setMergeAnchorEl(null)}
       >
         <div className="px-4 py-2 text-sm font-semibold text-[#097aaf] border-b border-gray-200">
-          Merge borrower with
+          Merge selected into...
         </div>
         {borrowers
-          .filter((b) => b !== selectedBase)
+          .filter((b) => !selectedBorrowers.includes(b))
           .map((b) => (
             <MenuItem
               key={b}
               onClick={() => {
-                setAnchorEl(null);
-                setAddBorrower({
-                  model: true,
-                  from: selectedBase,
-                  to: b,
-                  onSave: (newName) => handleMerge(b, newName),
-                });
+                setMergeAnchorEl(null);
+                setMergeModal({ target: b });
               }}
             >
               {b}
@@ -443,7 +488,7 @@ const LoanExtraction = ({
         onClose={() => setMoveAnchorEl(null)}
       >
         <div className="px-4 py-2 text-sm font-semibold text-[#097aaf] border-b border-gray-200">
-          Move files to
+          Move categories to
         </div>
         {borrowers
           .filter((b) => !selectedFiles.some((f) => f.borrower === b))
