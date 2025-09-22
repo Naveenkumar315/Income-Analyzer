@@ -57,20 +57,22 @@ const Header = ({
             }}
             textColor="inherit"
           >
-            {["Dashboard", "View Rules", "Settings"].map((label, index) => (
-              <Tab
-                key={index}
-                label={label}
-                disableRipple
-                sx={{
-                  minHeight: "64px",
-                  fontWeight: tabValue === index ? "bold" : "normal",
-                  color: tabValue === index ? "#26a3dd" : "#6B7280",
-                  "&:hover": { backgroundColor: "transparent" },
-                  textTransform: "none",
-                }}
-              />
-            ))}
+            {["Dashboard", "Income Analyzer", "View Rules", "Settings"].map(
+              (label, index) => (
+                <Tab
+                  key={index}
+                  label={label}
+                  disableRipple
+                  sx={{
+                    minHeight: "64px",
+                    fontWeight: tabValue === index ? "bold" : "normal",
+                    color: tabValue === index ? "#26a3dd" : "#6B7280",
+                    "&:hover": { backgroundColor: "transparent" },
+                    textTransform: "none",
+                  }}
+                />
+              )
+            )}
           </Tabs>
         </Box>
       </div>

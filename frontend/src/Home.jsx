@@ -3,6 +3,7 @@ import Dashboard from "./custom_components/Dashboard";
 import Header from "./custom_components/Header";
 import Rules from "./custom_components/Rules";
 import useCurrentUser from "./hooks/useCurrentUser";
+import IncomeAnalyzer from "./pages/IncomeAnalyer";
 
 const Home = () => {
   const { user, logout } = useCurrentUser();
@@ -28,7 +29,8 @@ const Home = () => {
       <main className="flex-1 overflow-hidden bg-gray-100">
         <div className="h-full overflow-auto p-4">
           {tab === 0 && <Dashboard username={username} email={email} />}
-          {tab === 1 && <Rules />}
+          {tab === 1 && <IncomeAnalyzer />}
+          {tab === 2 && <Rules />}
         </div>
       </main>
     </div>

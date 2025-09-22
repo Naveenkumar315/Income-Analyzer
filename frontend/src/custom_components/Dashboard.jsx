@@ -5,19 +5,33 @@ import UploadedDocument from "./UploadedDocument";
 import UnderwritingRuleResult from "./UnderwritingRuleResults";
 import api from "../api/client";
 import StepChips from "../custom_components/StepChips";
+import { useUpload } from "../context/UploadContext";
 
 const Dashboard = () => {
-  const [showSection, setShowSection] = useState({
-    processLoanSection: true,
-    provideLoanIDSection: false,
-    extractedSection: false,
-    uploadedModel: false,
-    startAnalyzing: false,
-  });
-  const [loanId, setLoanId] = useState("");
-  const [data, setData] = useState([]);
-  const [activeStep, setActiveStep] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const {
+    showSection,
+    setShowSection,
+    loanId,
+    setLoanId,
+    data,
+    setData,
+    activeStep,
+    setActiveStep,
+    loading,
+    setLoading,
+    goBack,
+  } = useUpload();
+  // const [showSection, setShowSection] = useState({
+  //   processLoanSection: true,
+  //   provideLoanIDSection: false,
+  //   extractedSection: false,
+  //   uploadedModel: false,
+  //   startAnalyzing: false,
+  // });
+  // const [loanId, setLoanId] = useState("");
+  // const [data, setData] = useState([]);
+  // const [activeStep, setActiveStep] = useState(0);
+  // const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     handleCheckData();
@@ -69,27 +83,27 @@ const Dashboard = () => {
     }));
   };
 
-  const goBack = () => {
-    if (showSection.startAnalyzing) {
-      setShowSection((prev) => ({
-        ...prev,
-        startAnalyzing: false,
-        extractedSection: true,
-      }));
-    } else if (showSection.extractedSection) {
-      setShowSection((prev) => ({
-        ...prev,
-        extractedSection: false,
-        provideLoanIDSection: true,
-      }));
-    } else if (showSection.provideLoanIDSection) {
-      setShowSection((prev) => ({
-        ...prev,
-        provideLoanIDSection: false,
-        processLoanSection: true,
-      }));
-    }
-  };
+  // const goBack = () => {
+  //   if (showSection.startAnalyzing) {
+  //     setShowSection((prev) => ({
+  //       ...prev,
+  //       startAnalyzing: false,
+  //       extractedSection: true,
+  //     }));
+  //   } else if (showSection.extractedSection) {
+  //     setShowSection((prev) => ({
+  //       ...prev,
+  //       extractedSection: false,
+  //       provideLoanIDSection: true,
+  //     }));
+  //   } else if (showSection.provideLoanIDSection) {
+  //     setShowSection((prev) => ({
+  //       ...prev,
+  //       provideLoanIDSection: false,
+  //       processLoanSection: true,
+  //     }));
+  //   }
+  // };
 
   const columns = [
     { id: "loanId", label: "Loan ID" },
@@ -118,7 +132,7 @@ const Dashboard = () => {
           />
         )}
 
-        {showSection.provideLoanIDSection && (
+        {/* {showSection.provideLoanIDSection && (
           <UploadedDocument
             setShowSection={setShowSection}
             setLoanId={setLoanId}
@@ -143,7 +157,7 @@ const Dashboard = () => {
             setShowSection={setShowSection}
             goBack={goBack}
           />
-        )}
+        )} */}
       </div>
     </div>
   );
