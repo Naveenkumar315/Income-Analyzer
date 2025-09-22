@@ -6,12 +6,9 @@ import Button from "../components/Button";
 
 
 
-const ResultTab = ({ Tabs, value, setValue }) => {
+const ResultTab = ({ Tabs, value, handleGetResult }) => {
 
 
-    const handleChange = (event, newValue) => {
-        setValue(newValue);
-    };
 
     return (
         <Box sx={{ width: "100%" }}>
@@ -25,7 +22,7 @@ const ResultTab = ({ Tabs, value, setValue }) => {
                     }}
                 >
                     <TabList
-                        onChange={handleChange}
+                        onChange={handleGetResult}
                         aria-label="tabs example"
                         sx={{
                             "& .MuiTabs-indicator": {

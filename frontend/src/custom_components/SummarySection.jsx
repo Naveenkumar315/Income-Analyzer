@@ -9,10 +9,15 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ErrorIcon from "@mui/icons-material/Error";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 
-const SummarySection = ({ summary_data }) => {
+const SummarySection = ({ summary_data = [] }) => {
+
+  console.log('summary_data', summary_data);
+
+
+
   return (
     <div className="space-y-3">
-      {summary_data.map((item, idx) => {
+      {summary_data?.map((item, idx) => {
         const { result } = item;
         const status = result?.status || "Unknown";
 

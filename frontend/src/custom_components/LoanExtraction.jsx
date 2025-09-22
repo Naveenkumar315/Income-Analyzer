@@ -24,10 +24,11 @@ import ConfirmMoveModal from "./ConfirmMoveModal";
 import ConfirmMergeModal from "./ConfirmMergeModal";
 import ConfirmDeleteModal from "./ConfirmDeleteModal";
 import { toast } from "react-toastify";
+import Button from "../components/Button";
 
 const LoanExtraction = ({
   showSection = {},
-  setShowSection = () => {},
+  setShowSection = () => { },
   goBack,
 }) => {
   const { isUploaded, normalized_json } = useUpload();
@@ -224,6 +225,32 @@ const LoanExtraction = ({
           <div className="font-medium">
             Loan ID : {sessionStorage.getItem("loanId") || ""}
           </div>
+          {isUploaded?.uploaded && (
+            <div className="flex gap-2">
+              <Button
+                variant="upload-doc"
+                width={200}
+                label="Upload Documents"
+                onClick={() =>
+                  setShowSection((p) => ({ ...p, uploadedModel: true }))
+                }
+              />
+              <Button
+                variant="start-analyze"
+                width={200}
+                label="Start Analyzing"
+                onClick={() =>
+                  setShowSection((p) => ({
+                    ...p,
+                    startAnalyzing: true,
+                    processLoanSection: false,
+                    provideLoanIDSection: false,
+                    extractedSection: false
+                  }))
+                }
+              />
+            </div>
+          )}
         </div>
 
         {/* Tabs */}
@@ -238,11 +265,10 @@ const LoanExtraction = ({
                 setSelectedBorrower(null);
                 setSelectedCategory(null);
               }}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === tab
-                  ? "border-blue-600 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-blue-600 hover:border-gray-300"
-              }`}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === tab
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-blue-600 hover:border-gray-300"
+                }`}
             >
               {tab === "original" ? "Original Data" : "Modified Data"}
             </button>
@@ -261,11 +287,10 @@ const LoanExtraction = ({
                       <div className="flex gap-4 items-center">
                         <TbArrowMerge
                           size={20}
-                          className={`cursor-pointer ${
-                            selectedBorrowers.length > 0
-                              ? "text-blue-600"
-                              : "text-gray-300"
-                          }`}
+                          className={`cursor-pointer ${selectedBorrowers.length > 0
+                            ? "text-blue-600"
+                            : "text-gray-300"
+                            }`}
                           onClick={(e) => {
                             if (selectedBorrowers.length === 0) return;
                             setMergeAnchorEl(e.currentTarget);
@@ -273,11 +298,10 @@ const LoanExtraction = ({
                         />
                         <TbArrowRight
                           size={20}
-                          className={`cursor-pointer ${
-                            selectedFiles.length > 0
-                              ? "text-blue-600"
-                              : "text-gray-300"
-                          }`}
+                          className={`cursor-pointer ${selectedFiles.length > 0
+                            ? "text-blue-600"
+                            : "text-gray-300"
+                            }`}
                           onClick={(e) => {
                             if (selectedFiles.length === 0) return;
                             setMoveAnchorEl(e.currentTarget);
@@ -413,12 +437,11 @@ const LoanExtraction = ({
                                 return (
                                   <li key={cat}>
                                     <div
-                                      className={`flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer hover:bg-gray-100 ${
-                                        selectedBorrower === name &&
+                                      className={`flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer hover:bg-gray-100 ${selectedBorrower === name &&
                                         selectedCategory === cat
-                                          ? "bg-blue-50 border border-blue-300"
-                                          : ""
-                                      }`}
+                                        ? "bg-blue-50 border border-blue-300"
+                                        : ""
+                                        }`}
                                       onClick={() => {
                                         setSelectedBorrower(name);
                                         setSelectedCategory(cat);
@@ -478,9 +501,9 @@ const LoanExtraction = ({
               <div className="w-[75%] flex flex-col">
                 <div className="flex-1 overflow-y-auto p-4">
                   {selectedBorrower &&
-                  currentData[selectedBorrower] &&
-                  selectedCategory &&
-                  currentData[selectedBorrower][selectedCategory] ? (
+                    currentData[selectedBorrower] &&
+                    selectedCategory &&
+                    currentData[selectedBorrower][selectedCategory] ? (
                     <LoanPackagePanel
                       borrower={selectedBorrower}
                       category={selectedCategory}
@@ -499,58 +522,66 @@ const LoanExtraction = ({
           ) : (
             <UnuploadedScreen setShowSection={setShowSection} />
           )}
-        </div>
+        </div >
 
         {/* Floating Rules Button */}
-        <div className="fixed bottom-4 right-4 w-[50px] h-[50px] bg-[#12699D] rounded-full flex items-center justify-center shadow-lg hover:bg-[#0f5a7a] transition-colors">
+        < div className="fixed bottom-4 right-4 w-[50px] h-[50px] bg-[#12699D] rounded-full flex items-center justify-center shadow-lg hover:bg-[#0f5a7a] transition-colors" >
           <DescriptionIcon
             onClick={() => setRulesModel(true)}
             className="text-white cursor-pointer"
           />
-        </div>
+        </div >
 
         <UnderwritingRulesModel
           rulesModel={rulesModel}
           OpenRulesModel={setRulesModel}
         />
-        {showSection.uploadedModel && (
-          <UploadedModel setShowSection={setShowSection} />
-        )}
-      </div>
+        {
+          showSection.uploadedModel && (
+            <UploadedModel setShowSection={setShowSection} />
+          )
+        }
+      </div >
 
       {/* Add Borrower */}
-      {addBorrower?.model && (
-        <EnterBorrowerName
-          setAddBorrower={setAddBorrower}
-          addBorrower={addBorrower}
-          from_name={addBorrower.from || ""}
-          to_name={addBorrower.to || ""}
-        />
-      )}
+      {
+        addBorrower?.model && (
+          <EnterBorrowerName
+            setAddBorrower={setAddBorrower}
+            addBorrower={addBorrower}
+            from_name={addBorrower.from || ""}
+            to_name={addBorrower.to || ""}
+          />
+        )
+      }
 
       {/* Merge */}
-      {mergeModal && (
-        <ConfirmMergeModal
-          borrowers={selectedBorrowers}
-          target={mergeModal.target}
-          onCancel={() => setMergeModal(null)}
-          onConfirm={() => handleMerge(mergeModal.target)}
-        />
-      )}
+      {
+        mergeModal && (
+          <ConfirmMergeModal
+            borrowers={selectedBorrowers}
+            target={mergeModal.target}
+            onCancel={() => setMergeModal(null)}
+            onConfirm={() => handleMerge(mergeModal.target)}
+          />
+        )
+      }
 
       {/* Move */}
-      {moveModal && (
-        <ConfirmMoveModal
-          fromBorrower={moveModal.from}
-          toBorrower={moveModal.to}
-          files={moveModal.files}
-          onCancel={() => setMoveModal(null)}
-          onConfirm={() => {
-            handleMove(moveModal.to);
-            setMoveModal(null);
-          }}
-        />
-      )}
+      {
+        moveModal && (
+          <ConfirmMoveModal
+            fromBorrower={moveModal.from}
+            toBorrower={moveModal.to}
+            files={moveModal.files}
+            onCancel={() => setMoveModal(null)}
+            onConfirm={() => {
+              handleMove(moveModal.to);
+              setMoveModal(null);
+            }}
+          />
+        )
+      }
 
       {/* Merge Dropdown */}
       <Menu
@@ -605,13 +636,15 @@ const LoanExtraction = ({
       </Menu>
 
       {/* Delete Borrower */}
-      {deleteModal && (
-        <ConfirmDeleteModal
-          borrower={deleteModal}
-          onCancel={() => setDeleteModal(null)}
-          onConfirm={(b) => handleDeleteBorrower(b)}
-        />
-      )}
+      {
+        deleteModal && (
+          <ConfirmDeleteModal
+            borrower={deleteModal}
+            onCancel={() => setDeleteModal(null)}
+            onConfirm={(b) => handleDeleteBorrower(b)}
+          />
+        )
+      }
     </>
   );
 };

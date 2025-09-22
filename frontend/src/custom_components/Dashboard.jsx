@@ -26,6 +26,15 @@ const Dashboard = ({ onAddLoanPackage }) => {
     handleCheckData();
   }, [showSection]);
 
+  useEffect(() => {
+    if (showSection.startAnalyzing) {
+      const fetchData = async () => {
+        await getAnalyzedResult()
+      }
+      fetchData()
+    }
+  }, [showSection.startAnalyzing])
+
   const handleCheckData = async () => {
     try {
       setLoading(true);
@@ -61,6 +70,42 @@ const Dashboard = ({ onAddLoanPackage }) => {
       actions: "",
     }));
 
+
+  const handleStepChange = (step) => {
+    console.log('handleStepChange', step);
+
+    setActiveStep(step);
+    setShowSection((prev) => ({
+      ...prev,
+      processLoanSection: false,
+      provideLoanIDSection: false,
+      extractedSection: step === 0 ? true : false,
+      startAnalyzing: step === 1 ? true : false,
+    }));
+  };
+
+  // const goBack = () => {
+  //   if (showSection.startAnalyzing) {
+  //     setShowSection((prev) => ({
+  //       ...prev,
+  //       startAnalyzing: false,
+  //       extractedSection: true,
+  //     }));
+  //   } else if (showSection.extractedSection) {
+  //     setShowSection((prev) => ({
+  //       ...prev,
+  //       extractedSection: false,
+  //       provideLoanIDSection: true,
+  //     }));
+  //   } else if (showSection.provideLoanIDSection) {
+  //     setShowSection((prev) => ({
+  //       ...prev,
+  //       provideLoanIDSection: false,
+  //       processLoanSection: true,
+  //     }));
+  //   }
+  // };
+
   const columns = [
     { id: "loanId", label: "Loan ID" },
     { id: "fileName", label: "File Name" },
@@ -70,6 +115,22 @@ const Dashboard = ({ onAddLoanPackage }) => {
     { id: "uploadedBy", label: "Uploaded By" },
     { id: "actions", label: "Actions", isCustom: true },
   ];
+
+  const getAnalyzedResult = async () => {
+    try {
+      const response = await api.post("/get-analyzing-data", {
+        email: sessionStorage.getItem("email") || "",
+        loanID: sessionStorage.getItem("loanId") || "",
+        username: sessionStorage.getItem("username") || "",
+      });
+      console.log("response", response)
+      if (response.status === 200) {
+        setReport(response?.data)
+      }
+    } catch (error) {
+      console.error(`getAnalyzedResult error: ${error}`);
+    }
+  }
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
