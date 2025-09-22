@@ -94,7 +94,7 @@ const UnderwritingRuleResult = ({ goBack, report, setReport }) => {
             <div className="relative p-5 h-full">
               <div className="grid grid-cols-5 gap-4 h-full">
                 <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl shadow">
-                  <span className="text-black font-bold pl-1">${report?.['income_summary']?.['current_year_monthly_salary']}</span>
+                  <span className="text-black font-bold pl-1">${report?.['income_summary']?.['current_year_gross_monthly_salary']}</span>
                   <span className="flex items-center gap-1 text-sm">
                     Total Monthly Income
                   </span>

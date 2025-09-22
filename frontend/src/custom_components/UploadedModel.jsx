@@ -32,7 +32,7 @@ const style = {
 };
 
 export default function UploadedModel({
-  setShowSection = () => {},
+  setShowSection = () => { },
   loanId = "",
 }) {
   const { showLoader, hideLoader, updateProgress, completeLoader } =
@@ -77,7 +77,6 @@ export default function UploadedModel({
     reader.onload = async (e) => {
       try {
         const rawJson = JSON.parse(e.target.result);
-
         const res = await api.post("/clean-json", {
           username: username || "",
           email: email || "",
