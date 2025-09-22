@@ -144,13 +144,10 @@ const LoanExatraction = ({
 
   return (
     <>
-      {/* <BackLink onClick={goBack} /> */}
-
-      <div className="h-full flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="flex justify-between items-center pb-3 shrink-0">
+      <div className="h-full flex flex-col">
+        {/* Header - Fixed */}
+        <div className="flex justify-between items-center pb-3 px-4 pt-4 bg-white border-b border-gray-200 flex-shrink-0">
           <div className="font-medium flex gap-5">
-            {/* <BackLink onClick={goBack} /> */}
             Loan ID : {sessionStorage.getItem("loanId") || ""}
           </div>
           {isUploaded?.uploaded && (
@@ -175,184 +172,200 @@ const LoanExatraction = ({
           )}
         </div>
 
-        {/* Main */}
-        <div className="flex flex-1 min-h-0 border-t border-gray-300">
+        {/* Main Content - Flexible */}
+        <div className="flex flex-1 min-h-0">
           {isUploaded?.uploaded ? (
             <>
-              {/* Left Borrower Tree */}
-              <div className="w-[25%] border-r border-gray-300 p-2 overflow-auto">
-                <div className="font-semibold mb-2 text-[#26a3dd] flex justify-between items-center">
-                  <span>Loan Package</span>
-                  {selectMode ? (
-                    <div className="flex items-center gap-3">
-                      {/* Merge: only active if borrower selected and no files */}
-                      <TbArrowMerge
-                        className={`cursor-pointer ${
-                          selectedBase && selectedFiles.length === 0
-                            ? "text-blue-500"
-                            : "text-gray-300"
-                        }`}
-                        onClick={(e) =>
-                          selectedBase &&
-                          selectedFiles.length === 0 &&
-                          setAnchorEl(e.currentTarget)
-                        }
-                      />
-                      {/* Move: only active if files selected and no borrower */}
-                      <TbArrowRight
-                        className={`cursor-pointer ${
-                          selectedFiles.length > 0 && !selectedBase
-                            ? "text-blue-500"
-                            : "text-gray-300"
-                        }`}
-                        onClick={(e) =>
-                          selectedFiles.length > 0 &&
-                          !selectedBase &&
-                          setMoveAnchorEl(e.currentTarget)
-                        }
-                      />
-                      <CloseIcon
-                        className="text-red-400 cursor-pointer"
-                        onClick={() => {
-                          setSelectMode(false);
-                          setSelectedBase(null);
-                          setSelectedFiles([]);
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <p
-                      className="cursor-pointer"
-                      onClick={() => setSelectMode(true)}
-                    >
-                      Select
-                    </p>
-                  )}
+              {/* Left Borrower Tree - Fixed width with internal scroll */}
+              <div className="w-[25%] border-r border-gray-300 flex flex-col">
+                {/* Borrower header - Fixed */}
+                <div className="p-4 border-b border-gray-200 flex-shrink-0">
+                  <div className="font-semibold text-[#26a3dd] flex justify-between items-center">
+                    <span>Loan Package</span>
+                    {selectMode ? (
+                      <div className="flex items-center gap-3">
+                        {/* Merge: only active if borrower selected and no files */}
+                        <TbArrowMerge
+                          className={`cursor-pointer ${
+                            selectedBase && selectedFiles.length === 0
+                              ? "text-blue-500"
+                              : "text-gray-300"
+                          }`}
+                          onClick={(e) =>
+                            selectedBase &&
+                            selectedFiles.length === 0 &&
+                            setAnchorEl(e.currentTarget)
+                          }
+                        />
+                        {/* Move: only active if files selected and no borrower */}
+                        <TbArrowRight
+                          className={`cursor-pointer ${
+                            selectedFiles.length > 0 && !selectedBase
+                              ? "text-blue-500"
+                              : "text-gray-300"
+                          }`}
+                          onClick={(e) =>
+                            selectedFiles.length > 0 &&
+                            !selectedBase &&
+                            setMoveAnchorEl(e.currentTarget)
+                          }
+                        />
+                        <CloseIcon
+                          className="text-red-400 cursor-pointer"
+                          onClick={() => {
+                            setSelectMode(false);
+                            setSelectedBase(null);
+                            setSelectedFiles([]);
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <p
+                        className="cursor-pointer hover:text-[#1976d2]"
+                        onClick={() => setSelectMode(true)}
+                      >
+                        Select
+                      </p>
+                    )}
+                  </div>
                 </div>
 
-                <ul>
-                  {borrowers.map((name) => {
-                    const categories = Object.keys(rawData[name] || {});
-                    return (
-                      <li key={name} className="mb-2">
-                        <div
-                          className="flex items-center justify-between p-2 cursor-pointer hover:bg-gray-50"
-                          onClick={() => toggleBorrower(name)}
-                        >
-                          <div className="flex items-center gap-2">
-                            {selectMode && (
-                              <Checkbox
-                                size="small"
-                                checked={selectedBase === name}
-                                onChange={() => {
-                                  // selecting borrower clears file selections
-                                  setSelectedFiles([]);
-                                  setSelectedBase(name);
-                                }}
-                                onClick={(e) => e.stopPropagation()}
-                              />
+                {/* Borrower List - Scrollable */}
+                <div className="flex-1 overflow-y-auto px-4 py-2">
+                  <ul className="space-y-2">
+                    {borrowers.map((name) => {
+                      const categories = Object.keys(rawData[name] || {});
+                      return (
+                        <li key={name}>
+                          <div
+                            className="flex items-center justify-between p-2 cursor-pointer hover:bg-gray-50 rounded-md"
+                            onClick={() => toggleBorrower(name)}
+                          >
+                            <div className="flex items-center gap-2">
+                              {selectMode && (
+                                <Checkbox
+                                  size="small"
+                                  checked={selectedBase === name}
+                                  onChange={() => {
+                                    // selecting borrower clears file selections
+                                    setSelectedFiles([]);
+                                    setSelectedBase(name);
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              )}
+                              <PersonSharpIcon fontSize="small" />
+                              <span className="font-medium">{name}</span>
+                            </div>
+                            {openBorrowers[name] ? (
+                              <ExpandLessIcon />
+                            ) : (
+                              <ExpandMoreIcon />
                             )}
-                            <PersonSharpIcon fontSize="small" />
-                            <span>{name}</span>
                           </div>
-                          {openBorrowers[name] ? (
-                            <ExpandLessIcon />
-                          ) : (
-                            <ExpandMoreIcon />
-                          )}
-                        </div>
 
-                        {/* Categories */}
-                        {openBorrowers[name] && (
-                          <ul className="ml-6 mt-1">
-                            {categories.map((cat) => {
-                              const docs = rawData[name][cat] || [];
-                              const isSelected = selectedFiles.some(
-                                (f) => f.borrower === name && f.category === cat
-                              );
-                              return (
-                                <li key={cat} className="mb-1">
-                                  <div
-                                    className="flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors hover:bg-gray-100"
-                                    onClick={() => {
-                                      setSelectedBorrower(name);
-                                      setSelectedCategory(cat);
-                                    }}
-                                  >
-                                    {selectMode && (
-                                      <Checkbox
-                                        size="small"
-                                        checked={isSelected}
-                                        onChange={(e) => {
-                                          // selecting a category clears borrower selection
-                                          setSelectedBase(null);
-                                          if (e.target.checked) {
-                                            setSelectedFiles((prev) => [
-                                              ...prev,
-                                              { borrower: name, category: cat },
-                                            ]);
-                                          } else {
-                                            setSelectedFiles((prev) =>
-                                              prev.filter(
-                                                (f) =>
-                                                  !(
-                                                    f.borrower === name &&
-                                                    f.category === cat
-                                                  )
-                                              )
-                                            );
-                                          }
-                                        }}
-                                        onClick={(e) => e.stopPropagation()}
-                                      />
-                                    )}
-                                    {name === selectedBorrower &&
-                                    cat === selectedCategory ? (
-                                      <FaFolderOpen className="text-blue-500" />
-                                    ) : (
-                                      <FaFolder className="text-gray-500" />
-                                    )}
-                                    <span className="truncate">{cat}</span>
-                                    <span className="ml-auto text-xs text-gray-500">
-                                      ({docs.length})
-                                    </span>
-                                  </div>
-                                </li>
-                              );
-                            })}
-                          </ul>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
+                          {/* Categories */}
+                          {openBorrowers[name] && (
+                            <ul className="ml-8 mt-2 space-y-1">
+                              {categories.map((cat) => {
+                                const docs = rawData[name][cat] || [];
+                                const isSelected = selectedFiles.some(
+                                  (f) =>
+                                    f.borrower === name && f.category === cat
+                                );
+                                return (
+                                  <li key={cat}>
+                                    <div
+                                      className="flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors hover:bg-gray-100"
+                                      onClick={() => {
+                                        setSelectedBorrower(name);
+                                        setSelectedCategory(cat);
+                                      }}
+                                    >
+                                      {selectMode && (
+                                        <Checkbox
+                                          size="small"
+                                          checked={isSelected}
+                                          onChange={(e) => {
+                                            // selecting a category clears borrower selection
+                                            setSelectedBase(null);
+                                            if (e.target.checked) {
+                                              setSelectedFiles((prev) => [
+                                                ...prev,
+                                                {
+                                                  borrower: name,
+                                                  category: cat,
+                                                },
+                                              ]);
+                                            } else {
+                                              setSelectedFiles((prev) =>
+                                                prev.filter(
+                                                  (f) =>
+                                                    !(
+                                                      f.borrower === name &&
+                                                      f.category === cat
+                                                    )
+                                                )
+                                              );
+                                            }
+                                          }}
+                                          onClick={(e) => e.stopPropagation()}
+                                        />
+                                      )}
+                                      {name === selectedBorrower &&
+                                      cat === selectedCategory ? (
+                                        <FaFolderOpen className="text-blue-500" />
+                                      ) : (
+                                        <FaFolder className="text-gray-500" />
+                                      )}
+                                      <span className="truncate text-sm">
+                                        {cat}
+                                      </span>
+                                      <span className="ml-auto text-xs text-gray-500">
+                                        ({docs.length})
+                                      </span>
+                                    </div>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
               </div>
 
-              {/* Right Panel */}
-              <div className="w-[75%] p-4 overflow-auto">
-                {selectedBorrower && selectedCategory ? (
-                  <LoanPackagePanel
-                    borrower={selectedBorrower}
-                    category={selectedCategory}
-                    docs={rawData[selectedBorrower][selectedCategory] || []}
-                  />
-                ) : (
-                  <div className="text-gray-400 flex items-center justify-center h-full">
-                    Select a category to view documents
-                  </div>
-                )}
+              {/* Right Panel - Fixed width with internal scroll */}
+              <div className="w-[75%] flex flex-col">
+                <div className="flex-1 overflow-y-auto p-4">
+                  {selectedBorrower && selectedCategory ? (
+                    <LoanPackagePanel
+                      borrower={selectedBorrower}
+                      category={selectedCategory}
+                      docs={rawData[selectedBorrower][selectedCategory] || []}
+                    />
+                  ) : (
+                    <div className="text-gray-400 flex items-center justify-center h-full">
+                      Select a category to view documents
+                    </div>
+                  )}
+                </div>
               </div>
             </>
           ) : (
-            <UnuploadedScreen setShowSection={setShowSection} />
+            <div className="flex-1 overflow-y-auto">
+              <UnuploadedScreen setShowSection={setShowSection} />
+            </div>
           )}
         </div>
 
-        {/* Rules Button */}
-        <div className="fixed bottom-4 right-4 w-[50px] h-[50px] bg-[#12699D] rounded-full flex items-center justify-center">
+        {/* Rules Button - Fixed */}
+        <div className="fixed bottom-4 right-4 w-[50px] h-[50px] bg-[#12699D] rounded-full flex items-center justify-center shadow-lg hover:bg-[#0f5a7a] transition-colors">
           <DescriptionIcon
             onClick={() => setRulesModel(true)}
-            className="text-white"
+            className="text-white cursor-pointer"
           />
         </div>
 
