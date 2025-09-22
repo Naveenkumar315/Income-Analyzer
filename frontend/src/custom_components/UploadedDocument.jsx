@@ -41,7 +41,7 @@ const UploadedDocument = ({
       } finally {
         setChecking(false);
       }
-    }, 500); // 500ms debounce
+    }, 200); // 500ms debounce
 
     return () => clearTimeout(timeout);
   }, [loanId]);
