@@ -21,27 +21,20 @@ import api from "../api/client";
 import ConfirmMoveModal from "./ConfirmMoveModal";
 import { toast } from "react-toastify";
 
-const LoanExatraction = ({
-  showSection = {},
-  setShowSection = () => {},
-  goBack,
-}) => {
+const LoanExatraction = ({ showSection = {}, setShowSection = () => {}, goBack }) => {
   const { isUploaded, normalized_json } = useUpload();
 
   const [rulesModel, setRulesModel] = useState(false);
 
   const [originalData, setOriginalData] = useState({});
   const [modifiedData, setModifiedData] = useState({});
-  const [activeTab, setActiveTab] = useState("modified"); // default to modified
-  const [tabsVisible, setTabsVisible] = useState(false); // hidden until first edit
+  const [activeTab, setActiveTab] = useState("modified"); // default
+  const [tabsVisible, setTabsVisible] = useState(false);
 
   const [selectedBorrower, setSelectedBorrower] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [openBorrowers, setOpenBorrowers] = useState({});
-  const [addBorrower, setAddBorrower] = useState({
-    model: false,
-    borrowerName: "",
-  });
+  const [addBorrower, setAddBorrower] = useState({ model: false, borrowerName: "" });
 
   const [selectMode, setSelectMode] = useState(false);
   const [selectedBase, setSelectedBase] = useState(null);
@@ -64,7 +57,6 @@ const LoanExatraction = ({
   const toggleBorrower = (name) =>
     setOpenBorrowers((prev) => ({ ...prev, [name]: !prev[name] }));
 
-  // when first edit occurs, reveal tabs
   const revealTabs = () => {
     if (!tabsVisible) {
       setTabsVisible(true);
@@ -137,18 +129,14 @@ const LoanExatraction = ({
       const mergedData = JSON.parse(JSON.stringify(modifiedData));
       selectedFiles.forEach(({ borrower, category }) => {
         const docs = mergedData[borrower][category] || [];
-        if (!mergedData[toBorrower][category])
-          mergedData[toBorrower][category] = [];
+        if (!mergedData[toBorrower][category]) mergedData[toBorrower][category] = [];
         mergedData[toBorrower][category] =
           mergedData[toBorrower][category].concat(docs);
         mergedData[borrower][category] = [];
       });
       Object.keys(mergedData).forEach((b) => {
         Object.keys(mergedData[b] || {}).forEach((cat) => {
-          if (
-            Array.isArray(mergedData[b][cat]) &&
-            mergedData[b][cat].length === 0
-          ) {
+          if (Array.isArray(mergedData[b][cat]) && mergedData[b][cat].length === 0) {
             delete mergedData[b][cat];
           }
         });
@@ -190,8 +178,6 @@ const LoanExatraction = ({
               {/* Borrower Panel */}
               <div className="w-[25%] border-r border-gray-300 flex flex-col">
                 {/* Header area */}
-                {/* Borrower Header */}
-                {/* Borrower Header */}
                 <div className="border-b border-gray-200 flex-shrink-0 bg-white">
                   {/* Line 1: Tabs */}
                   {tabsVisible ? (
@@ -206,18 +192,14 @@ const LoanExatraction = ({
                               : "border-transparent text-gray-500 hover:text-blue-600 hover:border-gray-300"
                           }`}
                         >
-                          {tab === "original"
-                            ? "Original Data"
-                            : "Modified Data"}
+                          {tab === "original" ? "Original Data" : "Modified Data"}
                         </button>
                       ))}
                     </div>
                   ) : (
                     // Before any edits → just title
                     <div className="flex justify-between items-center px-4 py-2">
-                      <span className="font-semibold text-[#26a3dd]">
-                        Borrowers
-                      </span>
+                      <span className="font-semibold text-[#26a3dd]">Borrowers</span>
                       <div className="flex gap-4">
                         <button
                           className="text-sm text-blue-600 hover:underline"
@@ -241,7 +223,7 @@ const LoanExatraction = ({
                     </div>
                   )}
 
-                  {/* Line 2: Only show in Modified tab after edits */}
+                  {/* Line 2: Only show in Modified tab */}
                   {tabsVisible && activeTab === "modified" && (
                     <div className="flex justify-between items-center px-4 py-2 border-t border-gray-100">
                       {selectMode ? (
@@ -334,11 +316,7 @@ const LoanExatraction = ({
                               <PersonSharpIcon fontSize="small" />
                               <span className="font-medium">{name}</span>
                             </div>
-                            {openBorrowers[name] ? (
-                              <ExpandLessIcon />
-                            ) : (
-                              <ExpandMoreIcon />
-                            )}
+                            {openBorrowers[name] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                           </div>
                           {openBorrowers[name] && (
                             <ul className="ml-8 mt-2 space-y-1">
@@ -346,11 +324,19 @@ const LoanExatraction = ({
                                 const docs = currentData[name][cat] || [];
                                 return (
                                   <li key={cat}>
-                                    <div className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-100">
+                                    <div
+                                      className={`flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer hover:bg-gray-100 ${
+                                        selectedBorrower === name && selectedCategory === cat
+                                          ? "bg-blue-50 border border-blue-300"
+                                          : ""
+                                      }`}
+                                      onClick={() => {
+                                        setSelectedBorrower(name);
+                                        setSelectedCategory(cat);
+                                      }}
+                                    >
                                       <FaFolder className="text-gray-500" />
-                                      <span className="truncate text-sm">
-                                        {cat}
-                                      </span>
+                                      <span className="truncate text-sm">{cat}</span>
                                       <span className="ml-auto text-xs text-gray-500">
                                         ({docs.length})
                                       </span>
@@ -374,9 +360,7 @@ const LoanExatraction = ({
                     <LoanPackagePanel
                       borrower={selectedBorrower}
                       category={selectedCategory}
-                      docs={
-                        currentData[selectedBorrower][selectedCategory] || []
-                      }
+                      docs={currentData[selectedBorrower][selectedCategory] || []}
                     />
                   ) : (
                     <div className="text-gray-400 flex items-center justify-center h-full">
@@ -399,13 +383,8 @@ const LoanExatraction = ({
           />
         </div>
 
-        <UnderwritingRulesModel
-          rulesModel={rulesModel}
-          OpenRulesModel={setRulesModel}
-        />
-        {showSection.uploadedModel && (
-          <UploadedModel setShowSection={setShowSection} />
-        )}
+        <UnderwritingRulesModel rulesModel={rulesModel} OpenRulesModel={setRulesModel} />
+        {showSection.uploadedModel && <UploadedModel setShowSection={setShowSection} />}
       </div>
 
       {/* Add/Merge Modal */}
@@ -433,11 +412,7 @@ const LoanExatraction = ({
       )}
 
       {/* Merge Dropdown */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={() => setAnchorEl(null)}
-      >
+      <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
         <div className="px-4 py-2 text-sm font-semibold text-[#097aaf] border-b border-gray-200">
           Merge borrower with
         </div>
