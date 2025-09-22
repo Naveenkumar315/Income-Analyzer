@@ -227,11 +227,17 @@ const LoanExtraction = ({
         </div>
 
         {/* Tabs */}
+        {/* Tabs */}
         <div className="flex px-4 border-b border-gray-200 bg-white">
           {["original", "modified"].map((tab) => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => {
+                setActiveTab(tab);
+                // Clear right side selection when switching tabs
+                setSelectedBorrower(null);
+                setSelectedCategory(null);
+              }}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === tab
                   ? "border-blue-600 text-blue-600"
