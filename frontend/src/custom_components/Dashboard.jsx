@@ -18,10 +18,20 @@ const Dashboard = () => {
   const [data, setData] = useState([]);
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [report, setReport] = useState({})
 
   useEffect(() => {
     handleCheckData();
   }, []);
+
+  useEffect(() => {
+    if (showSection.startAnalyzing) {
+      const fetchData = async () => {
+        await getAnalyzedResult()
+      }
+      fetchData()
+    }
+  }, [showSection.startAnalyzing])
 
   const handleCheckData = async () => {
     try {
@@ -58,14 +68,17 @@ const Dashboard = () => {
       actions: "",
     }));
 
+
   const handleStepChange = (step) => {
+    console.log('handleStepChange', step);
+
     setActiveStep(step);
     setShowSection((prev) => ({
       ...prev,
       processLoanSection: false,
       provideLoanIDSection: false,
-      extractedSection: step !== 1,
-      startAnalyzing: step === 1,
+      extractedSection: step === 0 ? true : false,
+      startAnalyzing: step === 1 ? true : false,
     }));
   };
 
@@ -100,6 +113,22 @@ const Dashboard = () => {
     { id: "uploadedBy", label: "Uploaded By" },
     { id: "actions", label: "Actions", isCustom: true },
   ];
+
+  const getAnalyzedResult = async () => {
+    try {
+      const response = await api.post("/get-analyzing-data", {
+        email: sessionStorage.getItem("email") || "",
+        loanID: sessionStorage.getItem("loanId") || "",
+        username: sessionStorage.getItem("username") || "",
+      });
+      console.log("response", response)
+      if (response.status === 200) {
+        setReport(response?.data)
+      }
+    } catch (error) {
+      console.error(`getAnalyzedResult error: ${error}`);
+    }
+  }
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -142,6 +171,8 @@ const Dashboard = () => {
             showSection={showSection}
             setShowSection={setShowSection}
             goBack={goBack}
+            report={report}
+            setReport={setReport}
           />
         )}
       </div>

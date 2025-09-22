@@ -26,7 +26,7 @@ import { toast } from "react-toastify";
 
 const LoanExatraction = ({
   showSection = {},
-  setShowSection = () => {},
+  setShowSection = () => { },
   goBack,
 }) => {
   const { isUploaded, normalized_json } = useUpload();
@@ -168,7 +168,13 @@ const LoanExatraction = ({
                 width={200}
                 label="Start Analyzing"
                 onClick={() =>
-                  setShowSection((p) => ({ ...p, startAnalyzing: true }))
+                  setShowSection((p) => ({
+                    ...p,
+                    startAnalyzing: true,
+                    processLoanSection: false,
+                    provideLoanIDSection: false,
+                    extractedSection: false
+                  }))
                 }
               />
             </div>
@@ -187,11 +193,10 @@ const LoanExatraction = ({
                     <div className="flex items-center gap-3">
                       {/* Merge: only active if borrower selected and no files */}
                       <TbArrowMerge
-                        className={`cursor-pointer ${
-                          selectedBase && selectedFiles.length === 0
-                            ? "text-blue-500"
-                            : "text-gray-300"
-                        }`}
+                        className={`cursor-pointer ${selectedBase && selectedFiles.length === 0
+                          ? "text-blue-500"
+                          : "text-gray-300"
+                          }`}
                         onClick={(e) =>
                           selectedBase &&
                           selectedFiles.length === 0 &&
@@ -200,11 +205,10 @@ const LoanExatraction = ({
                       />
                       {/* Move: only active if files selected and no borrower */}
                       <TbArrowRight
-                        className={`cursor-pointer ${
-                          selectedFiles.length > 0 && !selectedBase
-                            ? "text-blue-500"
-                            : "text-gray-300"
-                        }`}
+                        className={`cursor-pointer ${selectedFiles.length > 0 && !selectedBase
+                          ? "text-blue-500"
+                          : "text-gray-300"
+                          }`}
                         onClick={(e) =>
                           selectedFiles.length > 0 &&
                           !selectedBase &&
@@ -307,7 +311,7 @@ const LoanExatraction = ({
                                       />
                                     )}
                                     {name === selectedBorrower &&
-                                    cat === selectedCategory ? (
+                                      cat === selectedCategory ? (
                                       <FaFolderOpen className="text-blue-500" />
                                     ) : (
                                       <FaFolder className="text-gray-500" />
