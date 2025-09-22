@@ -32,11 +32,25 @@ const UnderwritingRuleResult = ({ goBack, report, setReport }) => {
       if (newValue === "Summary") {
         const response = await api.post("/income-calc", {});
 
-        console.log('response_getSummary', response?.data);
+        const result = response?.data?.income[0]["checks"].filter((x) =>
+          x.field.includes("current")
+        );
+        const final_res = result?.reduce((acc, item) => {
+          acc[item.field] = item.value;
+          return acc;
+        }, {});
+
+        const summaryData = result.reduce((acc, item) => {
+          acc[item.field] = item; // keep full object, not just value
+          return acc;
+        }, {});
+
 
         setReport((prev) => ({
           ...prev,
-          summary: response?.data?.income
+          summary: result,
+          income_summary: final_res,
+          summaryData: summaryData,
         }))
       } else if (newValue === "Insights") {
         debugger
@@ -78,25 +92,38 @@ const UnderwritingRuleResult = ({ goBack, report, setReport }) => {
             <div className="absolute inset-0 bg-gradient-to-r from-[#26a3dd] to-[#bcdff0] opacity-30"></div>
 
             <div className="relative p-5 h-full">
-              <div className="grid grid-cols-3 gap-4 h-full">
+              <div className="grid grid-cols-5 gap-4 h-full">
                 <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl shadow">
-                  <span className="text-black font-bold pl-1">$8000.00</span>
+                  <span className="text-black font-bold pl-1">${report?.['income_summary']?.['current_year_monthly_salary']}</span>
                   <span className="flex items-center gap-1 text-sm">
                     Total Monthly Income
                   </span>
                 </div>
                 <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl shadow">
-                  <span className="text-black font-bold pl-1">$1000.00</span>
+                  <span className="text-black font-bold pl-1">${report?.['income_summary']?.['current_year_bonus']}</span>
                   <span className="flex items-center gap-1 text-sm">
-                    W-2/Paystub Monthly
+                    Bonus
                   </span>
                 </div>
                 <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl shadow">
-                  <span className="text-black font-bold pl-1">$1000.00</span>
+                  <span className="text-black font-bold pl-1">${report?.['income_summary']?.['current_year_commission']}</span>
                   <span className="flex items-center gap-1 text-sm">
-                    Tax-Return Monthly
+                    Commission
                   </span>
                 </div>
+                <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl shadow">
+                  <span className="text-black font-bold pl-1">${report?.['income_summary']?.['current_year_overtime']}</span>
+                  <span className="flex items-center gap-1 text-sm">
+                    Overtime
+                  </span>
+                </div>
+                <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl shadow">
+                  <span className="text-black font-bold pl-1">${report?.['income_summary']?.['current_year_other_income']}</span>
+                  <span className="flex items-center gap-1 text-sm">
+                    Other Income
+                  </span>
+                </div>
+
               </div>
             </div>
           </div>
@@ -254,7 +281,7 @@ const UnderwritingRuleResult = ({ goBack, report, setReport }) => {
             <div className="absolute inset-0 bg-gradient-to-r from-[#d6f1ff] to-[#b0e2de] opacity-20 "></div>
 
             <div className="relative flex flex-col gap-4 h-full overflow-auto">
-              <span className="font-bold">Title</span>
+              {/* <span className="font-bold">Income Insights</span> */}
               <span>{report?.insights || ""}</span>
             </div>
           </div>

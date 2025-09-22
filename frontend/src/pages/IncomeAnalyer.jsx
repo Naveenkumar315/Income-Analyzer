@@ -2,6 +2,8 @@ import { useUpload } from "../context/UploadContext";
 import UnderwritingRuleResult from "../custom_components/UnderwritingRuleResults";
 import UploadedDocument from "../custom_components/UploadedDocument";
 import LoanExatraction from "../custom_components/LoanExtraction";
+import { useEffect } from "react";
+import api from "../api/client";
 
 const IncomeAnalyzer = () => {
   const {
@@ -12,7 +14,33 @@ const IncomeAnalyzer = () => {
     activeStep,
     setActiveStep,
     goBack,
+    setReport,
+    report,
   } = useUpload();
+
+
+  useEffect(() => {
+    if (showSection.startAnalyzing) {
+      getAnalyzedResult()
+    }
+  }, [showSection.startAnalyzing])
+
+
+  const getAnalyzedResult = async () => {
+    try {
+      const response = await api.post("/get-analyzing-data", {
+        email: sessionStorage.getItem("email") || "",
+        loanID: sessionStorage.getItem("loanId") || "",
+        username: sessionStorage.getItem("username") || "",
+      });
+      console.log("response", response)
+      if (response.status === 200) {
+        setReport(response?.data)
+      }
+    } catch (error) {
+      console.error(`getAnalyzedResult error: ${error}`);
+    }
+  }
 
   // Remove the useEffect that was resetting the state
   // The state management is now handled in Home.jsx
@@ -44,6 +72,8 @@ const IncomeAnalyzer = () => {
             showSection={showSection}
             setShowSection={setShowSection}
             goBack={goBack}
+            report={report}
+            setReport={setReport}
           />
         )}
       </div>

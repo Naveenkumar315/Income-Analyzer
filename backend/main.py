@@ -164,162 +164,128 @@ async def get_summary():
     try:
         return {
             "status": "success",
-            "file": 3,
+            "file": 1,
             "income": [
                 {
                     "checks": [
                         {
                             "field": "employee_name",
-                            "value": "WEN BIN NI",
+                            "value": "Samuel Cameron Sotello",
                             "status": "Pass",
-                            "commentary": "The employee name was extracted from the W-2 form for the year 2023.",
-                            "calculation_commentry": "The employee name 'WEN BIN NI' is directly available in the W-2 documentation under the 'Employee Name' field."
+                            "commentary": "Employee name extracted from VOE and Paystubs for the year 2025.",
+                            "calculation_commentry": "Employee name is directly available in the VOE and Paystubs."
                         },
                         {
                             "field": "date_of_hire",
-                            "value": "insufficient data",
-                            "status": "Fail",
-                            "commentary": "The date of hire is not available in the provided documentation for the year 2023.",
-                            "calculation_commentry": "The provided documents, including W-2 and paystubs, do not contain any information regarding the date of hire. Therefore, it is not possible to calculate or derive this field."
-                        }
-                    ]
-                },
-                {
-                    "checks": [
-                        {
-                            "field": "current_year_ytd_earnings",
-                            "value": "180000",
+                            "value": "August 2011",
                             "status": "Pass",
-                            "commentary": "The current year YTD earnings for 2023 are derived from the W-2 form provided for Wen Bin Ni.",
-                            "calculation_commentry": "The W-2 form for the year 2023 shows 'Wages Tips Other Comp' as $180,000. This is the total earnings for the year 2023."
+                            "commentary": "Date of hire extracted from VOE for the year 2025.",
+                            "calculation_commentry": "Date of hire is directly available in the VOE as 'Most Recent Start Date'."
                         },
-                        {
-                            "field": "previous_year_ytd_earnings",
-                            "value": "insufficient data",
-                            "status": "Fail",
-                            "commentary": "There is no documentation available for the year 2022 to calculate the previous year's YTD earnings.",
-                            "calculation_commentry": "The provided documentation only includes a W-2 for 2023 and no other documents for 2022. Therefore, it is not possible to calculate the previous year's YTD earnings."
-                        },
-                        {
-                            "field": "second_previous_year_ytd_earnings",
-                            "value": "insufficient data",
-                            "status": "Fail",
-                            "commentary": "There is no documentation available for the year 2021 to calculate the second previous year's YTD earnings.",
-                            "calculation_commentry": "The provided documentation only includes a W-2 for 2023 and no other documents for 2021. Therefore, it is not possible to calculate the second previous year's YTD earnings."
-                        }
-                    ]
-                },
-                {
-                    "checks": [
-                        {
-                            "field": "current_year_bonus",
-                            "value": "0",
-                            "status": "Pass",
-                            "commentary": "For the year 2023, no bonus information is available in the provided W-2 form.",
-                            "calculation_commentry": "The W-2 form for 2023 does not list any bonuses separately. Therefore, the current year bonus is assumed to be $0."
-                        },
-                        {
-                            "field": "previous_year_bonus",
-                            "value": "insufficient data",
-                            "status": "Fail",
-                            "commentary": "No documentation is available for the year 2022 to determine the previous year's bonus.",
-                            "calculation_commentry": "There is no W-2 or any other documentation provided for the year 2022. Hence, it is not possible to calculate the previous year's bonus."
-                        },
-                        {
-                            "field": "second_previous_year_bonus",
-                            "value": "insufficient data",
-                            "status": "Fail",
-                            "commentary": "No documentation is available for the year 2021 to determine the second previous year's bonus.",
-                            "calculation_commentry": "There is no W-2 or any other documentation provided for the year 2021. Hence, it is not possible to calculate the second previous year's bonus."
-                        }
-                    ]
-                },
-                {
-                    "checks": [
-                        {
-                            "field": "current_year_commission",
-                            "value": "insufficient data",
-                            "status": "Fail",
-                            "commentary": "The year 2023 data does not provide specific commission details.",
-                            "calculation_commentry": "The W-2 form for 2023 does not specify any commission earnings separately. Without explicit commission data, it is not possible to calculate the current year commission."
-                        },
-                        {
-                            "field": "previous_year_commission",
-                            "value": "insufficient data",
-                            "status": "Fail",
-                            "commentary": "No data available for the year 2022 to determine commission.",
-                            "calculation_commentry": "There is no documentation provided for the year 2022, hence commission earnings for the previous year cannot be calculated."
-                        },
-                        {
-                            "field": "second_previous_year_commission",
-                            "value": "insufficient data",
-                            "status": "Fail",
-                            "commentary": "No data available for the year 2021 to determine commission.",
-                            "calculation_commentry": "There is no documentation provided for the year 2021, hence commission earnings for the second previous year cannot be calculated."
-                        }
-                    ]
-                },
-                {
-                    "error": "Invalid JSON response"
-                },
-                {
-                    "checks": [
-                        {
-                            "field": "current_year_other_income",
-                            "value": "0",
-                            "status": "Pass",
-                            "commentary": "Based on the 2023 W-2 form for Wen Bin Ni, there is no indication of other income such as bonuses, commissions, or additional earnings beyond the regular wages. The W-2 form only lists 'Wages, Tips, Other Comp' as $180,000, which is considered the base salary. No additional income sources are mentioned.",
-                            "calculation_commentry": "The W-2 form for 2023 lists 'Wages, Tips, Other Comp' as $180,000. There are no other income sources or additional earnings mentioned in the provided documentation. Therefore, the current year other income is calculated as $0."
-                        }
-                    ]
-                },
-                {
-                    "checks": [
-                        {
-                            "field": "current_year_hourly_rate",
-                            "value": "insufficient data",
-                            "status": "Fail",
-                            "commentary": "The available documentation for 2023 does not provide sufficient data to calculate an hourly rate.",
-                            "calculation_commentry": "The W-2 form for 2023 provides an annual salary of $180,000 but does not include information on hours worked or pay frequency, which are necessary to calculate an hourly rate."
-                        },
-                        {
-                            "field": "previous_year_hourly_rate",
-                            "value": "insufficient data",
-                            "status": "Fail",
-                            "commentary": "No documentation is available for the previous year to calculate an hourly rate.",
-                            "calculation_commentry": "There is no data provided for the year 2022, hence it is impossible to calculate the hourly rate for that year."
-                        },
-                        {
-                            "field": "second_previous_year_hourly_rate",
-                            "value": "insufficient data",
-                            "status": "Fail",
-                            "commentary": "No documentation is available for the second previous year to calculate an hourly rate.",
-                            "calculation_commentry": "There is no data provided for the year 2021, hence it is impossible to calculate the hourly rate for that year."
-                        }
-                    ]
-                },
-                {
-                    "checks": [
                         {
                             "field": "current_year_monthly_salary",
-                            "value": "15000",
+                            "value": "7,993.33",
                             "status": "Pass",
-                            "commentary": "The current year (2023) gross monthly salary is calculated from the W-2 form.",
-                            "calculation_commentry": "Annual salary from W-2 for 2023 is $180,000. To find the monthly salary: $180,000 / 12 = $15,000."
+                            "commentary": "Calculated from W-2 wages for the year 2024.",
+                            "calculation_commentry": "Annual salary from W-2 (2024) is $95,674.00. Monthly salary = $95,674.00 / 12 = $7,972.83."
                         },
                         {
                             "field": "previous_year_monthly_salary",
-                            "value": "insufficient data",
-                            "status": "Fail",
-                            "commentary": "There is no available data for the previous year (2022) to calculate the monthly salary.",
-                            "calculation_commentry": "No W-2, paystubs, or VOE data available for 2022 to derive the monthly salary."
+                            "value": "7,993.33",
+                            "status": "Pass",
+                            "commentary": "Calculated from W-2 wages for the year 2023.",
+                            "calculation_commentry": "Annual salary from W-2 (2023) is $95,920.00. Monthly salary = $95,920.00 / 12 = $7,993.33."
                         },
                         {
                             "field": "second_previous_year_monthly_salary",
-                            "value": "insufficient data",
-                            "status": "Fail",
-                            "commentary": "There is no available data for the second previous year (2021) to calculate the monthly salary.",
-                            "calculation_commentry": "No W-2, paystubs, or VOE data available for 2021 to derive the monthly salary."
+                            "value": "7,972.83",
+                            "status": "Pass",
+                            "commentary": "Calculated from VOE total pay for the year 2022.",
+                            "calculation_commentry": "Annual salary from VOE (2022) is $95,674.00. Monthly salary = $95,674.00 / 12 = $7,972.83."
+                        },
+                        {
+                            "field": "current_year_bonus",
+                            "value": "0.00",
+                            "status": "Pass",
+                            "commentary": "No bonus reported in W-2 or VOE for the year 2024.",
+                            "calculation_commentry": "Bonus is not reported in the available documentation for 2024."
+                        },
+                        {
+                            "field": "previous_year_bonus",
+                            "value": "0.00",
+                            "status": "Pass",
+                            "commentary": "No bonus reported in W-2 or VOE for the year 2023.",
+                            "calculation_commentry": "Bonus is not reported in the available documentation for 2023."
+                        },
+                        {
+                            "field": "second_previous_year_bonus",
+                            "value": "0.00",
+                            "status": "Pass",
+                            "commentary": "No bonus reported in VOE for the year 2022.",
+                            "calculation_commentry": "Bonus is not reported in the available documentation for 2022."
+                        },
+                        {
+                            "field": "current_year_commission",
+                            "value": "0.00",
+                            "status": "Pass",
+                            "commentary": "No commission reported in W-2 or VOE for the year 2024.",
+                            "calculation_commentry": "Commission is not reported in the available documentation for 2024."
+                        },
+                        {
+                            "field": "previous_year_commission",
+                            "value": "0.00",
+                            "status": "Pass",
+                            "commentary": "No commission reported in W-2 or VOE for the year 2023.",
+                            "calculation_commentry": "Commission is not reported in the available documentation for 2023."
+                        },
+                        {
+                            "field": "second_previous_year_commission",
+                            "value": "0.00",
+                            "status": "Pass",
+                            "commentary": "No commission reported in VOE for the year 2022.",
+                            "calculation_commentry": "Commission is not reported in the available documentation for 2022."
+                        },
+                        {
+                            "field": "current_year_overtime",
+                            "value": "5,380.00",
+                            "status": "Pass",
+                            "commentary": "Overtime extracted from VOE for the year 2023.",
+                            "calculation_commentry": "Overtime is directly available in the VOE as $5,380.00 for 2023."
+                        },
+                        {
+                            "field": "previous_year_overtime",
+                            "value": "9,028.00",
+                            "status": "Pass",
+                            "commentary": "Overtime extracted from VOE for the year 2022.",
+                            "calculation_commentry": "Overtime is directly available in the VOE as $9,028.00 for 2022."
+                        },
+                        {
+                            "field": "second_previous_year_overtime",
+                            "value": "0.00",
+                            "status": "Pass",
+                            "commentary": "No overtime reported in VOE for the year 2021.",
+                            "calculation_commentry": "Overtime is not reported in the available documentation for 2021."
+                        },
+                        {
+                            "field": "current_year_other_income",
+                            "value": "0.00",
+                            "status": "Pass",
+                            "commentary": "No other income reported in W-2 or VOE for the year 2024.",
+                            "calculation_commentry": "Other income is not reported in the available documentation for 2024."
+                        },
+                        {
+                            "field": "previous_year_other_income",
+                            "value": "0.00",
+                            "status": "Pass",
+                            "commentary": "No other income reported in W-2 or VOE for the year 2023.",
+                            "calculation_commentry": "Other income is not reported in the available documentation for 2023."
+                        },
+                        {
+                            "field": "second_previous_year_other_income",
+                            "value": "0.00",
+                            "status": "Pass",
+                            "commentary": "No other income reported in VOE for the year 2022.",
+                            "calculation_commentry": "Other income is not reported in the available documentation for 2022."
                         }
                     ]
                 }
