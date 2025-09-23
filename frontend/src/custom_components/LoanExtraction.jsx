@@ -19,6 +19,8 @@ import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SaveIcon from "@mui/icons-material/Save";
+// import FilterAltSharpIcon from "@mui/icons-material/FilterAlt";
+import FilterAltSharpIcon from "@mui/icons-material/FilterAltSharp";
 import api from "../api/client";
 import ConfirmMoveModal from "./ConfirmMoveModal";
 import ConfirmMergeModal from "./ConfirmMergeModal";
@@ -39,7 +41,7 @@ const LoanExtraction = ({
   // data states
   const [originalData, setOriginalData] = useState({});
   const [modifiedData, setModifiedData] = useState({});
-  const [activeTab, setActiveTab] = useState("original");
+  const [activeTab, setActiveTab] = useState("modified"); // default modified
 
   // selection & UI
   const [selectedBorrower, setSelectedBorrower] = useState(null);
@@ -65,6 +67,8 @@ const LoanExtraction = ({
   const [editingBorrower, setEditingBorrower] = useState(null);
   const [editingName, setEditingName] = useState("");
   const [deleteModal, setDeleteModal] = useState(null);
+
+  const [hasModifications, setHasModifications] = useState(false);
 
   // initialize
   useEffect(() => {
@@ -93,6 +97,7 @@ const LoanExtraction = ({
       });
       setModifiedData(res.data.cleaned_json);
       setActiveTab("modified");
+      setHasModifications(true);
       if (successMsg) toast.success(successMsg);
     } catch (err) {
       console.error(`${actionTag} error:`, err);
@@ -254,95 +259,103 @@ const LoanExtraction = ({
           )}
         </div>
 
-        {/* Tabs */}
-        {/* Tabs */}
-        <div className="flex px-4 border-b border-gray-200 bg-white">
-          {["original", "modified"].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => {
-                setActiveTab(tab);
-                // Clear right side selection when switching tabs
-                setSelectedBorrower(null);
-                setSelectedCategory(null);
-              }}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === tab
-                  ? "border-[#26a3dd] text-[#26a3dd]"
-                  : "border-transparent text-gray-500 hover:text-[#26a3dd] hover:border-gray-300"
-              }`}
-            >
-              {tab === "original" ? "Original Data" : "Modified Data"}
-            </button>
-          ))}
+        {/* Loan Package Header */}
+        {/* Loan Package Header */}
+        <div className="px-4 py-2 border-b border-gray-200 bg-white">
+          <div className="inline-flex items-center gap-4 w-auto">
+            {/* <h2 className="text-lg font-semibold">Loan Package</h2> */}
+
+            {activeTab === "modified" && !selectMode && (
+              <>
+                <button
+                  className="text-sm text-[#26a3dd] hover:underline"
+                  onClick={() =>
+                    setAddBorrower({
+                      model: true,
+                      borrowerName: "",
+                      onSave: handleAddBorrower,
+                    })
+                  }
+                >
+                  Add Borrower
+                </button>
+                <button
+                  className="text-sm text-gray-600 hover:text-[#26a3dd]"
+                  onClick={() => setSelectMode(true)}
+                >
+                  Select
+                </button>
+              </>
+            )}
+
+            {hasModifications && activeTab === "modified" && (
+              <FilterAltSharpIcon
+                className="text-gray-600 cursor-pointer"
+                onClick={() => {
+                  setActiveTab("original");
+                  setSelectedBorrower(null);
+                  setSelectedCategory(null);
+                }}
+              />
+            )}
+
+            {activeTab === "original" && (
+              <CloseIcon
+                className="text-red-500 cursor-pointer"
+                onClick={() => {
+                  setActiveTab("modified");
+                  setSelectedBorrower(null);
+                  setSelectedCategory(null);
+                }}
+              />
+            )}
+          </div>
         </div>
 
+        {/* Content */}
         <div className="flex flex-1 min-h-0">
           {isUploaded?.uploaded ? (
             <>
               {/* Left Panel */}
               <div className="w-[25%] border-r border-gray-300 flex flex-col">
-                {/* Top actions (only in modified) */}
-                {activeTab === "modified" && (
+                {/* Top actions when in select mode */}
+                {activeTab === "modified" && selectMode && (
                   <div className="flex justify-between items-center px-4 py-2 border-b border-gray-100">
-                    {selectMode ? (
-                      <div className="flex gap-4 items-center">
-                        <TbArrowMerge
-                          size={20}
-                          className={`cursor-pointer ${
-                            selectedBorrowers.length > 0
-                              ? "text-[#26a3dd]"
-                              : "text-gray-300"
-                          }`}
-                          onClick={(e) => {
-                            if (selectedBorrowers.length === 0) return;
-                            setMergeAnchorEl(e.currentTarget);
-                          }}
-                        />
-                        <TbArrowRight
-                          size={20}
-                          className={`cursor-pointer ${
-                            selectedFiles.length > 0
-                              ? "text-[#26a3dd]"
-                              : "text-gray-300"
-                          }`}
-                          onClick={(e) => {
-                            if (selectedFiles.length === 0) return;
-                            setMoveAnchorEl(e.currentTarget);
-                          }}
-                        />
-                        <CloseIcon
-                          className="text-red-500 cursor-pointer"
-                          fontSize="small"
-                          onClick={() => {
-                            setSelectMode(false);
-                            setSelectedBorrowers([]);
-                            setSelectedFiles([]);
-                          }}
-                        />
-                      </div>
-                    ) : (
-                      <div className="flex gap-4">
-                        <button
-                          className="text-sm text-[#26a3dd] hover:underline"
-                          onClick={() =>
-                            setAddBorrower({
-                              model: true,
-                              borrowerName: "",
-                              onSave: handleAddBorrower,
-                            })
-                          }
-                        >
-                          Add Borrower
-                        </button>
-                        <button
-                          className="text-sm text-gray-600 hover:text-[#26a3dd]"
-                          onClick={() => setSelectMode(true)}
-                        >
-                          Select
-                        </button>
-                      </div>
-                    )}
+                    <div className="flex gap-4 items-center">
+                      <TbArrowMerge
+                        size={20}
+                        className={`cursor-pointer ${
+                          selectedBorrowers.length > 0
+                            ? "text-[#26a3dd]"
+                            : "text-gray-300"
+                        }`}
+                        onClick={(e) => {
+                          if (selectedBorrowers.length === 0) return;
+                          setMergeAnchorEl(e.currentTarget);
+                        }}
+                      />
+                      <TbArrowRight
+                        size={20}
+                        className={`cursor-pointer ${
+                          selectedFiles.length > 0
+                            ? "text-[#26a3dd]"
+                            : "text-gray-300"
+                        }`}
+                        onClick={(e) => {
+                          if (selectedFiles.length === 0) return;
+                          setMoveAnchorEl(e.currentTarget);
+                        }}
+                      />
+                      <CloseIcon
+                        className="text-red-500 cursor-pointer"
+                        fontSize="small"
+                        onClick={() => {
+                          setSelectMode(false);
+                          setSelectedBorrowers([]);
+                          setSelectedFiles([]);
+                        }}
+                      />
+                    </div>
                   </div>
                 )}
 
