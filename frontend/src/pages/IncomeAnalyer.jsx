@@ -2,7 +2,7 @@ import { useUpload } from "../context/UploadContext";
 import UnderwritingRuleResult from "../custom_components/UnderwritingRuleResults";
 import UploadedDocument from "../custom_components/UploadedDocument";
 import LoanExatraction from "../custom_components/LoanExtraction";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import api from "../api/client";
 import StepChips from "../custom_components/StepChips";
 
@@ -21,6 +21,8 @@ const IncomeAnalyzer = () => {
     setIsLoading,
   } = useUpload();
 
+  const [loadingStep, setLoadingStep] = useState(0);
+
   useEffect(() => {
     if (showSection.startAnalyzing) {
       // getAnalyzedResult()
@@ -32,8 +34,8 @@ const IncomeAnalyzer = () => {
 
   const getAnalyzedResult = async () => {
     try {
-      let email = sessionStorage.getItem("email") || ""
-      let loanId = sessionStorage.getItem("loanId") || ""
+      let email = sessionStorage.getItem("email") || "";
+      let loanId = sessionStorage.getItem("loanId") || "";
       const response = await api.post("/verify-rules", null, {
         params: { email, loanID: loanId },
       });
@@ -66,21 +68,38 @@ const IncomeAnalyzer = () => {
     const loanId = sessionStorage.getItem("loanId") || "";
 
     try {
+      // open loader at step 1
+      setLoadingStep(0);
       const requests = [
-        api.post("/verify-rules", null, { params: { email, loanID: loanId }, signal }),
-        api.post("/income-calc", null, { params: { email, loanID: loanId }, signal }),
-        api.post("/income-insights", null, { params: { email, loanID: loanId }, signal }),
+        api.post("/verify-rules", null, {
+          params: { email, loanID: loanId },
+          signal,
+        }),
+        api.post("/income-calc", null, {
+          params: { email, loanID: loanId },
+          signal,
+        }),
+        api.post("/income-insights", null, {
+          params: { email, loanID: loanId },
+          signal,
+        }),
       ];
 
-      const [rulesRes, incomeRes, insightsRes] = await Promise.allSettled(requests);
+      const results = await Promise.allSettled(
+        requests.map(async (req, idx) => {
+          const res = await req;
+          setLoadingStep((prev) => prev + 1);
+          return res;
+        })
+      );
 
-      console.log('incomeRes', incomeRes)
-      console.log('rulesRes', rulesRes);
+      const [rulesRes, incomeRes, insightsRes] = results;
 
+      // console.log("analyzing_data", { rulesRes, incomeRes, insightsRes });
+      // console.log("rulesRes", rulesRes);
 
       // helper to extract data if fulfilled
       const getData = (r) => (r.status === "fulfilled" ? r.value.data : null);
-
 
       const rulesData = getData(rulesRes);
       const incomeData = getData(incomeRes);
@@ -111,11 +130,17 @@ const IncomeAnalyzer = () => {
         insights: insightsData?.income_insights?.insight_commentry || "",
       });
 
+      console.log("Fianl AD : ", {
+        rules: rulesData,
+        summary: currentIncomeChecks,
+        income_summary: incomeSummary,
+        summaryData,
+        insights: insightsData?.income_insights?.insight_commentry || "",
+      });
     } finally {
       setIsLoading(false);
     }
   };
-
 
   // Remove the useEffect that was resetting the state
   // The state management is now handled in Home.jsx
@@ -152,6 +177,7 @@ const IncomeAnalyzer = () => {
             goBack={goBack}
             report={report}
             setReport={setReport}
+            loadingStep={loadingStep}
           />
         )}
       </div>
