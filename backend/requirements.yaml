@@ -1,0 +1,70 @@
+rules: 
+      ["Defines stable, predictable income; variable income averaging; income trending analysis; income continuity; use of nontaxable income and tax returns requirements.",
+      "Specifies documentation acceptable for wage earners: current paystubs (dated within 30 days), 1-2yrs W-2s, VOE forms, employer or third party verification."]
+
+required_fields:
+  employee_information:
+    - employee_name
+    - date_of_hire
+    - current_year_gross_monthly_salary
+    - previous_year_gross_monthly_salary
+    - second_previous_year_gross_monthly_salary
+    - current_year_bonus
+    - previous_year_bonus
+    - second_previous_year_bonus
+    - current_year_commission
+    - previous_year_commission
+    - second_previous_year_commission
+    - current_year_overtime
+    - previous_year_overtime
+    - second_previous_year_overtime
+    - current_year_other_income
+    - previous_year_other_income
+    - second_previous_year_other_income
+
+  # pay_frequency:
+  #   - current_year_pay_frequency
+  #   - previous_year_pay_frequency
+  #   - second_previous_year_pay_frequency
+
+  # pay_type:
+  #   - current_year_pay_type
+  #   - previous_year_pay_type
+  #   - second_previous_year_pay_type
+
+  # ytd_earnings:
+  #   - current_year_ytd_earnings
+  #   - previous_year_ytd_earnings
+  #   - second_previous_year_ytd_earnings
+
+  # monthly_salary:
+  #   - current_year_monthly_salary
+  #   - previous_year_monthly_salary
+  #   - second_previous_year_monthly_salary
+  # bonus:
+  #   - current_year_bonus
+  #   - previous_year_bonus
+  #   - second_previous_year_bonus
+
+  # commission:
+  #   - current_year_commission
+  #   - previous_year_commission
+  #   - second_previous_year_commission
+
+  # overtime:
+  #   - current_year_overtime
+  #   - previous_year_overtime
+  #   - second_previous_year_overtime
+
+  # other_income:
+  #   - current_year_other_income
+  #   - previous_year_other_income
+  #   - second_previous_year_other_income
+
+  # hourly_rate:
+  #   - current_year_hourly_rate
+  #   - previous_year_hourly_rate
+  #   - second_previous_year_hourly_rate
+
+
+

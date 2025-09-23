@@ -28,10 +28,10 @@ const Dashboard = ({ onAddLoanPackage }) => {
 
   useEffect(() => {
     if (showSection.startAnalyzing) {
-      const fetchData = async () => {
-        await getAnalyzedResult();
-      };
-      fetchData();
+      // const fetchData = async () => {
+      //   await getAnalyzedResult()
+      // }
+      // fetchData()
     }
   }, [showSection.startAnalyzing]);
 
@@ -117,10 +117,12 @@ const Dashboard = ({ onAddLoanPackage }) => {
 
   const getAnalyzedResult = async () => {
     try {
-      const response = await api.post("/get-analyzing-data", {
-        email: sessionStorage.getItem("email") || "",
-        loanID: sessionStorage.getItem("loanId") || "",
-        username: sessionStorage.getItem("username") || "",
+
+      let email = sessionStorage.getItem("email") || ""
+      let loanId = sessionStorage.getItem("loanId") || ""
+
+      const response = await api.post("/verify-rules", null, {
+        params: { email, loanID: loanId },
       });
       console.log("response", response);
       if (response.status === 200) {

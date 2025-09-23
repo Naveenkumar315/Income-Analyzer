@@ -1,13 +1,43 @@
-from fastapi import FastAPI, HTTPException, Body, Query
+from fastapi import FastAPI, HTTPException, Body, Query, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
 from datetime import datetime
+import asyncio
+import json
+import yaml
+import uvicorn
+from bson import ObjectId
 
 from app.routes import auth, uploaded_data
 from app.utils.borrower_cleanup_service import clean_borrower_documents_from_dict
 from app.db import db
 from app.services.audit_service import log_action  # <-- audit service
+from app.utils.MCP_Connector import MCPClient
+from app.utils.Data_formatter import BorrowerDocumentProcessor
+import logging
+import os
+
+# -----------------------------
+# Logging Setup
+# -----------------------------
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# -----------------------------
+# Config
+# -----------------------------
+allowed_sections = ["BorrowerName", "W2", "VOE", "Paystubs", "Paystub"]
+
+try:
+    with open("requirements.yaml") as stream:
+        requirements = yaml.safe_load(stream)
+except FileNotFoundError:
+    logger.error("requirements.yaml file not found")
+    requirements = {"rules": [], "required_fields": []}
+except yaml.YAMLError as e:
+    logger.error(f"Error parsing requirements.yaml: {e}")
+    requirements = {"rules": [], "required_fields": []}
 
 app = FastAPI(title="Income Analyzer API", version="1.0.0")
 
@@ -24,6 +54,36 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+mcp_client = MCPClient("http://localhost:8000/mcp")
+client_lock = asyncio.Lock()
+
+
+# Storage for uploaded borrower content
+uploaded_content: Dict[int, Dict[str, Any]] = {}
+
+# -----------------------------
+# Startup / Shutdown
+# -----------------------------
+
+
+@app.on_event("startup")
+async def startup_event():
+    try:
+        await mcp_client.connect()
+        logger.info("MCP client connected successfully")
+    except Exception as e:
+        logger.error(f"Failed to connect MCP client: {e}")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    try:
+        await mcp_client.cleanup()
+        logger.info("MCP client cleanup completed")
+    except Exception as e:
+        logger.error(f"Error during MCP client cleanup: {e}")
 
 
 @app.get("/")
@@ -123,187 +183,167 @@ async def check_loanid(email: str = Query(...), loanID: str = Query(...)):
     return {"exists": bool(existing)}
 
 
-@app.post("/get-analyzing-data")
-async def get_analyzing_data():
+def convert_objectid(obj):
+    if isinstance(obj, dict):
+        return {k: convert_objectid(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_objectid(i) for i in obj]
+    elif isinstance(obj, ObjectId):
+        return str(obj)
+    else:
+        return obj
+
+
+@app.post("/verify-rules")
+async def verify_rules(email: str = Query(...), loanID: str = Query(...)):
+    """Verify rules for previously uploaded borrower JSON"""
+    content = await db["uploadedData"].find_one({"loanID": loanID, "email": email}, {"cleaned_data": 1, "_id": 0})
+    print('[][][][][]', content)
+    if not content or 'cleaned_data' not in content:
+        raise HTTPException(
+            status_code=404, detail="File not found or cleaned_data missing."
+        )
+    content = content['cleaned_data']
+    # print('===================', content)
+
+    if not content:
+        raise HTTPException(status_code=404, detail="Data is not found.")
+
+    # content = convert_objectid(content)
+
     try:
-        return {
-            "status": "success",
-            "file": 1,
-            "results": [
-                {
-                    "rule": "Defines stable, predictable income; variable income averaging; income trending analysis; income continuity; use of nontaxable income and tax returns requirements.",
-                    "result": {
-                        "rule": "Defines stable, predictable income; variable income averaging; income trending analysis; income continuity; use of nontaxable income and tax returns requirements.",
-                        "status": "Pass",
-                        "commentary": "The loan details provided for Samuel Glynda Sotello Cameron Sotello and Natalie Carrasco Sotello demonstrate stable and predictable income through consistent W2 earnings and VOE records. Samuel's income shows a stable trend with slight variations due to overtime and pay increases, while Natalie's income is consistent with her employment history. Both borrowers have provided sufficient documentation, including W2s and VOEs, to verify income continuity. There is no indication of nontaxable income or missing tax returns that would affect the evaluation."
-                    }
-                },
-                {
-                    "rule": "Specifies documentation acceptable for wage earners: current paystubs (dated within 30 days), 1-2yrs W-2s, VOE forms, employer or third party verification.",
-                    "result": {
-                        "rule": "Specifies documentation acceptable for wage earners: current paystubs (dated within 30 days), 1-2yrs W-2s, VOE forms, employer or third party verification.",
-                        "status": "Pass",
-                        "commentary": "The loan details provided include W-2 forms for the years 2023 and 2024, a VOE form verified on 5/8/2025, and a paystub dated 4/18/2025. These documents satisfy the rule's requirements for acceptable documentation for wage earners."
-                    }
-                }
-            ],
-            "rule_result": {
-                "Pass": 2,
-                "Fail": 0,
-                "Insufficient data": 0,
-                "Error": 0
-            }
-        }
+        results = []
+        rule_result = {'Pass': 0, 'Fail': 0,
+                       'Insufficient data': 0, 'Error': 0}
+
+        async with client_lock:
+            for rule in requirements["rules"]:
+                try:
+                    response = await mcp_client.call_tool(
+                        "rule_verification", {
+                            "rules": rule, "content": json.dumps(content)}
+                    )
+
+                    if response.content and len(response.content) > 0 and response.content[0].text.strip():
+                        parsed_response = json.loads(response.content[0].text)
+                        if parsed_response['status'] == 'Pass':
+                            rule_result["Pass"] = rule_result["Pass"]+1
+                        elif parsed_response['status'] == 'Fail':
+                            rule_result["Fail"] = rule_result["Fail"]+1
+                        else:
+                            rule_result["Insufficient data"] = rule_result["Insufficient data"]+1
+                    else:
+                        rule_result["Error"] = rule_result["Error"]+1
+                        parsed_response = {
+                            "error": "Empty response from MCP client"}
+
+                except json.JSONDecodeError as e:
+                    rule_result["Error"] = rule_result["Error"]+1
+                    logger.error(f"JSON decode error for rule {rule}: {e}")
+                    parsed_response = {"error": "Invalid JSON response"}
+                except Exception as e:
+                    rule_result["Error"] = rule_result["Error"]+1
+                    logger.error(f"Rule verification error for {rule}: {e}")
+                    parsed_response = {
+                        "error": f"Verification failed: {str(e)}"}
+
+                results.append({"rule": rule, "result": parsed_response})
+
+        return {"status": "success", "results": results, "rule_result":  rule_result}
+
     except Exception as e:
-        print(e)
-        return {"error": str(e)}
+        logger.error(f"Rules verification failed: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Rules verification failed: {str(e)}")
 
 
 @app.post("/income-calc")
-async def get_summary():
+async def income_calc(email: str = Query(...), loanID: str = Query(...)):
+    """Calculate income for previously uploaded borrower JSON"""
+    content = await db["uploadedData"].find_one({"loanID": loanID, "email": email}, {"cleaned_data": 1, "_id": 0})
+    content = content['cleaned_data']
+    # print("API calling", content)
+
+    if not content:
+        raise HTTPException(
+            status_code=404, detail="File not found. Please upload first.")
+
     try:
-        return {
-            "status": "success",
-            "file": 1,
-            "income": [
-                {
-                    "checks": [
-                        {
-                            "field": "employee_name",
-                            "value": "Samuel Cameron Sotello",
-                            "status": "Pass",
-                            "commentary": "Employee name extracted from VOE and Paystubs for the year 2025.",
-                            "calculation_commentry": "Employee name is directly available in the VOE and Paystubs."
-                        },
-                        {
-                            "field": "date_of_hire",
-                            "value": "August 2011",
-                            "status": "Pass",
-                            "commentary": "Date of hire extracted from VOE for the year 2025.",
-                            "calculation_commentry": "Date of hire is directly available in the VOE as 'Most Recent Start Date'."
-                        },
-                        {
-                            "field": "current_year_monthly_salary",
-                            "value": "7,993.33",
-                            "status": "Pass",
-                            "commentary": "Calculated from W-2 wages for the year 2024.",
-                            "calculation_commentry": "Annual salary from W-2 (2024) is $95,674.00. Monthly salary = $95,674.00 / 12 = $7,972.83."
-                        },
-                        {
-                            "field": "previous_year_monthly_salary",
-                            "value": "7,993.33",
-                            "status": "Pass",
-                            "commentary": "Calculated from W-2 wages for the year 2023.",
-                            "calculation_commentry": "Annual salary from W-2 (2023) is $95,920.00. Monthly salary = $95,920.00 / 12 = $7,993.33."
-                        },
-                        {
-                            "field": "second_previous_year_monthly_salary",
-                            "value": "7,972.83",
-                            "status": "Pass",
-                            "commentary": "Calculated from VOE total pay for the year 2022.",
-                            "calculation_commentry": "Annual salary from VOE (2022) is $95,674.00. Monthly salary = $95,674.00 / 12 = $7,972.83."
-                        },
-                        {
-                            "field": "current_year_bonus",
-                            "value": "0.00",
-                            "status": "Pass",
-                            "commentary": "No bonus reported in W-2 or VOE for the year 2024.",
-                            "calculation_commentry": "Bonus is not reported in the available documentation for 2024."
-                        },
-                        {
-                            "field": "previous_year_bonus",
-                            "value": "0.00",
-                            "status": "Pass",
-                            "commentary": "No bonus reported in W-2 or VOE for the year 2023.",
-                            "calculation_commentry": "Bonus is not reported in the available documentation for 2023."
-                        },
-                        {
-                            "field": "second_previous_year_bonus",
-                            "value": "0.00",
-                            "status": "Pass",
-                            "commentary": "No bonus reported in VOE for the year 2022.",
-                            "calculation_commentry": "Bonus is not reported in the available documentation for 2022."
-                        },
-                        {
-                            "field": "current_year_commission",
-                            "value": "0.00",
-                            "status": "Pass",
-                            "commentary": "No commission reported in W-2 or VOE for the year 2024.",
-                            "calculation_commentry": "Commission is not reported in the available documentation for 2024."
-                        },
-                        {
-                            "field": "previous_year_commission",
-                            "value": "0.00",
-                            "status": "Pass",
-                            "commentary": "No commission reported in W-2 or VOE for the year 2023.",
-                            "calculation_commentry": "Commission is not reported in the available documentation for 2023."
-                        },
-                        {
-                            "field": "second_previous_year_commission",
-                            "value": "0.00",
-                            "status": "Pass",
-                            "commentary": "No commission reported in VOE for the year 2022.",
-                            "calculation_commentry": "Commission is not reported in the available documentation for 2022."
-                        },
-                        {
-                            "field": "current_year_overtime",
-                            "value": "5,380.00",
-                            "status": "Pass",
-                            "commentary": "Overtime extracted from VOE for the year 2023.",
-                            "calculation_commentry": "Overtime is directly available in the VOE as $5,380.00 for 2023."
-                        },
-                        {
-                            "field": "previous_year_overtime",
-                            "value": "9,028.00",
-                            "status": "Pass",
-                            "commentary": "Overtime extracted from VOE for the year 2022.",
-                            "calculation_commentry": "Overtime is directly available in the VOE as $9,028.00 for 2022."
-                        },
-                        {
-                            "field": "second_previous_year_overtime",
-                            "value": "0.00",
-                            "status": "Pass",
-                            "commentary": "No overtime reported in VOE for the year 2021.",
-                            "calculation_commentry": "Overtime is not reported in the available documentation for 2021."
-                        },
-                        {
-                            "field": "current_year_other_income",
-                            "value": "0.00",
-                            "status": "Pass",
-                            "commentary": "No other income reported in W-2 or VOE for the year 2024.",
-                            "calculation_commentry": "Other income is not reported in the available documentation for 2024."
-                        },
-                        {
-                            "field": "previous_year_other_income",
-                            "value": "0.00",
-                            "status": "Pass",
-                            "commentary": "No other income reported in W-2 or VOE for the year 2023.",
-                            "calculation_commentry": "Other income is not reported in the available documentation for 2023."
-                        },
-                        {
-                            "field": "second_previous_year_other_income",
-                            "value": "0.00",
-                            "status": "Pass",
-                            "commentary": "No other income reported in VOE for the year 2022.",
-                            "calculation_commentry": "Other income is not reported in the available documentation for 2022."
-                        }
-                    ]
-                }
-            ]
-        }
+        final_resopnse = []
+        header_key = requirements["required_fields"].keys()
+        for key in header_key:
+            async with client_lock:
+                try:
+                    response = await mcp_client.call_tool(
+                        "income_calculator",
+                        {"fields": requirements["required_fields"]
+                            [key], "content": json.dumps(content)},
+                    )
+
+                    if response.content and len(response.content) > 0 and response.content[0].text.strip():
+                        parsed_response = json.loads(response.content[0].text)
+                    else:
+                        parsed_response = {
+                            "error": "Empty response from MCP client"}
+
+                except json.JSONDecodeError as e:
+                    logger.error(
+                        f"JSON decode error in income calculation: {e}")
+                    parsed_response = {"error": "Invalid JSON response"}
+                except Exception as e:
+                    logger.error(f"Income calculation error: {e}")
+                    parsed_response = {
+                        "error": f"Calculation failed: {str(e)}"}
+            final_resopnse.append(parsed_response)
+
+        return {"status": "success", "income": final_resopnse}
+
     except Exception as e:
-        print(f' Error: {e}')
+        logger.error(f"Income calculation failed: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Income calculation failed: {str(e)}")
 
 
 @app.post("/income-insights")
-async def income_insights():
+async def income_insights(email: str = Query(...), loanID: str = Query(...)):
+    content = await db["uploadedData"].find_one({"loanID": loanID, "email": email}, {"cleaned_data": 1, "_id": 0})
+    print(content)
+    content = content['cleaned_data']
+    print('content', content)
+    if not content:
+        raise HTTPException(
+            status_code=404, detail="File not found. Please upload first.")
+
     try:
-        return {
-            "status": "success",
-            "file": 1,
-            "income_insights": {
-                "insight_commentry": "Analysis of the mortgage loan file for Samuel Glynda Sotello Cameron Sotello and Natalie Carrasco Sotello reveals the following insights:\n\n1. **Valid Income Findings:**\n   - Samuel C Sotello's income from Sotello Electric LLC is consistent across W2 forms for 2023 and 2024, with wages around $95,920 and $95,674 respectively. The VOE confirms employment status as active with a consistent hourly rate of $46 and average hours between 40-45 per week.\n   - Natalie Carrasco Sotello's income from Stream Realty Partners, L.P. for 2024 is reported as $19,973.59, with statutory employee status checked, indicating compliance with Fannie Mae guidelines.\n\n2. **Guideline Exceptions or Risks:**\n   - The VOE for Natalie E Carrasco indicates she is not currently on payroll at Skanska USA Inc., which may affect income stability and continuity.\n   - The paystubs for Natalie Eden Sotello and Samuel Cameron Sotello from Pilgrim Mortgage LLC lack detailed earnings and deductions, which may require further verification.\n\n3. **Potential Fraud Indicators:**\n   - Discrepancies in employee addresses between W2 forms and VOE for Samuel C Sotello could indicate potential misrepresentation or errors in documentation.\n   - The social security number for Samuel Cameron Sotello differs between W2 and VOE, which is a red flag for identity verification.\n\n4. **Miscellaneous Observations:**\n   - The VOE for Samuel C Sotello indicates a pay increase in September 2024, which aligns with the reported wages in the W2 forms.\n   - Natalie Carrasco Sotello's paystubs from Stream Realty Personnel Services, LLC show deductions for various benefits, indicating comprehensive employee benefits.\n\nOverall, while the income documentation for Samuel C Sotello appears valid, there are concerns regarding Natalie Carrasco Sotello's employment status and discrepancies in documentation that require further investigation."
-            }
-        }
+        async with client_lock:
+            try:
+                response = await mcp_client.call_tool(
+                    "income_insights",
+                    {"content": json.dumps(content)},
+                )
+
+                if response.content and len(response.content) > 0 and response.content[0].text.strip():
+                    parsed_response = json.loads(response.content[0].text)
+                else:
+                    parsed_response = {
+                        "error": "Empty response from MCP client"}
+
+            except json.JSONDecodeError as e:
+                logger.error(f"JSON decode error in income calculation: {e}")
+                parsed_response = {"error": "Invalid JSON response"}
+            except Exception as e:
+                logger.error(f"Income calculation error: {e}")
+                parsed_response = {"error": f"Calculation failed: {str(e)}"}
+
+        return {"status": "success", "income_insights": parsed_response}
+
     except Exception as e:
-        print(f'Error: ${e}')
+        logger.error(f"Income calculation failed: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Income calculation failed: {str(e)}")
+
+# ======================================
+#  Entrypoint
+# ======================================
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8080, reload=True)

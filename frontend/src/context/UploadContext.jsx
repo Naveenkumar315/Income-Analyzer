@@ -18,6 +18,7 @@ export const UploadProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [normalized_json, set_normalized_json] = useState(null);
   const [report, setReport] = useState({})
+  const [isLoading, setIsLoading] = useState(false);
 
   // Add state to track Income Analyzer progress
   const [incomeAnalyzerInitialized, setIncomeAnalyzerInitialized] =
@@ -122,6 +123,8 @@ export const UploadProvider = ({ children }) => {
         incomeAnalyzerState,
         setReport,
         report,
+        isLoading,
+        setIsLoading,
       }}
     >
       {children}
