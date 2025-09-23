@@ -23,6 +23,9 @@ const Home = () => {
     incomeAnalyzerInitialized,
   } = useUpload();
 
+  const shouldShowRules =
+    (!incomeTabVisible && tab === 1) || (incomeTabVisible && tab === 2);
+
   const handleAddLoanPackage = () => {
     // Set initial state for Income Analyzer
     setShowSection({
@@ -108,7 +111,7 @@ const Home = () => {
             />
           )}
           {incomeTabVisible && tab === 1 && <IncomeAnalyzer />}
-          {tab === 2 && <Rules />}
+          {shouldShowRules && <Rules />}
         </div>
       </main>
     </div>
