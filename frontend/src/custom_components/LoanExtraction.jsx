@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { Fragment, useEffect, useState } from "react";
 import UploadedModel from "./UploadedModel";
 import DescriptionIcon from "@mui/icons-material/Description";
 import UnderwritingRulesModel from "./UnderwritingRulesModel";
@@ -19,15 +19,16 @@ import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SaveIcon from "@mui/icons-material/Save";
-// import FilterAltSharpIcon from "@mui/icons-material/FilterAlt";
-import FilterAltSharpIcon from "@mui/icons-material/FilterAltSharp";
+import { IoMdSave } from "react-icons/io";
 import api from "../api/client";
 import ConfirmMoveModal from "./ConfirmMoveModal";
 import ConfirmMergeModal from "./ConfirmMergeModal";
 import ConfirmDeleteModal from "./ConfirmDeleteModal";
 import { toast } from "react-toastify";
 import Button from "../components/Button";
-import StepChips from "./StepChips";
+import { TbDatabaseEdit } from "react-icons/tb";
+import Tooltip from "@mui/material/Tooltip";
+import Input from "../components/Input";
 
 const LoanExtraction = ({
   showSection = {},
@@ -260,57 +261,63 @@ const LoanExtraction = ({
         </div>
 
         {/* Loan Package Header */}
-        {/* Loan Package Header */}
-        <div className="px-4 py-2 border-b border-gray-200 bg-white">
-          <div className="inline-flex items-center gap-4 w-auto">
-            {/* <h2 className="text-lg font-semibold">Loan Package</h2> */}
+        {!selectMode && (
+          <div className="px-4 py-2 border-b border-r border-gray-200 bg-white w-[25%]">
+            <div className="flex items-center justify-between">
+              {/* Left side: Add Borrower + Select */}
+              <div className="flex items-center gap-4">
+                {activeTab === "modified" && !selectMode && (
+                  <>
+                    <button
+                      className="text-sm text-[#26a3dd] cursor-pointer"
+                      onClick={() =>
+                        setAddBorrower({
+                          model: true,
+                          borrowerName: "",
+                          onSave: handleAddBorrower,
+                        })
+                      }
+                    >
+                      Add Borrower
+                    </button>
+                    <button
+                      className="text-sm text-gray-600 hover:text-[#26a3dd] cursor-pointer"
+                      onClick={() => setSelectMode(true)}
+                    >
+                      Select
+                    </button>
+                  </>
+                )}
+              </div>
 
-            {activeTab === "modified" && !selectMode && (
-              <>
-                <button
-                  className="text-sm text-[#26a3dd] hover:underline"
-                  onClick={() =>
-                    setAddBorrower({
-                      model: true,
-                      borrowerName: "",
-                      onSave: handleAddBorrower,
-                    })
-                  }
-                >
-                  Add Borrower
-                </button>
-                <button
-                  className="text-sm text-gray-600 hover:text-[#26a3dd]"
-                  onClick={() => setSelectMode(true)}
-                >
-                  Select
-                </button>
-              </>
-            )}
-
-            {hasModifications && activeTab === "modified" && (
-              <FilterAltSharpIcon
-                className="text-gray-600 cursor-pointer"
-                onClick={() => {
-                  setActiveTab("original");
-                  setSelectedBorrower(null);
-                  setSelectedCategory(null);
-                }}
-              />
-            )}
-
-            {activeTab === "original" && (
-              <CloseIcon
-                className="text-red-500 cursor-pointer"
-                onClick={() => {
-                  setActiveTab("modified");
-                  setSelectedBorrower(null);
-                  setSelectedCategory(null);
-                }}
-              />
-            )}
+              {/* Right side: Filter / Close */}
+              <div className="flex items-center gap-3">
+                {hasModifications && activeTab === "modified" && (
+                  <Tooltip title="View Original Data">
+                    <TbDatabaseEdit
+                      className="text-gray-600 cursor-pointer"
+                      onClick={() => {
+                        setActiveTab("original");
+                        setSelectedBorrower(null);
+                        setSelectedCategory(null);
+                      }}
+                    />
+                  </Tooltip>
+                )}
+                {activeTab === "original" && (
+                  <CloseIcon
+                    className="text-red-500 cursor-pointer"
+                    onClick={() => {
+                      setActiveTab("modified");
+                      setSelectedBorrower(null);
+                      setSelectedCategory(null);
+                    }}
+                  />
+                )}
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Content */}
         <div className="flex flex-1 min-h-0">
@@ -320,7 +327,7 @@ const LoanExtraction = ({
               <div className="w-[25%] border-r border-gray-300 flex flex-col">
                 {/* Top actions when in select mode */}
                 {activeTab === "modified" && selectMode && (
-                  <div className="flex justify-between items-center px-4 py-2 border-b border-gray-100">
+                  <div className="flex justify-end items-center px-4 py-2 border-b border-gray-100">
                     <div className="flex gap-4 items-center">
                       <TbArrowMerge
                         size={20}
@@ -409,7 +416,7 @@ const LoanExtraction = ({
                                 {isEditing ? (
                                   <SaveIcon
                                     fontSize="small"
-                                    className="text-green-600 cursor-pointer"
+                                    className="text-green-700 cursor-pointer"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleRenameBorrower(name, editingName);
@@ -428,7 +435,7 @@ const LoanExtraction = ({
                                 )}
                                 <DeleteIcon
                                   fontSize="small"
-                                  className="text-red-500 cursor-pointer"
+                                  className="text-red-700 cursor-pointer"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setDeleteModal(name);
