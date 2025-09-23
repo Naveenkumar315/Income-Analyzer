@@ -25,6 +25,7 @@ const UnderwritingRuleResult = ({
   report,
   setReport,
   loadingStep = 0,
+  onCancel = () => {},
 }) => {
   const [value, setValue] = useState(Tabs[0]);
   const [expanded, setExpanded] = useState(false);
@@ -98,9 +99,7 @@ const UnderwritingRuleResult = ({
                 ? "Calculating Income"
                 : "Fetching Insights"
             }
-            onCancel={() => {
-              /* abort logic here */
-            }}
+            onCancel={onCancel} // use prop from IncomeAnalyzer
             isCompleted={loadingStep === totalSteps}
           />
         </div>

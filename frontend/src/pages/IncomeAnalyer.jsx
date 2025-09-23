@@ -2,7 +2,7 @@ import { useUpload } from "../context/UploadContext";
 import UnderwritingRuleResult from "../custom_components/UnderwritingRuleResults";
 import UploadedDocument from "../custom_components/UploadedDocument";
 import LoanExatraction from "../custom_components/LoanExtraction";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import api from "../api/client";
 import StepChips from "../custom_components/StepChips";
 
@@ -22,54 +22,47 @@ const IncomeAnalyzer = () => {
   } = useUpload();
 
   const [loadingStep, setLoadingStep] = useState(0);
+  const controllerRef = useRef(null);
 
   useEffect(() => {
     if (showSection.startAnalyzing) {
-      // getAnalyzedResult()
-      const controller = new AbortController();
-      fetchAllData(controller.signal);
-      return () => controller.abort();
+      controllerRef.current = new AbortController();
+      fetchAllData(controllerRef.current.signal);
+      return () => controllerRef.current?.abort();
     }
   }, [showSection.startAnalyzing]);
 
-  const getAnalyzedResult = async () => {
-    try {
-      let email = sessionStorage.getItem("email") || "";
-      let loanId = sessionStorage.getItem("loanId") || "";
-      const response = await api.post("/verify-rules", null, {
-        params: { email, loanID: loanId },
-      });
-      console.log("response", response);
-      if (response.status === 200) {
-        setReport(response?.data);
-      }
-    } catch (error) {
-      console.error(`getAnalyzedResult error: ${error}`);
-    }
-  };
+  const handleCancel = () => {
+    // abort requests
+    controllerRef.current?.abort();
 
-  const handleStepChange = (step) => {
-    console.log("handleStepChange", step);
+    // reset state
+    setIsLoading(false);
+    setLoadingStep(0);
+    setReport({
+      rules: null,
+      summary: [],
+      income_summary: {},
+      summaryData: {},
+      insights: "",
+    });
 
-    setActiveStep(step);
+    // go back to previous step (optional)
     setShowSection((prev) => ({
       ...prev,
-      processLoanSection: false,
-      provideLoanIDSection: false,
-      extractedSection: step === 0 ? true : false,
-      startAnalyzing: step === 1 ? true : false,
+      startAnalyzing: false,
+      extractedSection: true,
     }));
   };
 
   const fetchAllData = async (signal) => {
     setIsLoading(true);
+    setLoadingStep(0);
 
     const email = sessionStorage.getItem("email") || "";
     const loanId = sessionStorage.getItem("loanId") || "";
 
     try {
-      // open loader at step 1
-      setLoadingStep(0);
       const requests = [
         api.post("/verify-rules", null, {
           params: { email, loanID: loanId },
@@ -86,26 +79,22 @@ const IncomeAnalyzer = () => {
       ];
 
       const results = await Promise.allSettled(
-        requests.map(async (req, idx) => {
+        requests.map(async (req) => {
           const res = await req;
           setLoadingStep((prev) => prev + 1);
           return res;
         })
       );
 
+      if (signal.aborted) return; // stop processing if canceled
+
       const [rulesRes, incomeRes, insightsRes] = results;
-
-      // console.log("analyzing_data", { rulesRes, incomeRes, insightsRes });
-      // console.log("rulesRes", rulesRes);
-
-      // helper to extract data if fulfilled
       const getData = (r) => (r.status === "fulfilled" ? r.value.data : null);
 
       const rulesData = getData(rulesRes);
       const incomeData = getData(incomeRes);
       const insightsData = getData(insightsRes);
 
-      // process income-calc into the structures you need
       const incomeChecks = incomeData?.income?.[0]?.checks || [];
       const currentIncomeChecks = incomeChecks.filter((x) =>
         x.field.includes("current")
@@ -121,7 +110,6 @@ const IncomeAnalyzer = () => {
         return acc;
       }, {});
 
-      // set the report once
       setReport({
         rules: rulesData,
         summary: currentIncomeChecks,
@@ -129,21 +117,23 @@ const IncomeAnalyzer = () => {
         summaryData,
         insights: insightsData?.income_insights?.insight_commentry || "",
       });
-
-      console.log("Fianl AD : ", {
-        rules: rulesData,
-        summary: currentIncomeChecks,
-        income_summary: incomeSummary,
-        summaryData,
-        insights: insightsData?.income_insights?.insight_commentry || "",
-      });
     } finally {
-      setIsLoading(false);
+      if (!signal.aborted) {
+        setIsLoading(false);
+      }
     }
   };
 
-  // Remove the useEffect that was resetting the state
-  // The state management is now handled in Home.jsx
+  const handleStepChange = (step) => {
+    setActiveStep(step);
+    setShowSection((prev) => ({
+      ...prev,
+      processLoanSection: false,
+      provideLoanIDSection: false,
+      extractedSection: step === 0 ? true : false,
+      startAnalyzing: step === 1 ? true : false,
+    }));
+  };
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -159,7 +149,6 @@ const IncomeAnalyzer = () => {
             goBack={goBack}
           />
         )}
-
         {showSection.extractedSection && (
           <LoanExatraction
             showSection={showSection}
@@ -169,7 +158,6 @@ const IncomeAnalyzer = () => {
             goBack={goBack}
           />
         )}
-
         {showSection.startAnalyzing && (
           <UnderwritingRuleResult
             showSection={showSection}
@@ -178,6 +166,7 @@ const IncomeAnalyzer = () => {
             report={report}
             setReport={setReport}
             loadingStep={loadingStep}
+            onCancel={handleCancel}
           />
         )}
       </div>
