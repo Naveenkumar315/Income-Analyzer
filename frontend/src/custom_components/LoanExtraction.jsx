@@ -28,7 +28,7 @@ import { toast } from "react-toastify";
 import Button from "../components/Button";
 import { TbDatabaseEdit } from "react-icons/tb";
 import Tooltip from "@mui/material/Tooltip";
-import Input from "../components/Input";
+import ResizableLayout from "../utils/ResizableLayout";
 
 const LoanExtraction = ({
   showSection = {},
@@ -261,288 +261,299 @@ const LoanExtraction = ({
         </div>
 
         {/* Loan Package Header */}
-        {!selectMode && (
-          <div className="px-4 py-2 border-b border-r border-gray-200 bg-white w-[25%]">
-            <div className="flex items-center justify-between">
-              {/* Left side: Add Borrower + Select */}
-              <div className="flex items-center gap-4">
-                {activeTab === "modified" && !selectMode && (
-                  <>
-                    <button
-                      className="text-sm text-[#26a3dd] cursor-pointer"
-                      onClick={() =>
-                        setAddBorrower({
-                          model: true,
-                          borrowerName: "",
-                          onSave: handleAddBorrower,
-                        })
-                      }
-                    >
-                      Add Borrower
-                    </button>
-                    <button
-                      className="text-sm text-gray-600 hover:text-[#26a3dd] cursor-pointer"
-                      onClick={() => setSelectMode(true)}
-                    >
-                      Select
-                    </button>
-                  </>
-                )}
-              </div>
-
-              {/* Right side: Filter / Close */}
-              <div className="flex items-center gap-3">
-                {hasModifications && activeTab === "modified" && (
-                  <Tooltip title="View Original Data">
-                    <TbDatabaseEdit
-                      className="text-gray-600 cursor-pointer"
-                      onClick={() => {
-                        setActiveTab("original");
-                        setSelectedBorrower(null);
-                        setSelectedCategory(null);
-                      }}
-                    />
-                  </Tooltip>
-                )}
-                {activeTab === "original" && (
-                  <CloseIcon
-                    className="text-red-500 cursor-pointer"
-                    onClick={() => {
-                      setActiveTab("modified");
-                      setSelectedBorrower(null);
-                      setSelectedCategory(null);
-                    }}
-                  />
-                )}
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Content */}
         <div className="flex flex-1 min-h-0">
           {isUploaded?.uploaded ? (
             <>
-              {/* Left Panel */}
-              <div className="w-[25%] border-r border-gray-300 flex flex-col">
-                {/* Top actions when in select mode */}
-                {activeTab === "modified" && selectMode && (
-                  <div className="flex justify-end items-center px-4 py-2 border-b border-gray-100">
-                    <div className="flex gap-4 items-center">
-                      <TbArrowMerge
-                        size={20}
-                        className={`cursor-pointer ${
-                          selectedBorrowers.length > 0
-                            ? "text-[#26a3dd]"
-                            : "text-gray-300"
-                        }`}
-                        onClick={(e) => {
-                          if (selectedBorrowers.length === 0) return;
-                          setMergeAnchorEl(e.currentTarget);
-                        }}
-                      />
-                      <TbArrowRight
-                        size={20}
-                        className={`cursor-pointer ${
-                          selectedFiles.length > 0
-                            ? "text-[#26a3dd]"
-                            : "text-gray-300"
-                        }`}
-                        onClick={(e) => {
-                          if (selectedFiles.length === 0) return;
-                          setMoveAnchorEl(e.currentTarget);
-                        }}
-                      />
-                      <CloseIcon
-                        className="text-red-500 cursor-pointer"
-                        fontSize="small"
-                        onClick={() => {
-                          setSelectMode(false);
-                          setSelectedBorrowers([]);
-                          setSelectedFiles([]);
-                        }}
-                      />
+              <ResizableLayout
+                left={
+                  <div className="h-full flex flex-col">
+                    {/* Top actions when in select mode */}
+                    {!selectMode && (
+                      <div className="flex items-center justify-between bg-gray-50 border-b border-gray-200 px-4 py-2 shadow-sm rounded-t-md">
+                        {/* Left side: Add Borrower + Select */}
+                        <div className="flex items-center gap-4">
+                          {activeTab === "modified" && !selectMode && (
+                            <>
+                              <button
+                                className="text-sm text-[#26a3dd] cursor-pointer"
+                                onClick={() =>
+                                  setAddBorrower({
+                                    model: true,
+                                    borrowerName: "",
+                                    onSave: handleAddBorrower,
+                                  })
+                                }
+                              >
+                                Add Borrower
+                              </button>
+                              <button
+                                className="text-sm text-gray-600 hover:text-[#26a3dd] cursor-pointer"
+                                onClick={() => setSelectMode(true)}
+                              >
+                                Select
+                              </button>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Right side: Filter / Close */}
+                        <div className="flex items-center gap-3">
+                          {hasModifications && activeTab === "modified" && (
+                            <Tooltip title="View Original Data">
+                              <TbDatabaseEdit
+                                className="text-gray-600 cursor-pointer"
+                                onClick={() => {
+                                  setActiveTab("original");
+                                  setSelectedBorrower(null);
+                                  setSelectedCategory(null);
+                                }}
+                              />
+                            </Tooltip>
+                          )}
+                          {activeTab === "original" && (
+                            <CloseIcon
+                              className="text-red-500 cursor-pointer"
+                              onClick={() => {
+                                setActiveTab("modified");
+                                setSelectedBorrower(null);
+                                setSelectedCategory(null);
+                              }}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {activeTab === "modified" && selectMode && (
+                      <div className="flex justify-end items-center px-4 py-2 border-b border-gray-100">
+                        <div className="flex gap-4 items-center">
+                          <TbArrowMerge
+                            size={20}
+                            className={`cursor-pointer ${
+                              selectedBorrowers.length > 0
+                                ? "text-[#26a3dd]"
+                                : "text-gray-300"
+                            }`}
+                            onClick={(e) => {
+                              if (selectedBorrowers.length === 0) return;
+                              setMergeAnchorEl(e.currentTarget);
+                            }}
+                          />
+                          <TbArrowRight
+                            size={20}
+                            className={`cursor-pointer ${
+                              selectedFiles.length > 0
+                                ? "text-[#26a3dd]"
+                                : "text-gray-300"
+                            }`}
+                            onClick={(e) => {
+                              if (selectedFiles.length === 0) return;
+                              setMoveAnchorEl(e.currentTarget);
+                            }}
+                          />
+                          <CloseIcon
+                            className="text-red-500 cursor-pointer"
+                            fontSize="small"
+                            onClick={() => {
+                              setSelectMode(false);
+                              setSelectedBorrowers([]);
+                              setSelectedFiles([]);
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Borrowers */}
+                    <div className="flex-1 overflow-y-auto px-4 py-2">
+                      <ul className="space-y-2">
+                        {borrowers.map((name) => {
+                          const categories = Object.keys(
+                            currentData[name] || {}
+                          );
+                          const isEditing =
+                            activeTab === "modified" &&
+                            editingBorrower === name;
+
+                          return (
+                            <li key={name}>
+                              <div
+                                className="group flex items-center justify-between p-2 cursor-pointer hover:bg-gray-50 rounded-md"
+                                onClick={() => toggleBorrower(name)}
+                              >
+                                <div className="flex items-center gap-2 flex-1">
+                                  {activeTab === "modified" && selectMode && (
+                                    <Checkbox
+                                      size="small"
+                                      checked={selectedBorrowers.includes(name)}
+                                      onChange={(e) => {
+                                        setSelectedBorrowers((prev) =>
+                                          e.target.checked
+                                            ? [...prev, name]
+                                            : prev.filter((b) => b !== name)
+                                        );
+                                      }}
+                                      onClick={(e) => e.stopPropagation()}
+                                    />
+                                  )}
+                                  <PersonSharpIcon fontSize="small" />
+                                  {isEditing ? (
+                                    <input
+                                      value={editingName}
+                                      onChange={(e) =>
+                                        setEditingName(e.target.value)
+                                      }
+                                      className="border px-1 rounded text-sm flex-1"
+                                      autoFocus
+                                      onClick={(e) => e.stopPropagation()}
+                                    />
+                                  ) : (
+                                    <span className="font-medium">{name}</span>
+                                  )}
+                                </div>
+                                {/* Only show edit/delete in modified tab */}
+                                {activeTab === "modified" && !selectMode && (
+                                  <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    {isEditing ? (
+                                      <SaveIcon
+                                        fontSize="small"
+                                        className="text-green-700 cursor-pointer"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleRenameBorrower(
+                                            name,
+                                            editingName
+                                          );
+                                        }}
+                                      />
+                                    ) : (
+                                      <EditIcon
+                                        fontSize="small"
+                                        className="text-gray-600 cursor-pointer"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setEditingBorrower(name);
+                                          setEditingName(name);
+                                        }}
+                                      />
+                                    )}
+                                    <DeleteIcon
+                                      fontSize="small"
+                                      className="text-red-700 cursor-pointer"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setDeleteModal(name);
+                                      }}
+                                    />
+                                  </div>
+                                )}
+                                {openBorrowers[name] ? (
+                                  <ExpandLessIcon />
+                                ) : (
+                                  <ExpandMoreIcon />
+                                )}
+                              </div>
+
+                              {openBorrowers[name] && (
+                                <ul className="ml-8 mt-2 space-y-1">
+                                  {categories.map((cat) => {
+                                    const docs = currentData[name][cat] || [];
+                                    const isSelected = isCategorySelected(
+                                      name,
+                                      cat
+                                    );
+                                    return (
+                                      <li key={cat}>
+                                        <div
+                                          className={`flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer hover:bg-gray-100 ${
+                                            selectedBorrower === name &&
+                                            selectedCategory === cat
+                                              ? "bg-blue-50 border border-blue-300"
+                                              : ""
+                                          }`}
+                                          onClick={() => {
+                                            setSelectedBorrower(name);
+                                            setSelectedCategory(cat);
+                                          }}
+                                        >
+                                          {activeTab === "modified" &&
+                                            selectMode && (
+                                              <Checkbox
+                                                size="small"
+                                                checked={isSelected}
+                                                onClick={(e) =>
+                                                  e.stopPropagation()
+                                                }
+                                                onChange={(e) => {
+                                                  if (e.target.checked) {
+                                                    setSelectedFiles((prev) => [
+                                                      ...prev,
+                                                      {
+                                                        borrower: name,
+                                                        category: cat,
+                                                        docs,
+                                                      },
+                                                    ]);
+                                                  } else {
+                                                    setSelectedFiles((prev) =>
+                                                      prev.filter(
+                                                        (f) =>
+                                                          !(
+                                                            f.borrower ===
+                                                              name &&
+                                                            f.category === cat
+                                                          )
+                                                      )
+                                                    );
+                                                  }
+                                                }}
+                                              />
+                                            )}
+                                          <FaFolder className="text-gray-500" />
+                                          <span className="truncate text-sm font-medium">
+                                            {cat}
+                                          </span>
+                                          <span className="ml-auto text-xs text-gray-500">
+                                            ({docs.length})
+                                          </span>
+                                        </div>
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
                     </div>
                   </div>
-                )}
-
-                {/* Borrowers */}
-                <div className="flex-1 overflow-y-auto px-4 py-2">
-                  <ul className="space-y-2">
-                    {borrowers.map((name) => {
-                      const categories = Object.keys(currentData[name] || {});
-                      const isEditing =
-                        activeTab === "modified" && editingBorrower === name;
-
-                      return (
-                        <li key={name}>
-                          <div
-                            className="group flex items-center justify-between p-2 cursor-pointer hover:bg-gray-50 rounded-md"
-                            onClick={() => toggleBorrower(name)}
-                          >
-                            <div className="flex items-center gap-2 flex-1">
-                              {activeTab === "modified" && selectMode && (
-                                <Checkbox
-                                  size="small"
-                                  checked={selectedBorrowers.includes(name)}
-                                  onChange={(e) => {
-                                    setSelectedBorrowers((prev) =>
-                                      e.target.checked
-                                        ? [...prev, name]
-                                        : prev.filter((b) => b !== name)
-                                    );
-                                  }}
-                                  onClick={(e) => e.stopPropagation()}
-                                />
-                              )}
-                              <PersonSharpIcon fontSize="small" />
-                              {isEditing ? (
-                                <input
-                                  value={editingName}
-                                  onChange={(e) =>
-                                    setEditingName(e.target.value)
-                                  }
-                                  className="border px-1 rounded text-sm flex-1"
-                                  autoFocus
-                                  onClick={(e) => e.stopPropagation()}
-                                />
-                              ) : (
-                                <span className="font-medium">{name}</span>
-                              )}
-                            </div>
-                            {/* Only show edit/delete in modified tab */}
-                            {activeTab === "modified" && !selectMode && (
-                              <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                {isEditing ? (
-                                  <SaveIcon
-                                    fontSize="small"
-                                    className="text-green-700 cursor-pointer"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleRenameBorrower(name, editingName);
-                                    }}
-                                  />
-                                ) : (
-                                  <EditIcon
-                                    fontSize="small"
-                                    className="text-gray-600 cursor-pointer"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setEditingBorrower(name);
-                                      setEditingName(name);
-                                    }}
-                                  />
-                                )}
-                                <DeleteIcon
-                                  fontSize="small"
-                                  className="text-red-700 cursor-pointer"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setDeleteModal(name);
-                                  }}
-                                />
-                              </div>
-                            )}
-                            {openBorrowers[name] ? (
-                              <ExpandLessIcon />
-                            ) : (
-                              <ExpandMoreIcon />
-                            )}
-                          </div>
-
-                          {openBorrowers[name] && (
-                            <ul className="ml-8 mt-2 space-y-1">
-                              {categories.map((cat) => {
-                                const docs = currentData[name][cat] || [];
-                                const isSelected = isCategorySelected(
-                                  name,
-                                  cat
-                                );
-                                return (
-                                  <li key={cat}>
-                                    <div
-                                      className={`flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer hover:bg-gray-100 ${
-                                        selectedBorrower === name &&
-                                        selectedCategory === cat
-                                          ? "bg-blue-50 border border-blue-300"
-                                          : ""
-                                      }`}
-                                      onClick={() => {
-                                        setSelectedBorrower(name);
-                                        setSelectedCategory(cat);
-                                      }}
-                                    >
-                                      {activeTab === "modified" &&
-                                        selectMode && (
-                                          <Checkbox
-                                            size="small"
-                                            checked={isSelected}
-                                            onClick={(e) => e.stopPropagation()}
-                                            onChange={(e) => {
-                                              if (e.target.checked) {
-                                                setSelectedFiles((prev) => [
-                                                  ...prev,
-                                                  {
-                                                    borrower: name,
-                                                    category: cat,
-                                                    docs,
-                                                  },
-                                                ]);
-                                              } else {
-                                                setSelectedFiles((prev) =>
-                                                  prev.filter(
-                                                    (f) =>
-                                                      !(
-                                                        f.borrower === name &&
-                                                        f.category === cat
-                                                      )
-                                                  )
-                                                );
-                                              }
-                                            }}
-                                          />
-                                        )}
-                                      <FaFolder className="text-gray-500" />
-                                      <span className="truncate text-sm font-medium">
-                                        {cat}
-                                      </span>
-                                      <span className="ml-auto text-xs text-gray-500">
-                                        ({docs.length})
-                                      </span>
-                                    </div>
-                                  </li>
-                                );
-                              })}
-                            </ul>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              </div>
-
-              {/* Right Panel */}
-              <div className="w-[75%] flex flex-col">
-                <div className="flex-1 overflow-y-auto p-4">
-                  {selectedBorrower &&
-                  currentData[selectedBorrower] &&
-                  selectedCategory &&
-                  currentData[selectedBorrower][selectedCategory] ? (
-                    <LoanPackagePanel
-                      borrower={selectedBorrower}
-                      category={selectedCategory}
-                      docs={
-                        currentData[selectedBorrower][selectedCategory] || []
-                      }
-                    />
-                  ) : (
-                    <div className="text-gray-400 flex items-center justify-center h-full">
-                      Select a category to view documents
+                }
+                right={
+                  <div className="h-full flex flex-col">
+                    <div className="flex-1 overflow-y-auto p-4">
+                      {selectedBorrower &&
+                      currentData[selectedBorrower] &&
+                      selectedCategory &&
+                      currentData[selectedBorrower][selectedCategory] ? (
+                        <LoanPackagePanel
+                          borrower={selectedBorrower}
+                          category={selectedCategory}
+                          docs={
+                            currentData[selectedBorrower][selectedCategory] ||
+                            []
+                          }
+                        />
+                      ) : (
+                        <div className="text-gray-400 flex items-center justify-center h-full">
+                          Select a category to view documents
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </div>
+                  </div>
+                }
+              />
             </>
           ) : (
             <UnuploadedScreen setShowSection={setShowSection} />
@@ -607,7 +618,7 @@ const LoanExtraction = ({
         onClose={() => setMergeAnchorEl(null)}
       >
         <div className="px-4 py-2 text-sm font-semibold text-[#097aaf] border-b border-gray-200">
-          Merge selected into...
+          Merge selected into
         </div>
         {borrowers
           .filter((b) => !selectedBorrowers.includes(b))
