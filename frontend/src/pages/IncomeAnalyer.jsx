@@ -110,17 +110,58 @@ const IncomeAnalyzer = () => {
         return acc;
       }, {});
 
+      const insightsComment =
+        insightsData?.income_insights?.insight_commentry || "";
+
       setReport({
         rules: rulesData,
         summary: currentIncomeChecks,
         income_summary: incomeSummary,
         summaryData,
-        insights: insightsData?.income_insights?.insight_commentry || "",
+        insights: insightsComment,
       });
+
+      // ✅ pass email + loanId down
+      update_analyzed_data_into_db(
+        email,
+        loanId,
+        rulesData,
+        currentIncomeChecks,
+        incomeSummary,
+        summaryData,
+        insightsComment
+      );
     } finally {
       if (!signal.aborted) {
         setIsLoading(false);
       }
+    }
+  };
+
+  const update_analyzed_data_into_db = async (
+    email,
+    loanId,
+    rulesData,
+    currentIncomeChecks,
+    incomeSummary,
+    summaryData,
+    insightsComment
+  ) => {
+    try {
+      await api.post("/store-analyzed-data", {
+        email,
+        loanID: loanId,
+        analyzed_data: {
+          rules: rulesData,
+          summary: currentIncomeChecks,
+          income_summary: incomeSummary,
+          summaryData,
+          insights: insightsComment, // already a string
+        },
+      });
+      console.log("✅ analyzed_data stored successfully");
+    } catch (err) {
+      console.error("❌ failed to store analyzed_data", err);
     }
   };
 
