@@ -8,6 +8,7 @@ class UploadedDataOut(BaseModel):
     file_name: str
     updated_at: Optional[datetime]
     borrower: List[str]   # ✅ Always a list now
+    analyzed_data : bool
 
 
 async def get_uploaded_data_by_email(db, email: str):
@@ -15,12 +16,10 @@ async def get_uploaded_data_by_email(db, email: str):
     results = []
 
     async for record in cursor:
-        # Collect borrower names as list of keys from cleaned_data
         borrowers = []
         if record.get("cleaned_data") and isinstance(record["cleaned_data"], dict):
             borrowers = list(record["cleaned_data"].keys())
 
-        # Parse updated_at correctly
         updated_at = record.get("updated_at")
         if isinstance(updated_at, str):
             try:
@@ -28,13 +27,18 @@ async def get_uploaded_data_by_email(db, email: str):
             except Exception:
                 updated_at = None
 
+        # ✅ New flag
+        analyzed_flag = "analyzed_data" in record
+
         results.append(
             UploadedDataOut(
                 loanID=record.get("loanID"),
                 file_name=record.get("file_name"),
                 updated_at=updated_at,
-                borrower=borrowers,   # ✅ Send as array, not string
+                borrower=borrowers,
+                analyzed_data=analyzed_flag,
             )
         )
 
     return results
+

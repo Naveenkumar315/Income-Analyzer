@@ -57,7 +57,7 @@ const Dashboard = ({ onAddLoanPackage }) => {
       fileName: item.file_name || "",
       borrower: item.borrower || [],
       loanType: "Wager",
-      status: "Completed",
+      status: item.analyzed_data ? "Completed" : "Pending",
       lastUpdated: new Date(item.updated_at).toLocaleString("en-US", {
         year: "numeric",
         month: "2-digit",
@@ -117,9 +117,8 @@ const Dashboard = ({ onAddLoanPackage }) => {
 
   const getAnalyzedResult = async () => {
     try {
-
-      let email = sessionStorage.getItem("email") || ""
-      let loanId = sessionStorage.getItem("loanId") || ""
+      let email = sessionStorage.getItem("email") || "";
+      let loanId = sessionStorage.getItem("loanId") || "";
 
       const response = await api.post("/verify-rules", null, {
         params: { email, loanID: loanId },

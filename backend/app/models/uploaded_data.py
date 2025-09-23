@@ -12,3 +12,4 @@ class UploadedDataOut(BaseModel):
     file_name: Optional[str]
     updated_at: Optional[datetime]
     borrower:  List[str]
+    analyzed_data: bool
