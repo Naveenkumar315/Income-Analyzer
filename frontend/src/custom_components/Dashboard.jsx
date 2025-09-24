@@ -7,7 +7,7 @@ import api from "../api/client";
 import StepChips from "../custom_components/StepChips";
 import { useUpload } from "../context/UploadContext";
 
-const Dashboard = ({ onAddLoanPackage }) => {
+const Dashboard = ({ onAddLoanPackage, handleViewChange }) => {
   const {
     showSection,
     setShowSection,
@@ -152,6 +152,7 @@ const Dashboard = ({ onAddLoanPackage }) => {
               setShowSection={setShowSection}
               onRefresh={handleCheckData}
               onAddLoanPackage={onAddLoanPackage}
+              handleViewChange={handleViewChange}
             />
           </>
         )}

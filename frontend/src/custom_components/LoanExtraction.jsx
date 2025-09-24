@@ -35,7 +35,13 @@ const LoanExtraction = ({
   setShowSection = () => {},
   goBack,
 }) => {
-  const { isUploaded, normalized_json } = useUpload();
+  const {
+    isUploaded,
+    normalized_json,
+    analyzedState,
+    setIsSAClicked,
+    setAnalyzedState,
+  } = useUpload();
 
   const [rulesModel, setRulesModel] = useState(false);
 
@@ -232,8 +238,25 @@ const LoanExtraction = ({
           <div className="font-medium">
             Loan ID : {sessionStorage.getItem("loanId") || ""}
           </div>
-          {isUploaded?.uploaded && (
+          {(isUploaded?.uploaded || normalized_json) && (
             <div className="flex gap-2">
+              {analyzedState?.isAnalyzed && (
+                <Button
+                  variant="start-analyze"
+                  width={200}
+                  label="View Analyzing"
+                  onClick={() => {
+                    setIsSAClicked(false);
+                    setShowSection((p) => ({
+                      ...p,
+                      startAnalyzing: true,
+                      processLoanSection: false,
+                      provideLoanIDSection: false,
+                      extractedSection: false,
+                    }));
+                  }}
+                />
+              )}
               <Button
                 variant="upload-doc"
                 width={200}
@@ -246,15 +269,20 @@ const LoanExtraction = ({
                 variant="start-analyze"
                 width={200}
                 label="Start Analyzing"
-                onClick={() =>
+                onClick={() => {
+                  setAnalyzedState((prev) => ({
+                    ...prev,
+                    isAnalyzed: false,
+                    analyzed_data: {},
+                  }));
                   setShowSection((p) => ({
                     ...p,
                     startAnalyzing: true,
                     processLoanSection: false,
                     provideLoanIDSection: false,
                     extractedSection: false,
-                  }))
-                }
+                  }));
+                }}
               />
             </div>
           )}
@@ -264,7 +292,7 @@ const LoanExtraction = ({
 
         {/* Content */}
         <div className="flex flex-1 min-h-0">
-          {isUploaded?.uploaded ? (
+          {isUploaded?.uploaded || normalized_json ? (
             <>
               <ResizableLayout
                 left={

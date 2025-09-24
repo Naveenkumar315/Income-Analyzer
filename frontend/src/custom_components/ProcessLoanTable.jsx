@@ -16,6 +16,8 @@ import ErrorOutlineOutlinedIcon from "@mui/icons-material/ErrorOutlineOutlined";
 import SearchIcon from "@mui/icons-material/Search";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { useState, useMemo } from "react";
+import { useUpload } from "../context/UploadContext";
+import api from "../api/client";
 
 const ProcessLoanTable = ({
   columns = [],
@@ -24,12 +26,39 @@ const ProcessLoanTable = ({
   loading,
   onRefresh = () => {},
   onAddLoanPackage = () => {},
+  handleViewChange = () => {},
 }) => {
   const [expandedRow, setExpandedRow] = useState(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
+
+  const { set_normalized_json, analyzedState, setAnalyzedState, setReport } =
+    useUpload(); // make sure you import from UploadContext
+
+  const handleView = async (row) => {
+    try {
+      setReport({});
+      const response = await api.post("/view-loan", {
+        email: sessionStorage.getItem("email") || "",
+        loanId: row.loanId,
+      });
+
+      const data = response.data;
+
+      set_normalized_json(data.cleaned_data);
+      setAnalyzedState((prev) => ({
+        ...prev,
+        isAnalyzed: data.analyzed_data,
+      }));
+      sessionStorage.setItem("loanId", row.loanId || "");
+      handleViewChange();
+      console.log("view data, ", data);
+    } catch (error) {
+      console.error("Error fetching loan data:", error);
+    }
+  };
 
   const handle_section_change = () => {
     try {
@@ -307,7 +336,12 @@ const ProcessLoanTable = ({
           if (field === "actions") {
             return (
               <div className="flex items-center space-x-2">
-                <button className="hover:underline">View</button>
+                <button
+                  className="hover:underline"
+                  onClick={() => handleView(row)}
+                >
+                  View
+                </button>
                 <span className="px-2 text-gray-600">|</span>
                 <button className="hover:underline">Download</button>
               </div>
