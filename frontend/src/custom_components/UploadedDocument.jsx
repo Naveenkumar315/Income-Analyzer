@@ -70,11 +70,11 @@ const UploadedDocument = ({
       style={{ height: "80dvh" }}
     >
       <div className="bg-white rounded-xl shadow-md p-10 w-full max-w-md text-center relative">
-        {goBack && (
+        {/* {goBack && (
           <div className="absolute left-4 top-4">
             <BackLink onClick={goBack} />
           </div>
-        )}
+        )} */}
 
         <h2 className="text-lg font-semibold text-gray-800">Income Analyzer</h2>
         <p className="text-sm text-gray-500 mt-1">

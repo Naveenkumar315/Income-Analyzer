@@ -16,14 +16,21 @@ import BackLink from "./BackLink";
 import api from "../api/client";
 import { useUpload } from "../context/UploadContext";
 import Loader from "./Loader";
+import LoadingModal from "./LoaderModal";
 
 const Tabs = ["Rule Results", "Summary", "Insights"];
 
-const UnderwritingRuleResult = ({ goBack, report, setReport }) => {
+const UnderwritingRuleResult = ({
+  goBack,
+  report,
+  setReport,
+  loadingStep = 0,
+  onCancel = () => {},
+}) => {
   const [value, setValue] = useState(Tabs[0]);
   const [expanded, setExpanded] = useState(false);
   const { isLoading } = useUpload();
-
+  const totalSteps = 3;
   useEffect(() => {
     console.log("report", report);
   }, [report]);
@@ -76,11 +83,27 @@ const UnderwritingRuleResult = ({ goBack, report, setReport }) => {
     <>
       {isLoading ? (
         <div className="flex items-center justify-center h-full">
-          <Loader />
+          {/* <Loader /> */}
+          <LoadingModal
+            progress={Math.round((loadingStep / totalSteps) * 100)}
+            currentStep={loadingStep}
+            totalSteps={totalSteps}
+            message={
+              loadingStep === 0
+                ? "Starting Analysis"
+                : loadingStep === 1
+                ? "Verifying Rules"
+                : loadingStep === 2
+                ? "Calculating Income"
+                : "Fetching Insights"
+            }
+            onCancel={onCancel} // use prop from IncomeAnalyzer
+            isCompleted={loadingStep === totalSteps}
+          />
         </div>
       ) : (
         <>
-          <BackLink onClick={goBack} />
+          {/* <BackLink onClick={goBack} /> */}
 
           <div className="flex  items-center">
             <ResultTab

@@ -41,6 +41,7 @@ const LoanExtraction = ({
     analyzedState,
     setIsSAClicked,
     setAnalyzedState,
+    setReport,
   } = useUpload();
 
   const [rulesModel, setRulesModel] = useState(false);
@@ -270,6 +271,7 @@ const LoanExtraction = ({
                 width={200}
                 label="Start Analyzing"
                 onClick={() => {
+                  setReport({});
                   setAnalyzedState((prev) => ({
                     ...prev,
                     isAnalyzed: false,
