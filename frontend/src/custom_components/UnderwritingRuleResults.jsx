@@ -107,37 +107,26 @@ const UnderwritingRuleResult = ({ goBack, report, setReport }) => {
               <div className="absolute inset-0 bg-gradient-to-r from-[#26a3dd] to-[#bcdff0] opacity-30"></div>
 
               <div className="relative p-5 h-full">
-                <div className="grid grid-cols-5 gap-4 h-full">
-                  <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl shadow">
-                    <span className="text-black font-bold pl-1">${report?.['income_summary']?.['current_year_gross_monthly_salary']}</span>
-                    <span className="flex items-center gap-1 text-sm">
-                      Total Monthly Income
-                    </span>
-                  </div>
-                  <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl shadow">
-                    <span className="text-black font-bold pl-1">${report?.['income_summary']?.['current_year_bonus']}</span>
-                    <span className="flex items-center gap-1 text-sm">
-                      Bonus
-                    </span>
-                  </div>
-                  <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl shadow">
-                    <span className="text-black font-bold pl-1">${report?.['income_summary']?.['current_year_commission']}</span>
-                    <span className="flex items-center gap-1 text-sm">
-                      Commission
-                    </span>
-                  </div>
-                  <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl shadow">
-                    <span className="text-black font-bold pl-1">${report?.['income_summary']?.['current_year_overtime']}</span>
-                    <span className="flex items-center gap-1 text-sm">
-                      Overtime
-                    </span>
-                  </div>
-                  <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl shadow">
-                    <span className="text-black font-bold pl-1">${report?.['income_summary']?.['current_year_other_income']}</span>
-                    <span className="flex items-center gap-1 text-sm">
-                      Other Income
-                    </span>
-                  </div>
+                <div className="grid grid-cols-6 gap-4">
+                  {(() => {
+                    const entries = Object.entries(report?.['income_summary'] || []);
+                    // Separate "Qualifying income"
+                    const qualifyingEntry = entries.find(([key]) => key === "Qualifying income");
+                    const otherEntries = entries.filter(([key]) => key !== "Qualifying income");
+
+                    // Combine with qualifying income first
+                    const orderedEntries = qualifyingEntry ? [qualifyingEntry, ...otherEntries] : otherEntries;
+
+                    return orderedEntries.map(([key, value]) => (
+                      <div
+                        key={key}
+                        className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl shadow"
+                      >
+                        <span className="text-black font-bold pl-1">{value}</span>
+                        <span className="flex items-center gap-1 text-sm">{key}</span>
+                      </div>
+                    ));
+                  })()}
 
                 </div>
               </div>
@@ -292,22 +281,15 @@ const UnderwritingRuleResult = ({ goBack, report, setReport }) => {
               Underwriting Insights{" "}
               <span className="text-black">(LN-20250915-001)</span>
             </div>
-            <div className="relative h-full mt-3 w-full rounded-2xl overflow-hidden p-5 shadow">
+            <div className="relative h-full mt-3 w-full rounded-2xl p-5 shadow">
               <div className="absolute inset-0 bg-gradient-to-r from-[#d6f1ff] to-[#b0e2de] opacity-20"></div>
-
               <div className="relative flex flex-col gap-4 h-full">
                 <span className="font-bold shrink-0">Income Insights</span>
-
-                {/* Only this part scrolls */}
-                <div className="overflow-auto flex-1">
-                  <span className="block whitespace-pre-line">
-                    {report?.insights || ""}
-                  </span>
+                <div className="flex-1 overflow-y-auto whitespace-pre-line">
+                  {report?.insights || ""}
                 </div>
               </div>
             </div>
-
-
           </>
         )}
       </>)

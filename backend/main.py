@@ -68,6 +68,59 @@ uploaded_content: Dict[int, Dict[str, Any]] = {}
 # -----------------------------
 
 
+def clean_json_data(obj):
+    if isinstance(obj, dict):
+        # Remove unwanted keys
+        obj.pop("Link", None)
+        obj.pop("ConfidenceScore", None)
+        obj.pop("Url", None)
+        obj.pop("LabelOrder", None)
+        obj.pop("ScreenshotUrl", None)
+        obj.pop("GeneratedOn", None)
+        obj.pop("DocTitle", None)
+        obj.pop("PageNumber", None)
+        obj.pop("StageName", None)
+        obj.pop("Title", None)
+        obj.pop("SkillName", None)
+        # Recursively clean nested dicts
+        for key in list(obj.keys()):
+            clean_json_data(obj[key])
+    elif isinstance(obj, list):
+        for item in obj:
+            clean_json_data(item)
+    return obj
+
+
+def filter_documents_by_type(processed_data, document_types):
+    """
+    Filter processed borrower data to include only specified document types.
+
+    Args:
+        processed_data (dict): The processed JSON data with borrower names as keys
+        document_types (list): List of document types to keep (e.g., ['Paystubs', 'W2'])
+
+    Returns:
+        dict: Filtered data containing only the specified document types for each borrower
+    """
+    filtered_data = {}
+
+    # Iterate through each borrower
+    for borrower_name, documents in processed_data.items():
+        filtered_borrower_data = {}
+
+        # Iterate through each document type for this borrower
+        for doc_type, doc_list in documents.items():
+            # Check if this document type is in our filter list (case-insensitive)
+            if any(doc_type.lower() == filter_type.lower() for filter_type in document_types):
+                filtered_borrower_data[doc_type] = doc_list
+
+        # Only add borrower if they have at least one of the requested document types
+        if filtered_borrower_data:
+            filtered_data[borrower_name] = filtered_borrower_data
+
+    return filtered_data
+
+
 @app.on_event("startup")
 async def startup_event():
     try:
@@ -114,6 +167,11 @@ async def clean_json(req: CleanJsonRequest):
         employer_indicators=req.employer_indicators,
     )
 
+    cl_data = clean_json_data(cleaned)
+    allowed_sections = ["BorrowerName", "W2", "VOE", "Paystubs", "Paystub"]
+
+    filtered_data = filter_documents_by_type(cl_data, allowed_sections)
+
     timestamp = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")
 
     record = {
@@ -123,6 +181,7 @@ async def clean_json(req: CleanJsonRequest):
         "file_name": req.file_name,
         "original_data": req.raw_json,
         "cleaned_data": cleaned,
+        "filtered_data": filtered_data,
         "created_at": timestamp,
         "updated_at": timestamp,
     }
@@ -197,13 +256,12 @@ def convert_objectid(obj):
 @app.post("/verify-rules")
 async def verify_rules(email: str = Query(...), loanID: str = Query(...)):
     """Verify rules for previously uploaded borrower JSON"""
-    content = await db["uploadedData"].find_one({"loanID": loanID, "email": email}, {"cleaned_data": 1, "_id": 0})
-    print('[][][][][]', content)
-    if not content or 'cleaned_data' not in content:
+    content = await db["uploadedData"].find_one({"loanID": loanID, "email": email}, {"filtered_data": 1, "_id": 0})
+    if not content or 'filtered_data' not in content:
         raise HTTPException(
             status_code=404, detail="File not found or cleaned_data missing."
         )
-    content = content['cleaned_data']
+    content = content['filtered_data']
     # print('===================', content)
 
     if not content:
@@ -260,8 +318,8 @@ async def verify_rules(email: str = Query(...), loanID: str = Query(...)):
 @app.post("/income-calc")
 async def income_calc(email: str = Query(...), loanID: str = Query(...)):
     """Calculate income for previously uploaded borrower JSON"""
-    content = await db["uploadedData"].find_one({"loanID": loanID, "email": email}, {"cleaned_data": 1, "_id": 0})
-    content = content['cleaned_data']
+    content = await db["uploadedData"].find_one({"loanID": loanID, "email": email}, {"filtered_data": 1, "_id": 0})
+    content = content['filtered_data']
     # print("API calling", content)
 
     if not content:
@@ -306,10 +364,9 @@ async def income_calc(email: str = Query(...), loanID: str = Query(...)):
 
 @app.post("/income-insights")
 async def income_insights(email: str = Query(...), loanID: str = Query(...)):
-    content = await db["uploadedData"].find_one({"loanID": loanID, "email": email}, {"cleaned_data": 1, "_id": 0})
+    content = await db["uploadedData"].find_one({"loanID": loanID, "email": email}, {"filtered_data": 1, "_id": 0})
     print(content)
-    content = content['cleaned_data']
-    print('content', content)
+    content = content['filtered_data']
     if not content:
         raise HTTPException(
             status_code=404, detail="File not found. Please upload first.")

@@ -86,26 +86,28 @@ const IncomeAnalyzer = () => {
       const incomeData = getData(incomeRes);
       const insightsData = getData(insightsRes);
 
-      // process income-calc into the structures you need
-      const incomeChecks = incomeData?.income?.[0]?.checks || [];
-      const currentIncomeChecks = incomeChecks.filter((x) =>
-        x.field.includes("current")
-      );
+      // // process income-calc into the structures you need
+      // const incomeChecks = incomeData?.income?.[0]?.checks || [];
+      // const currentIncomeChecks = incomeChecks.filter((x) =>
+      //   x.field.includes("current")
+      // );
 
-      const incomeSummary = currentIncomeChecks.reduce((acc, item) => {
+      const incomeSummary = incomeData?.income?.[0]?.checks.reduce((acc, item) => {
         acc[item.field] = item.value;
         return acc;
       }, {});
 
-      const summaryData = currentIncomeChecks.reduce((acc, item) => {
-        acc[item.field] = item;
-        return acc;
-      }, {});
+      // const summaryData = incomeData?.income?.[0]?.checks.reduce((acc, item) => {
+      //   acc[item.field] = item;
+      //   return acc;
+      // }, {});
+
+      const summaryData = incomeData?.income?.[0]?.checks
 
       // set the report once
       setReport({
         rules: rulesData,
-        summary: currentIncomeChecks,
+        summary: summaryData,
         income_summary: incomeSummary,
         summaryData,
         insights: insightsData?.income_insights?.insight_commentry || "",
