@@ -40,6 +40,19 @@ const Home = () => {
     setTab(1); // jump to Income Analyzer
   };
 
+  const handleViewChange = () => {
+    setShowSection({
+      processLoanSection: false,
+      provideLoanIDSection: false,
+      extractedSection: true,
+      uploadedModel: false,
+      startAnalyzing: false,
+    });
+
+    setIncomeTabVisible(true); // show the tab
+    setTab(1); // jump to Income Analyzer
+  };
+
   // Handle tab switching with state preservation
   const handleTabChange = (e, newTab) => {
     // Save current state when leaving Income Analyzer tab
@@ -108,6 +121,7 @@ const Home = () => {
               username={username}
               email={email}
               onAddLoanPackage={handleAddLoanPackage}
+              handleViewChange={handleViewChange}
             />
           )}
           {incomeTabVisible && tab === 1 && <IncomeAnalyzer />}

@@ -68,6 +68,14 @@ uploaded_content: Dict[int, Dict[str, Any]] = {}
 # -----------------------------
 
 
+# ------------------------------------  start models
+
+# --- Request body model ---
+
+
+# ------------------------------------ End models
+
+
 @app.on_event("startup")
 async def startup_event():
     try:
@@ -101,6 +109,16 @@ class CleanJsonRequest(BaseModel):
     threshold: Optional[float] = 0.7
     borrower_indicators: Optional[List[str]] = None
     employer_indicators: Optional[List[str]] = None
+
+class LoanViewRequest(BaseModel):
+    email: str
+    loanId: str
+
+
+# --- Response model ---
+class LoanViewResponse(BaseModel):
+    cleaned_data: dict
+    analyzed_data: bool
 
 
 # ---------- ROUTES ----------
@@ -361,6 +379,23 @@ async def store_analyzed_data(
 
     return {"status": "success", "message": "Analyzed data stored"}
 
+@app.post("/view-loan", response_model=LoanViewResponse)
+async def view_loan(req: LoanViewRequest):
+    # if loanId is an ObjectId, convert it
+    # try:
+    #     loan_id = ObjectId(req.loanId)
+    # except:
+    #     raise HTTPException(status_code=400, detail="Invalid loanId format")
+
+    loan = await  db["uploadedData"].find_one({"loanID": req.loanId, "email": req.email})
+
+    if not loan:
+        raise HTTPException(status_code=404, detail="Loan not found for this email")
+
+    return {
+        "cleaned_data": loan.get("cleaned_data", {}),
+        "analyzed_data": bool(loan.get("analyzed_data", False)),
+    }
 
 
 # ======================================

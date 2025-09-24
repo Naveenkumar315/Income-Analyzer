@@ -19,12 +19,14 @@ const IncomeAnalyzer = () => {
     report,
     isLoading,
     setIsLoading,
+    analyzedState,
   } = useUpload();
 
   const [loadingStep, setLoadingStep] = useState(0);
   const controllerRef = useRef(null);
 
   useEffect(() => {
+    if (report) return;
     if (showSection.startAnalyzing) {
       controllerRef.current = new AbortController();
       fetchAllData(controllerRef.current.signal);
@@ -61,6 +63,10 @@ const IncomeAnalyzer = () => {
 
     const email = sessionStorage.getItem("email") || "";
     const loanId = sessionStorage.getItem("loanId") || "";
+
+    if (analyzedState?.isAnalyzed) {
+      
+    }
 
     try {
       const requests = [
