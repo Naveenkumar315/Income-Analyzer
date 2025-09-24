@@ -120,6 +120,10 @@ class LoanViewResponse(BaseModel):
     cleaned_data: dict
     analyzed_data: bool
 
+class GetAnalyzedDataRequest(BaseModel):
+    email: str
+    loanId: str
+
 
 # ---------- ROUTES ----------
 @app.post("/clean-json")
@@ -397,6 +401,16 @@ async def view_loan(req: LoanViewRequest):
         "analyzed_data": bool(loan.get("analyzed_data", False)),
     }
 
+@app.post("/get-analyzed-data")
+async def get_analyzed_data(req: GetAnalyzedDataRequest):
+    loan = await db["uploadedData"].find_one({"loanID": req.loanId, "email": req.email})
+
+    if not loan:
+        raise HTTPException(status_code=404, detail="Loan not found")
+
+    return {
+        "analyzed_data": loan.get("analyzed_data", {})
+    }
 
 # ======================================
 #  Entrypoint

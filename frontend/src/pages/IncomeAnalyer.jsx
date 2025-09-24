@@ -26,12 +26,15 @@ const IncomeAnalyzer = () => {
   const controllerRef = useRef(null);
 
   useEffect(() => {
-    if (report) return;
+    if (Object.keys(report).length) return;
     if (showSection.startAnalyzing) {
       controllerRef.current = new AbortController();
       fetchAllData(controllerRef.current.signal);
       return () => controllerRef.current?.abort();
     }
+    return () => {
+      setReport({});
+    };
   }, [showSection.startAnalyzing]);
 
   const handleCancel = () => {
@@ -64,8 +67,24 @@ const IncomeAnalyzer = () => {
     const email = sessionStorage.getItem("email") || "";
     const loanId = sessionStorage.getItem("loanId") || "";
 
+    // ✅ If already analyzed, fetch analyzed_data directly and exit
     if (analyzedState?.isAnalyzed) {
-      
+      try {
+        const res = await api.post(
+          "/get-analyzed-data",
+          { email, loanId },
+          { signal }
+        );
+        const data = res.data;
+
+        // update state directly
+        setReport(data.analyzed_data || {});
+      } finally {
+        if (!signal.aborted) {
+          setIsLoading(false);
+        }
+      }
+      return; // ✅ stop further execution
     }
 
     try {
@@ -92,7 +111,7 @@ const IncomeAnalyzer = () => {
         })
       );
 
-      if (signal.aborted) return; // stop processing if canceled
+      if (signal.aborted) return;
 
       const [rulesRes, incomeRes, insightsRes] = results;
       const getData = (r) => (r.status === "fulfilled" ? r.value.data : null);
@@ -127,7 +146,6 @@ const IncomeAnalyzer = () => {
         insights: insightsComment,
       });
 
-      // ✅ pass email + loanId down
       update_analyzed_data_into_db(
         email,
         loanId,

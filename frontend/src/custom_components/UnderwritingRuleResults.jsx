@@ -197,7 +197,9 @@ const UnderwritingRuleResult = ({
             <>
               <div className="text-[#26a3dd] mt-2">
                 Underwriting Rule Results{" "}
-                <span className="text-black">(LN-20250915-001)</span>
+                <span className="text-black">
+                  : {sessionStorage.getItem("loanId") || ""}
+                </span>
               </div>
               <div className="h-[100px] mt-3 w-full relative rounded-2xl overflow-hidden shadow">
                 <div className="absolute inset-0 bg-gradient-to-r from-[#26a3dd] to-[#bcdff0] opacity-30"></div>
