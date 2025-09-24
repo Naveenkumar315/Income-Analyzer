@@ -34,10 +34,12 @@ const ProcessLoanTable = ({
   const [statusFilter, setStatusFilter] = useState("All");
   const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
 
-  const { set_normalized_json, analyzedState, setAnalyzedState } = useUpload(); // make sure you import from UploadContext
+  const { set_normalized_json, analyzedState, setAnalyzedState, setReport } =
+    useUpload(); // make sure you import from UploadContext
 
   const handleView = async (row) => {
     try {
+      setReport({});
       const response = await api.post("/view-loan", {
         email: sessionStorage.getItem("email") || "",
         loanId: row.loanId,

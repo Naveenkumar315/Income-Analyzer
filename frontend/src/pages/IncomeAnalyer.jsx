@@ -20,6 +20,7 @@ const IncomeAnalyzer = () => {
     isLoading,
     setIsLoading,
     analyzedState,
+    is
   } = useUpload();
 
   const [loadingStep, setLoadingStep] = useState(0);

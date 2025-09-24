@@ -35,7 +35,13 @@ const LoanExtraction = ({
   setShowSection = () => {},
   goBack,
 }) => {
-  const { isUploaded, normalized_json, analyzedState } = useUpload();
+  const {
+    isUploaded,
+    normalized_json,
+    analyzedState,
+    setIsSAClicked,
+    isSAClicked,
+  } = useUpload();
 
   const [rulesModel, setRulesModel] = useState(false);
 
@@ -240,6 +246,7 @@ const LoanExtraction = ({
                   width={200}
                   label="View Analyzing"
                   onClick={() => {
+                    setIsSAClicked(false);
                     setShowSection((p) => ({
                       ...p,
                       startAnalyzing: true,
@@ -262,15 +269,16 @@ const LoanExtraction = ({
                 variant="start-analyze"
                 width={200}
                 label="Start Analyzing"
-                onClick={() =>
+                onClick={() => {
+                  setIsSAClicked(true);
                   setShowSection((p) => ({
                     ...p,
                     startAnalyzing: true,
                     processLoanSection: false,
                     provideLoanIDSection: false,
                     extractedSection: false,
-                  }))
-                }
+                  }));
+                }}
               />
             </div>
           )}

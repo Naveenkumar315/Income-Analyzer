@@ -23,7 +23,7 @@ export const UploadProvider = ({ children }) => {
     isAnalyzed: false,
     analyzed_data: {},
   });
-
+  const [isSAClicked, setIsSAClicked] = useState(false);
   // Add state to track Income Analyzer progress
   const [incomeAnalyzerInitialized, setIncomeAnalyzerInitialized] =
     useState(false);
@@ -131,6 +131,8 @@ export const UploadProvider = ({ children }) => {
         setIsLoading,
         analyzedState,
         setAnalyzedState,
+        setIsSAClicked,
+        isSAClicked,
       }}
     >
       {children}
