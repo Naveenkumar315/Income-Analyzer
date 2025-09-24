@@ -20,13 +20,14 @@ const IncomeAnalyzer = () => {
     isLoading,
     setIsLoading,
     analyzedState,
-    is
+    isSAClicked,
   } = useUpload();
 
   const [loadingStep, setLoadingStep] = useState(0);
   const controllerRef = useRef(null);
 
   useEffect(() => {
+    debugger;
     if (Object.keys(report).length) return;
     if (showSection.startAnalyzing) {
       controllerRef.current = new AbortController();

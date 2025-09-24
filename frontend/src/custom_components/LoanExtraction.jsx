@@ -40,7 +40,7 @@ const LoanExtraction = ({
     normalized_json,
     analyzedState,
     setIsSAClicked,
-    isSAClicked,
+    setAnalyzedState,
   } = useUpload();
 
   const [rulesModel, setRulesModel] = useState(false);
@@ -270,7 +270,11 @@ const LoanExtraction = ({
                 width={200}
                 label="Start Analyzing"
                 onClick={() => {
-                  setIsSAClicked(true);
+                  setAnalyzedState((prev) => ({
+                    ...prev,
+                    isAnalyzed: false,
+                    analyzed_data: {},
+                  }));
                   setShowSection((p) => ({
                     ...p,
                     startAnalyzing: true,
