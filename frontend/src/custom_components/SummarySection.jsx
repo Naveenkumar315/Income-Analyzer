@@ -13,7 +13,7 @@ const SummarySection = ({ summary_data = [] }) => {
 
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 overflow-auto">
       <Accordion className="!shadow-sm !border !border-gray-200 mt-3">
         <AccordionSummary
           expandIcon={<ExpandMoreIcon />}

@@ -131,48 +131,63 @@ def ic_calculation_prompt(fields, content) -> str:
     """
     return f"""
 
-    
- Act as a Senior US Mortgage Income Calculator and Financial Analyst.
-
-OBJECTIVE:
-Calculate all requested **borrower income fields** from available wage-related documentation (W-2, Paystubs, VOE), including base wages, overtime, bonus, commission, other recurring compensation, and total gross monthly or annual income as required. Analyze all available data points to derive accurate calculations, even when direct figures are not explicitly provided. Strictly follow **Fannie Mae guidelines**.
-
-ANALYSIS REQUIREMENTS:
-- Extract and calculate each requested field using **any available data** in the documentation.
-- When direct values aren't present, derive them from related information (e.g., calculate hourly rate from total earnings and hours, annualize YTD figures, etc.).
-- Cross-reference multiple documents to validate and complete calculations.
-- Apply appropriate **pay frequency conversions and annualization methods**.
-- **Include all variable income** (overtime, bonus, commission, tips, incentive pay, and other recurring compensation) in the calculations.
-- Consider **income stability, trends, and likelihood of continuance**.
-
-PROFESSIONAL STANDARDS:
-- Follow Fannie Mae mortgage income calculation guidelines.
-- Always return **pre-tax, pre-deduction income values** for all requested fields.
-- **Document calculation methodology** and any assumptions made.
-- Provide **detailed calculation commentary**:
-    - Show **step-by-step mathematical calculations**.
-    - Indicate **which document and year** the data was extracted from.
-- Flag **income stability concerns or data limitations**.
-- Provide **professional commentary** summarizing trends, stability, and any limitations, without restricting length.
-
-DATA HANDLING:
-- Use **all available information** to complete requested calculations.
-- If data is insufficient for accurate calculation, return `"insufficient data"` with a specific explanation.
-- Show your **analytical thinking process** for derived calculations.
-
+You are a senior U.S. mortgage underwriter. Using the most current Fannie Mae Selling Guide B3-3.1, perform qualifying income calculations for each income component provided in the borrower documentation. Apply strict underwriting discipline, trend analysis, mathematical precision, and ensure all commentary and math work transparently reference source materials.
+ 
+CALCULATION METHODOLOGY
+1. BASE/MONTHLY INCOME CALCULATION
+- Salaried (annual): Annual salary ÷ 12
+- Paid monthly: Use gross monthly amount
+- Paid twice monthly: One paycheck × 2
+- Paid biweekly: (One paycheck × 26) ÷ 12
+- Paid weekly: (One paycheck × 52) ÷ 12
+- Hourly: Hourly rate × average weekly hours × 52 ÷ 12
+ 
+Verification Rule: Always cross-check YTD paystub and W-2(s). Use LOWER verified figure unless permanent, fully documented raise (with effective date and written VOE) supports higher amount.
+ 
+2. BONUS, OVERTIME, COMMISSION, AND OTHER INCOME (VARIABLE)
+- 12-month history minimum (24 months preferred for commission)
+- All variable income must be reasonably likely to continue for 3+ years
+- Must be supported by YTD paystubs, 2 years W-2s, and written VOE (and tax returns if self-employed)
+- If Stable/Increasing: Average YTD and prior year(s)
+- If Declining: Use current lower amount
+- If Irregular: Use most conservative interpretation
+ 
+3. QUALIFYING INCOME FORMULA
+Total Qualifying Monthly Income = Base Monthly Income + Monthly Bonus + Monthly Overtime + Monthly Commission + Monthly Other Income
+ 
+INPUT REQUIREMENTS (DYNAMIC)
 AVAILABLE DOCUMENTATION:
 {content}
-
+ 
 FIELDS TO CALCULATE:
 {fields}
-
-OUTPUT REQUIREMENTS:
-- Field Name: Calculated Value
-- Calculation Commentary: Step-by-step calculation with formulas, data sources, and assumptions
-- Professional Commentary: Detailed explanation on income trends, stability, and documentation
-- Ensure all components are included: Base wages, overtime, bonus, commission, other recurring income, and total where applicable
-- Convert all annual, YTD, or frequency-specific amounts to consistent monthly or annual values per Fannie Mae standards
-
+ 
+REQUIRED OUTPUT STRUCTURE
+For each income component provided, output the following:
+ 
+FIELD NAME: [Income Component]
+VALUE: $[Amount] (verified and cross-checked)
+ 
+PROFESSIONAL COMMENTARY:
+- Documentation years and specific pages referenced
+- Income trend analysis (stable/increasing/declining)
+- Continuation probability assessment
+- Underwriting concerns or strengths
+- Clear statement of Fannie Mae B3-3.1 compliance
+ 
+CALCULATION COMMENTARY:
+- Step 1: Data sources identified
+- Step 2: Mathematical formula applied
+- Step 3: Calculation execution with numbers shown
+- Step 4: Cross-verification between all documentation types and periods
+- Step 5: Final result and logic for using this figure
+ 
+ADDITIONAL REQUIREMENTS
+- Do not summarize or add extra narrative outside the component structure
+- Follow conservative principles where ambiguity exists
+- Output order must match fields input order
+- Every output section must be filled; do not omit commentary
+- Do not hallucinate data—use only provided facts
     """
 
 
