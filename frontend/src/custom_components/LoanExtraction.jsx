@@ -19,6 +19,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SaveIcon from "@mui/icons-material/Save";
+// import CloseIcon from '@mui/icons-material/Close';
 import { IoMdSave } from "react-icons/io";
 import api from "../api/client";
 import ConfirmMoveModal from "./ConfirmMoveModal";
@@ -448,38 +449,52 @@ const LoanExtraction = ({
                                 {activeTab === "modified" && !selectMode && (
                                   <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                     {isEditing ? (
-                                      <SaveIcon
-                                        fontSize="small"
-                                        className="text-green-700 cursor-pointer"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleRenameBorrower(
-                                            name,
-                                            editingName
-                                          );
-                                        }}
-                                      />
+                                      <>
+                                        <SaveIcon
+                                          fontSize="small"
+                                          className="text-green-700 cursor-pointer"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleRenameBorrower(
+                                              name,
+                                              editingName
+                                            );
+                                          }}
+                                        />
+                                        <CloseIcon
+                                          fontSize="small"
+                                          className="text-gray-600 cursor-pointer"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setEditingBorrower(null); // exit edit mode
+                                            setEditingName(""); // optional reset
+                                          }}
+                                        />
+                                      </>
                                     ) : (
-                                      <EditIcon
-                                        fontSize="small"
-                                        className="text-gray-600 cursor-pointer"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setEditingBorrower(name);
-                                          setEditingName(name);
-                                        }}
-                                      />
+                                      <>
+                                        <EditIcon
+                                          fontSize="small"
+                                          className="text-gray-600 cursor-pointer"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setEditingBorrower(name);
+                                            setEditingName(name);
+                                          }}
+                                        />
+                                        <DeleteIcon
+                                          fontSize="small"
+                                          className="text-red-700 cursor-pointer"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setDeleteModal(name);
+                                          }}
+                                        />
+                                      </>
                                     )}
-                                    <DeleteIcon
-                                      fontSize="small"
-                                      className="text-red-700 cursor-pointer"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setDeleteModal(name);
-                                      }}
-                                    />
                                   </div>
                                 )}
+
                                 {openBorrowers[name] ? (
                                   <ExpandLessIcon />
                                 ) : (
