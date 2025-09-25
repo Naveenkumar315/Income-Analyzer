@@ -44,6 +44,8 @@ const LoanExtraction = ({
     setIsSAClicked,
     setAnalyzedState,
     setReport,
+    filtered_borrower,
+    set_filter_borrower,
   } = useUpload();
 
   const [rulesModel, setRulesModel] = useState(false);
@@ -243,6 +245,17 @@ const LoanExtraction = ({
           </div>
           {(isUploaded?.uploaded || normalized_json) && (
             <div className="flex gap-2">
+              <select onChange={(e) => set_filter_borrower(e.target.value)}>
+                <option value={"All"}>All</option>
+                {borrowers &&
+                  borrowers.map((item, index) => {
+                    return (
+                      <option key={index} value={item}>
+                        {item}
+                      </option>
+                    );
+                  })}
+              </select>
               {analyzedState?.isAnalyzed && (
                 <Button
                   variant="start-analyze"

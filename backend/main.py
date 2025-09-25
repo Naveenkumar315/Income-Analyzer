@@ -224,11 +224,18 @@ async def update_cleaned_data(
 
     old_cleaned = existing.get("cleaned_data", {})
 
+    cl_data = clean_json_data(raw_json)
+    allowed_sections = ["BorrowerName", "W2", "VOE", "Paystubs", "Paystub"]
+
+    filtered_data = filter_documents_by_type(cl_data, allowed_sections)
+
     # Save new cleaned_data
     await db["uploadedData"].update_one(
         {"loanID": loanID},
-        {"$set": {"cleaned_data": raw_json, "updated_at": timestamp}}
+        {"$set": {"cleaned_data": raw_json, "filtered_data": filtered_data,"updated_at": timestamp}}
     )
+
+    
 
     # Log audit entry
     await log_action(

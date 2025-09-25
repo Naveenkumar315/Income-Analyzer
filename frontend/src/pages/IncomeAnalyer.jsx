@@ -23,6 +23,7 @@ const IncomeAnalyzer = () => {
     analyzedState,
     isSAClicked,
     setAnalyzedState,
+    filtered_borrower,
   } = useUpload();
 
   const [loadingStep, setLoadingStep] = useState(0);

@@ -28,10 +28,14 @@ export const UploadProvider = ({ children }) => {
   const [incomeAnalyzerInitialized, setIncomeAnalyzerInitialized] =
     useState(false);
   const [incomeAnalyzerState, setIncomeAnalyzerState] = useState(null);
+  const [filtered_borrower, set_filter_borrower] = useState("All");
 
   useEffect(() => {
     console.log("++++++", normalized_json);
   }, [normalized_json]);
+  useEffect(() => {
+    console.log("filtered_borrower", filtered_borrower);
+  }, [filtered_borrower]);
 
   const goBack = () => {
     if (showSection.startAnalyzing) {
@@ -133,6 +137,8 @@ export const UploadProvider = ({ children }) => {
         setAnalyzedState,
         setIsSAClicked,
         isSAClicked,
+        filtered_borrower,
+        set_filter_borrower,
       }}
     >
       {children}
