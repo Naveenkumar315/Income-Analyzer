@@ -5,6 +5,7 @@ import LoanExatraction from "../custom_components/LoanExtraction";
 import { useEffect, useState, useRef } from "react";
 import api from "../api/client";
 import StepChips from "../custom_components/StepChips";
+import { toast } from "react-toastify";
 
 const IncomeAnalyzer = () => {
   const {
@@ -21,6 +22,7 @@ const IncomeAnalyzer = () => {
     setIsLoading,
     analyzedState,
     isSAClicked,
+    setAnalyzedState,
   } = useUpload();
 
   const [loadingStep, setLoadingStep] = useState(0);
@@ -28,6 +30,8 @@ const IncomeAnalyzer = () => {
 
   useEffect(() => {
     debugger;
+
+    handle_view_result_checker();
     if (Object.keys(report).length) return;
     if (showSection.startAnalyzing) {
       controllerRef.current = new AbortController();
@@ -78,9 +82,9 @@ const IncomeAnalyzer = () => {
           { signal }
         );
         const data = res.data;
-
         // update state directly
         setReport(data.analyzed_data || {});
+        handleStepChange(1);
       } finally {
         if (!signal.aborted) {
           setIsLoading(false);
@@ -145,7 +149,7 @@ const IncomeAnalyzer = () => {
 
       const insightsComment =
         insightsData?.income_insights?.insight_commentry || "";
-
+      debugger;
       setReport({
         rules: rulesData,
         summary: summaryData,
@@ -154,7 +158,6 @@ const IncomeAnalyzer = () => {
         insights: insightsComment,
       });
       handleStepChange(1);
-
       update_analyzed_data_into_db(
         email,
         loanId,
@@ -192,6 +195,7 @@ const IncomeAnalyzer = () => {
           insights: insightsComment, // already a string
         },
       });
+      setAnalyzedState({ isAnalyzed: true, analyzed_data: {} });
       console.log("✅ analyzed_data stored successfully");
     } catch (err) {
       console.error("❌ failed to store analyzed_data", err);
@@ -200,6 +204,11 @@ const IncomeAnalyzer = () => {
 
   const handleStepChange = (step) => {
     debugger;
+    // if (step === 1 && !analyzedState.isAnalyzed) {
+    //   toast.warn("Start analyzing first.");
+    //   return;
+    // }
+
     setActiveStep(step);
     setShowSection((prev) => ({
       ...prev,
@@ -208,6 +217,33 @@ const IncomeAnalyzer = () => {
       extractedSection: step === 0 ? true : false,
       startAnalyzing: step === 1 ? true : false,
     }));
+  };
+
+  const handle_view_result_checker = async (row) => {
+    try {
+      // setReport({});
+      const response = await api.post("/view-loan", {
+        email: sessionStorage.getItem("email") || "",
+        loanId: sessionStorage.getItem("loanId") || "",
+      });
+
+      const data = response.data;
+      if (!Object.keys(data).length) {
+        console.log("Data is empty!");
+        return;
+      }
+
+      // console.log("check data", data);
+      // sessionStorage.setItem("loanId", row.loanId || "");
+
+      // set_normalized_json(data.cleaned_data);
+      setAnalyzedState((prev) => ({
+        ...prev,
+        isAnalyzed: data.analyzed_data || false,
+      }));
+    } catch (error) {
+      console.error("Error fetching loan data:", error);
+    }
   };
 
   return (
@@ -231,6 +267,7 @@ const IncomeAnalyzer = () => {
             loanId={loanId}
             setActiveStep={setActiveStep}
             goBack={goBack}
+            handleStepChange={handleStepChange}
           />
         )}
         {showSection.startAnalyzing && (

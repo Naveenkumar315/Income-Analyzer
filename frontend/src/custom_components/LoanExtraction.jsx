@@ -34,6 +34,7 @@ const LoanExtraction = ({
   showSection = {},
   setShowSection = () => {},
   goBack,
+  handleStepChange = () => {},
 }) => {
   const {
     isUploaded,
@@ -255,6 +256,7 @@ const LoanExtraction = ({
                       provideLoanIDSection: false,
                       extractedSection: false,
                     }));
+                    handleStepChange(1);
                   }}
                 />
               )}

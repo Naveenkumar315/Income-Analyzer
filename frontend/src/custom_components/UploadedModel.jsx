@@ -32,12 +32,13 @@ const style = {
 };
 
 export default function UploadedModel({
-  setShowSection = () => { },
+  setShowSection = () => {},
   loanId = "",
 }) {
   const { showLoader, hideLoader, updateProgress, completeLoader } =
     useLoader();
-  const { isUploaded, setIsUploaded, set_normalized_json } = useUpload();
+  const { isUploaded, setIsUploaded, set_normalized_json, setAnalyzedState } =
+    useUpload();
   const { user } = useCurrentUser();
   const { username, email } = user || {};
 
@@ -72,6 +73,7 @@ export default function UploadedModel({
 
     handleClose();
     showLoader({ progress: 0, message: "Uploading & Cleaning JSON..." });
+    setAnalyzedState({ isAnalyzed: false, analyzed_data: {} });
 
     const reader = new FileReader();
     reader.onload = async (e) => {

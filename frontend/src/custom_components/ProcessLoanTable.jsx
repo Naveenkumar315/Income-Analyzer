@@ -46,13 +46,19 @@ const ProcessLoanTable = ({
       });
 
       const data = response.data;
+      if (!Object.keys(data).length) {
+        console.log("Data is empty!");
+        return;
+      }
+
+      console.log("check data", data);
+      sessionStorage.setItem("loanId", row.loanId || "");
 
       set_normalized_json(data.cleaned_data);
       setAnalyzedState((prev) => ({
         ...prev,
         isAnalyzed: data.analyzed_data,
       }));
-      sessionStorage.setItem("loanId", row.loanId || "");
       handleViewChange();
       console.log("view data, ", data);
     } catch (error) {
