@@ -218,7 +218,7 @@ async def update_cleaned_data(
 
     timestamp = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")
 
-    existing = await db["uploadedData"].find_one({"loanID": loanID, "email": email})
+    existing = await db["uploadedData"].find_one({"loanID": loanID})
     if not existing:
         raise HTTPException(status_code=404, detail="Record not found")
 
@@ -226,7 +226,7 @@ async def update_cleaned_data(
 
     # Save new cleaned_data
     await db["uploadedData"].update_one(
-        {"loanID": loanID, "email": email},
+        {"loanID": loanID},
         {"$set": {"cleaned_data": raw_json, "updated_at": timestamp}}
     )
 
@@ -242,7 +242,7 @@ async def update_cleaned_data(
     )
 
     # Return updated cleaned_json from DB
-    updated = await db["uploadedData"].find_one({"loanID": loanID, "email": email})
+    updated = await db["uploadedData"].find_one({"loanID": loanID})
     return {
         "message": "Cleaned data updated successfully",
         "cleaned_json": updated.get("cleaned_data", {}),
@@ -252,7 +252,7 @@ async def update_cleaned_data(
 @app.get("/check-loanid")
 async def check_loanid(email: str = Query(...), loanID: str = Query(...)):
     """Check if a loanID already exists for a given email"""
-    existing = await db["uploadedData"].find_one({"loanID": loanID, "email": email})
+    existing = await db["uploadedData"].find_one({"loanID": loanID})
     return {"exists": bool(existing)}
 
 
@@ -440,7 +440,7 @@ async def view_loan(req: LoanViewRequest):
     # except:
     #     raise HTTPException(status_code=400, detail="Invalid loanId format")
 
-    loan = await  db["uploadedData"].find_one({"loanID": req.loanId, "email": req.email})
+    loan = await  db["uploadedData"].find_one({"loanID": req.loanId})
 
     if not loan:
         raise HTTPException(status_code=404, detail="Loan not found for this email")
