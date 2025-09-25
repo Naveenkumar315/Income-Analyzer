@@ -42,7 +42,7 @@ const IncomeAnalyzer = () => {
     return () => {
       setReport({});
     };
-  }, [showSection.startAnalyzing]);
+  }, [showSection.startAnalyzing, filtered_borrower]);
 
   const handleCancel = () => {
     // abort requests
@@ -79,11 +79,10 @@ const IncomeAnalyzer = () => {
       try {
         const res = await api.post(
           "/get-analyzed-data",
-          { email, loanId },
+          { email, loanId, borrower: filtered_borrower }, // include borrower here too
           { signal }
         );
         const data = res.data;
-        // update state directly
         setReport(data.analyzed_data || {});
         handleStepChange(1);
       } finally {
@@ -97,15 +96,15 @@ const IncomeAnalyzer = () => {
     try {
       const requests = [
         api.post("/verify-rules", null, {
-          params: { email, loanID: loanId },
+          params: { email, loanID: loanId, borrower: filtered_borrower },
           signal,
         }),
         api.post("/income-calc", null, {
-          params: { email, loanID: loanId },
+          params: { email, loanID: loanId, borrower: filtered_borrower },
           signal,
         }),
         api.post("/income-insights", null, {
-          params: { email, loanID: loanId },
+          params: { email, loanID: loanId, borrower: filtered_borrower },
           signal,
         }),
       ];
@@ -127,12 +126,6 @@ const IncomeAnalyzer = () => {
       const incomeData = getData(incomeRes);
       const insightsData = getData(insightsRes);
 
-      // // process income-calc into the structures you need
-      // const incomeChecks = incomeData?.income?.[0]?.checks || [];
-      // const currentIncomeChecks = incomeChecks.filter((x) =>
-      //   x.field.includes("current")
-      // );
-
       const incomeSummary = incomeData?.income?.[0]?.checks.reduce(
         (acc, item) => {
           acc[item.field] = item.value;
@@ -141,16 +134,11 @@ const IncomeAnalyzer = () => {
         {}
       );
 
-      // const summaryData = incomeData?.income?.[0]?.checks.reduce((acc, item) => {
-      //   acc[item.field] = item;
-      //   return acc;
-      // }, {});
-
       const summaryData = incomeData?.income?.[0]?.checks;
 
       const insightsComment =
         insightsData?.income_insights?.insight_commentry || "";
-      debugger;
+
       setReport({
         rules: rulesData,
         summary: summaryData,
@@ -158,15 +146,17 @@ const IncomeAnalyzer = () => {
         summaryData,
         insights: insightsComment,
       });
+
       handleStepChange(1);
+
       update_analyzed_data_into_db(
         email,
         loanId,
         rulesData,
-        // currentIncomeChecks,
         incomeSummary,
         summaryData,
-        insightsComment
+        insightsComment,
+        filtered_borrower // include borrower in db update too
       );
     } finally {
       if (!signal.aborted) {

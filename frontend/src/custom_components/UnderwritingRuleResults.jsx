@@ -29,7 +29,7 @@ const UnderwritingRuleResult = ({
 }) => {
   const [value, setValue] = useState(Tabs[0]);
   const [expanded, setExpanded] = useState(false);
-  const { isLoading } = useUpload();
+  const { isLoading, filtered_borrower } = useUpload();
   const totalSteps = 3;
   useEffect(() => {
     console.log("report", report);
@@ -111,6 +111,7 @@ const UnderwritingRuleResult = ({
               value={value}
               handleGetResult={handleGetResult}
             />
+            <p>Borrower Name: {filtered_borrower || ""}</p>
             <Button variant="result_download" label={"Download"} width={200} />
           </div>
 

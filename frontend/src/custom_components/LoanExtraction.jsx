@@ -239,28 +239,40 @@ const LoanExtraction = ({
     <>
       <div className="h-full flex flex-col">
         {/* Header */}
-        <div className="flex justify-between items-center pb-3 px-4 pt-4 bg-white border-b border-gray-200">
-          <div className="font-medium">
+        <div className="flex items-center justify-between pb-3 px-6 pt-4 bg-white border-b border-gray-200">
+          {/* Left: Loan ID */}
+          <div className="font-medium text-gray-700">
             Loan ID : {sessionStorage.getItem("loanId") || ""}
           </div>
+
+          {/* Center: Borrower select */}
           {(isUploaded?.uploaded || normalized_json) && (
-            <div className="flex gap-2">
-              <select onChange={(e) => set_filter_borrower(e.target.value)}>
-                <option value={"All"}>All</option>
+            <div className="flex-1 flex justify-center">
+              <select
+                onChange={(e) => set_filter_borrower(e.target.value)}
+                value={filtered_borrower || "All"}
+                className="px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-700"
+              >
+                <option value="All">All</option>
                 {borrowers &&
-                  borrowers.map((item, index) => {
-                    return (
-                      <option key={index} value={item}>
-                        {item}
-                      </option>
-                    );
-                  })}
+                  borrowers.map((item, index) => (
+                    <option key={index} value={item}>
+                      {item}
+                    </option>
+                  ))}
               </select>
+            </div>
+          )}
+
+          {/* Right: Action buttons */}
+          {(isUploaded?.uploaded || normalized_json) && (
+            <div className="flex items-center gap-3">
               {analyzedState?.isAnalyzed && (
                 <Button
                   variant="start-analyze"
-                  width={200}
+                  width={160}
                   label="View Result"
+                  className="whitespace-nowrap"
                   onClick={() => {
                     setIsSAClicked(false);
                     setShowSection((p) => ({
@@ -276,16 +288,18 @@ const LoanExtraction = ({
               )}
               <Button
                 variant="upload-doc"
-                width={200}
+                width={160}
                 label="Upload Documents"
+                className="whitespace-nowrap"
                 onClick={() =>
                   setShowSection((p) => ({ ...p, uploadedModel: true }))
                 }
               />
               <Button
                 variant="start-analyze"
-                width={200}
+                width={160}
                 label="Start Analyzing"
+                className="whitespace-nowrap"
                 onClick={() => {
                   setReport({});
                   setAnalyzedState((prev) => ({
