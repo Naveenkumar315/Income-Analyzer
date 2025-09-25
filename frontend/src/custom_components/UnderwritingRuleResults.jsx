@@ -25,7 +25,7 @@ const UnderwritingRuleResult = ({
   report,
   setReport,
   loadingStep = 0,
-  onCancel = () => {},
+  onCancel = () => { },
 }) => {
   const [value, setValue] = useState(Tabs[0]);
   const [expanded, setExpanded] = useState(false);
@@ -92,10 +92,10 @@ const UnderwritingRuleResult = ({
               loadingStep === 0
                 ? "Starting Analysis"
                 : loadingStep === 1
-                ? "Verifying Rules"
-                : loadingStep === 2
-                ? "Calculating Income"
-                : "Fetching Insights"
+                  ? "Verifying Rules"
+                  : loadingStep === 2
+                    ? "Calculating Income"
+                    : "Fetching Insights"
             }
             onCancel={onCancel} // use prop from IncomeAnalyzer
             isCompleted={loadingStep === totalSteps}
@@ -105,242 +105,240 @@ const UnderwritingRuleResult = ({
         <>
           {/* <BackLink onClick={goBack} /> */}
 
-          <div className="flex  items-center">
-            <ResultTab
-              Tabs={Tabs}
-              value={value}
-              handleGetResult={handleGetResult}
-            />
-            <Button variant="result_download" label={"Download"} width={200} />
-          </div>
+          <div className="sticky top-0 py-2 z-1 bg-white">
+            <div className="flex  items-center">
+              <ResultTab
+                Tabs={Tabs}
+                value={value}
+                handleGetResult={handleGetResult}
+              />
+              <Button variant="result_download" label={"Download"} width={200} />
+            </div>
+            {value === "Rule Results" &&
+              <>
+                <div className="text-[#26a3dd] mt-2">
+                  Underwriting Rule Results{" "}
+                  <span className="text-black">
+                    : {sessionStorage.getItem("loanId") || ""}
+                  </span>
+                </div>
+                <div className="h-[100px] mt-3 w-full relative rounded-2xl overflow-hidden shadow">
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#26a3dd] to-[#bcdff0] opacity-30"></div>
 
-          <div className="mt-2 border-b-1 border-gray-300"></div>
-          {isLoading && <Loader />}
-          {value === "Summary" && (
-            <>
-              <div className="text-[#26a3dd] mt-2">
-                Underwriting Summary{" "}
-                <span className="text-black">
-                  {" "}
-                  : {sessionStorage.getItem("loanId") || ""}
-                </span>
-              </div>
-              <div className="relative h-[100px] mt-3 w-full rounded-2xl overflow-hidden shadow">
-                <div className="absolute inset-0 bg-gradient-to-r from-[#26a3dd] to-[#bcdff0] opacity-30"></div>
-
-                <div className="relative p-5 h-full">
-                  <div className="grid grid-cols-6 gap-4">
-                    {(() => {
-                      const entries = Object.entries(
-                        report?.["income_summary"] || []
-                      );
-                      // Separate "Qualifying income"
-                      const qualifyingEntry = entries.find(
-                        ([key]) => key === "Qualifying income"
-                      );
-                      const otherEntries = entries.filter(
-                        ([key]) => key !== "Qualifying income"
-                      );
-
-                      // Combine with qualifying income first
-                      const orderedEntries = qualifyingEntry
-                        ? [qualifyingEntry, ...otherEntries]
-                        : otherEntries;
-
-                      return orderedEntries.map(([key, value]) => (
-                        <div
-                          key={key}
-                          className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl shadow"
-                        >
-                          <span className="text-black font-bold pl-1">
-                            {value}
-                          </span>
-                          <span className="flex items-center gap-1 text-sm">
-                            {key}
-                          </span>
-                        </div>
-                      ));
-                    })()}
+                  <div className="relative grid grid-cols-4 gap-4 h-full p-5">
+                    <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl">
+                      <span className="text-black font-bold pl-1">
+                        {report?.rules?.rule_result?.Pass}
+                      </span>
+                      <span className="flex items-center gap-1 text-sm">
+                        <CheckCircleIcon className="text-green-500 text-base" />
+                        Passed
+                      </span>
+                    </div>
+                    <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl">
+                      <span className="text-black font-bold pl-1">
+                        {report?.rules?.rule_result?.Fail}
+                      </span>
+                      <span className="flex items-center gap-1 text-sm">
+                        <CancelOutlinedIcon className="text-red-500 text-base" />
+                        Failed
+                      </span>
+                    </div>
+                    <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl">
+                      <span className="text-black font-bold pl-1">
+                        {report?.rules?.["rule_result"]?.["Insufficient data"]}
+                      </span>
+                      <span className="flex items-center gap-1 text-sm">
+                        <ErrorIcon className="text-yellow-500 text-base" />
+                        Insufficient
+                      </span>
+                    </div>
+                    <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl">
+                      <span className="text-black font-bold pl-1">
+                        {report?.rules?.rule_result?.["Error"]}
+                      </span>
+                      <span className="flex items-center gap-1 text-sm">
+                        <CheckCircleIcon className="text-green-500 text-base" />
+                        Error
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              <div className="w-full">
-                <SummarySection summary_data={report["summary"]} />
-              </div>
-            </>
-          )}
-          {value === "Rule Results" && (
-            <>
-              <div className="text-[#26a3dd] mt-2">
-                Underwriting Rule Results{" "}
-                <span className="text-black">
-                  : {sessionStorage.getItem("loanId") || ""}
-                </span>
-              </div>
-              <div className="h-[100px] mt-3 w-full relative rounded-2xl overflow-hidden shadow">
-                <div className="absolute inset-0 bg-gradient-to-r from-[#26a3dd] to-[#bcdff0] opacity-30"></div>
-
-                <div className="relative grid grid-cols-4 gap-4 h-full p-5">
-                  <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl">
-                    <span className="text-black font-bold pl-1">
-                      {report?.rules?.rule_result?.Pass}
-                    </span>
-                    <span className="flex items-center gap-1 text-sm">
-                      <CheckCircleIcon className="text-green-500 text-base" />
-                      Passed
-                    </span>
-                  </div>
-                  <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl">
-                    <span className="text-black font-bold pl-1">
-                      {report?.rules?.rule_result?.Fail}
-                    </span>
-                    <span className="flex items-center gap-1 text-sm">
-                      <CancelOutlinedIcon className="text-red-500 text-base" />
-                      Failed
-                    </span>
-                  </div>
-                  <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl">
-                    <span className="text-black font-bold pl-1">
-                      {report?.rules?.["rule_result"]?.["Insufficient data"]}
-                    </span>
-                    <span className="flex items-center gap-1 text-sm">
-                      <ErrorIcon className="text-yellow-500 text-base" />
-                      Insufficient
-                    </span>
-                  </div>
-                  <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl">
-                    <span className="text-black font-bold pl-1">
-                      {report?.rules?.rule_result?.["Error"]}
-                    </span>
-                    <span className="flex items-center gap-1 text-sm">
-                      <CheckCircleIcon className="text-green-500 text-base" />
-                      Error
-                    </span>
-                  </div>
+              </>
+            }
+            {value === "Summary" && (
+              <>
+                <div className="text-[#26a3dd] mt-2">
+                  Underwriting Summary{" "}
+                  <span className="text-black">
+                    {" "}
+                    : {sessionStorage.getItem("loanId") || ""}
+                  </span>
                 </div>
-              </div>
+                <div className="relative h-[100px] mt-3 w-full rounded-2xl overflow-hidden shadow">
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#26a3dd] to-[#bcdff0] opacity-30"></div>
 
-              <div className="w-full ">
-                <div className="space-y-3 max-h-[calc(55vh-100px)] overflow-auto">
-                  {report?.rules?.results?.map((item, idx) => {
-                    const { result } = item;
-                    const status = result?.status || "Unknown";
+                  <div className="relative p-5 h-full">
+                    <div className="grid grid-cols-6 gap-4">
+                      {(() => {
+                        const entries = Object.entries(
+                          report?.["income_summary"] || []
+                        );
+                        // Separate "Qualifying income"
+                        const qualifyingEntry = entries.find(
+                          ([key]) => key === "Qualifying income"
+                        );
+                        const otherEntries = entries.filter(
+                          ([key]) => key !== "Qualifying income"
+                        );
 
-                    // status styles + icons
-                    const statusConfig = {
-                      Pass: {
-                        color: "text-green-600",
-                        icon: (
-                          <CheckCircleIcon className="text-green-500 text-base" />
-                        ),
-                      },
-                      Fail: {
-                        color: "text-red-600",
-                        icon: (
-                          <CancelOutlinedIcon className="text-red-500 text-base" />
-                        ),
-                      },
-                      Error: {
-                        color: "text-yellow-600",
-                        icon: (
-                          <ErrorIcon className="text-yellow-500 text-base" />
-                        ),
-                      },
-                      Default: {
-                        color: "text-gray-600",
-                        icon: (
-                          <CheckCircleIcon className="text-green-500 text-base" />
-                        ),
-                      },
-                    };
-                    const { color, icon } =
-                      statusConfig[status] || statusConfig.Default;
+                        // Combine with qualifying income first
+                        const orderedEntries = qualifyingEntry
+                          ? [qualifyingEntry, ...otherEntries]
+                          : otherEntries;
 
-                    return (
-                      <Accordion
-                        key={idx}
-                        className={`!shadow-sm mt-3 
-                    ${
-                      expanded === idx
-                        ? "!border-2 !border-[#26a3dd]"
-                        : "!border !border-gray-200"
-                    }`}
-                        expanded={expanded === idx}
-                        onChange={() =>
-                          setExpanded(expanded === idx ? false : idx)
-                        }
-                      >
-                        {/* HEADER */}
-                        <AccordionSummary
-                          expandIcon={<ExpandMoreIcon />}
-                          aria-controls={`panel-${idx}-content`}
-                          id={`panel-${idx}-header`}
-                          className="!bg-gray-100 !rounded-t-lg"
-                        >
-                          <div className="flex justify-between items-center w-full">
-                            {/* Left side: Rule number + truncated rule text */}
-                            <Typography
-                              variant="body2"
-                              component="span"
-                              className="font-medium text-gray-800 truncate max-w-[70%]"
-                            >
-                              {`Rule ${idx + 1}: `}
-                            </Typography>
-
-                            {/* Right side: Status */}
-                            <div
-                              className={`flex items-center gap-1 text-sm font-medium `}
-                            >
-                              <span className="font-bold">Status: </span>
-                              {icon}
-                              <span>{status}</span>
-                            </div>
+                        return orderedEntries.map(([key, value]) => (
+                          <div
+                            key={key}
+                            className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl shadow"
+                          >
+                            <span className="text-black font-bold pl-1">
+                              {value}
+                            </span>
+                            <span className="flex items-center gap-1 text-sm">
+                              {key}
+                            </span>
                           </div>
-                        </AccordionSummary>
-
-                        {/* BODY */}
-                        <AccordionDetails>
-                          <div className="space-y-3 text-sm">
-                            <div>
-                              <div className="font-semibold">Rule Text:</div>
-                              <p className="mt-1 text-gray-600">
-                                {result?.rule || item.rule}
-                              </p>
-                            </div>
-                            <div className="">
-                              <div className="font-semibold">Commentary:</div>
-                              <p className="mt-1 rounded p-2 bg-blue-50 text-[#26a3dd]">
-                                {result?.commentary || "—"}
-                              </p>
-                            </div>
-                          </div>
-                        </AccordionDetails>
-                      </Accordion>
-                    );
-                  })}
+                        ));
+                      })()}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </>
-          )}
-          {value === "Insights" && (
-            <>
+              </>
+            )}
+            {value === "Insights" && (
               <div className="text-[#26a3dd] mt-2">
                 Underwriting Insights{" "}
                 <span className="text-black">
                   : {sessionStorage.getItem("loanId") || ""}
                 </span>
               </div>
-              <div className="relative h-full mt-3 w-full rounded-2xl p-5 shadow">
-                <div className="absolute inset-0 bg-gradient-to-r from-[#d6f1ff] to-[#b0e2de] opacity-20"></div>
-                <div className="relative flex flex-col gap-4 h-full">
-                  <span className="font-bold shrink-0">Income Insights</span>
-                  <div className="flex-1 overflow-y-auto whitespace-pre-line">
-                    {report?.insights || ""}
-                  </div>
-                </div>
+            )}
+          </div>
+          {/* <div className="my-2 border-b-1 border-gray-300"></div> */}
+          {isLoading && <Loader />}
+
+          {value === "Rule Results" && (
+            <div className="space-y-3 px-[2px] pb-2">
+              {report?.rules?.results?.map((item, idx) => {
+                const { result } = item;
+                const status = result?.status || "Unknown";
+
+                // status styles + icons
+                const statusConfig = {
+                  Pass: {
+                    color: "text-green-600",
+                    icon: (
+                      <CheckCircleIcon className="text-green-500 text-base" />
+                    ),
+                  },
+                  Fail: {
+                    color: "text-red-600",
+                    icon: (
+                      <CancelOutlinedIcon className="text-red-500 text-base" />
+                    ),
+                  },
+                  Error: {
+                    color: "text-yellow-600",
+                    icon: (
+                      <ErrorIcon className="text-yellow-500 text-base" />
+                    ),
+                  },
+                  Default: {
+                    color: "text-gray-600",
+                    icon: (
+                      <CheckCircleIcon className="text-green-500 text-base" />
+                    ),
+                  },
+                };
+                const { color, icon } =
+                  statusConfig[status] || statusConfig.Default;
+
+                return (
+                  <Accordion
+                    key={idx}
+                    className={`!shadow-sm mt-3 
+                    ${expanded === idx
+                        ? "!border-2 !border-[#26a3dd]"
+                        : "!border !border-gray-200"
+                      }`}
+                    expanded={expanded === idx}
+                    onChange={() =>
+                      setExpanded(expanded === idx ? false : idx)
+                    }
+                  >
+                    {/* HEADER */}
+                    <AccordionSummary
+                      expandIcon={<ExpandMoreIcon />}
+                      aria-controls={`panel-${idx}-content`}
+                      id={`panel-${idx}-header`}
+                      className="!bg-gray-100 !rounded-t-lg"
+                    >
+                      <div className="flex justify-between items-center w-full">
+                        {/* Left side: Rule number + truncated rule text */}
+                        <Typography
+                          variant="body2"
+                          component="span"
+                          className="font-medium text-gray-800 truncate max-w-[70%]"
+                        >
+                          {`Rule ${idx + 1}: `}
+                        </Typography>
+
+                        {/* Right side: Status */}
+                        <div
+                          className={`flex items-center gap-1 text-sm font-medium `}
+                        >
+                          <span className="font-bold">Status: </span>
+                          {icon}
+                          <span>{status}</span>
+                        </div>
+                      </div>
+                    </AccordionSummary>
+
+                    {/* BODY */}
+                    <AccordionDetails>
+                      <div className="space-y-3 text-sm">
+                        <div>
+                          <div className="font-semibold">Rule Text:</div>
+                          <p className="mt-1 text-gray-600">
+                            {result?.rule || item.rule}
+                          </p>
+                        </div>
+                        <div className="">
+                          <div className="font-semibold">Commentary:</div>
+                          <p className="mt-1 rounded p-2 bg-blue-50 text-[#26a3dd]">
+                            {result?.commentary || "—"}
+                          </p>
+                        </div>
+                      </div>
+                    </AccordionDetails>
+                  </Accordion>
+                );
+              })}
+            </div>
+          )}
+          {value === "Summary" && (
+            <div className="w-full">
+              <SummarySection summary_data={report["summary"]} />
+            </div>
+          )}
+          {value === "Insights" && (
+            <div className="relative flex flex-col gap-4 h-full rounded-2xl p-3 bg-[url('/insights-bg.png')] bg-cover">
+              <div className="flex-1 whitespace-pre-line">
+                <div className="font-bold shrink-0 mb-2">Income Insights</div>
+                {report?.insights || ""}
               </div>
-            </>
+            </div>
           )}
         </>
       )}

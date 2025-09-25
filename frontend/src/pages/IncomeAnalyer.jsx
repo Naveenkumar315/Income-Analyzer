@@ -251,7 +251,7 @@ const IncomeAnalyzer = () => {
       {!showSection.provideLoanIDSection && (
         <StepChips activeStep={activeStep} onStepChange={handleStepChange} />
       )}
-      <div className="bg-white rounded-lg p-2 flex-1 overflow-auto shadow">
+      <div className="bg-white rounded-lg px-2 flex-1 overflow-auto pb-2 shadow">
         {showSection.provideLoanIDSection && (
           <UploadedDocument
             setShowSection={setShowSection}
