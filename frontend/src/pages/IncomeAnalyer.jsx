@@ -153,6 +153,7 @@ const IncomeAnalyzer = () => {
         summaryData,
         insights: insightsComment,
       });
+      handleStepChange(1);
 
       update_analyzed_data_into_db(
         email,
@@ -198,6 +199,7 @@ const IncomeAnalyzer = () => {
   };
 
   const handleStepChange = (step) => {
+    debugger;
     setActiveStep(step);
     setShowSection((prev) => ({
       ...prev,
