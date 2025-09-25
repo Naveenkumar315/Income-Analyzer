@@ -245,7 +245,7 @@ const LoanExtraction = ({
                 <Button
                   variant="start-analyze"
                   width={200}
-                  label="View Analyzing"
+                  label="View Result"
                   onClick={() => {
                     setIsSAClicked(false);
                     setShowSection((p) => ({
