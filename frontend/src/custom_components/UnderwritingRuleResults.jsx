@@ -25,7 +25,7 @@ const UnderwritingRuleResult = ({
   report,
   setReport,
   loadingStep = 0,
-  onCancel = () => {},
+  onCancel = () => { },
 }) => {
   const [value, setValue] = useState(Tabs[0]);
   const [expanded, setExpanded] = useState(false);
@@ -92,10 +92,10 @@ const UnderwritingRuleResult = ({
               loadingStep === 0
                 ? "Starting Analysis"
                 : loadingStep === 1
-                ? "Verifying Rules"
-                : loadingStep === 2
-                ? "Calculating Income"
-                : "Fetching Insights"
+                  ? "Verifying Rules"
+                  : loadingStep === 2
+                    ? "Calculating Income"
+                    : "Fetching Insights"
             }
             onCancel={onCancel} // use prop from IncomeAnalyzer
             isCompleted={loadingStep === totalSteps}
@@ -256,11 +256,10 @@ const UnderwritingRuleResult = ({
                       <Accordion
                         key={idx}
                         className={`!shadow-sm mt-3 
-                    ${
-                      expanded === idx
-                        ? "!border-2 !border-[#26a3dd]"
-                        : "!border !border-gray-200"
-                    }`}
+                    ${expanded === idx
+                            ? "!border-2 !border-[#26a3dd]"
+                            : "!border !border-gray-200"
+                          }`}
                         expanded={expanded === idx}
                         onChange={() =>
                           setExpanded(expanded === idx ? false : idx)
@@ -324,7 +323,7 @@ const UnderwritingRuleResult = ({
                 Underwriting Insights{" "}
                 <span className="text-black">(LN-20250915-001)</span>
               </div>
-              <div className="relative h-full mt-3 w-full rounded-2xl p-5 shadow">
+              <div className="relative h-[55vh] mt-3 w-full rounded-2xl p-5 shadow">
                 <div className="absolute inset-0 bg-gradient-to-r from-[#d6f1ff] to-[#b0e2de] opacity-20"></div>
                 <div className="relative flex flex-col gap-4 h-full">
                   <span className="font-bold shrink-0">Income Insights</span>

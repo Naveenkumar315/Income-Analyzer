@@ -13,7 +13,7 @@ const SummarySection = ({ summary_data = [] }) => {
 
 
   return (
-    <div className="space-y-3 overflow-auto">
+    <div className="space-y-3">
       <Accordion className="!shadow-sm !border !border-gray-200 mt-3">
         <AccordionSummary
           expandIcon={<ExpandMoreIcon />}
@@ -27,7 +27,7 @@ const SummarySection = ({ summary_data = [] }) => {
         </AccordionSummary>
 
         <AccordionDetails>
-          <div className="space-y-4 text-sm">
+          <div className="space-y-4 text-sm overflow-auto h-[calc(40vh-100px)] max-h-[calc(90vh-100px)]">
             {summary_data?.map((item, idx) => (
               <div key={idx} className="border-b pb-2">
                 <div className="font-semibold capitalize">
