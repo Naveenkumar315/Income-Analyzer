@@ -26,7 +26,6 @@ export default function useCurrentUser() {
     const loader = document.getElementById("custom-loader");
     if (loader) loader.style.display = "flex"; // show loader
 
-    localStorage.clear();
     sessionStorage.clear();
     setUser(null);
 

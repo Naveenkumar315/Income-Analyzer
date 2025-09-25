@@ -42,7 +42,7 @@ const Dashboard = ({ onAddLoanPackage, handleViewChange }) => {
       const res = await api.post("/uploaded-data/by-email", { email });
       if (res.data && res.data.length > 0) {
         setData(transformUploadedData(res.data));
-        console.log("table data", transformUploadedData(res.data));
+        console.log("table data", res.data);
       }
     } catch (err) {
       console.error("Error fetching uploaded data", err);
@@ -66,7 +66,7 @@ const Dashboard = ({ onAddLoanPackage, handleViewChange }) => {
         minute: "2-digit",
         hour12: true,
       }),
-      uploadedBy: item.uploadedBy || sessionStorage.getItem("username") || "",
+      uploadedBy: item.username || sessionStorage.getItem("username") || "",
       actions: "",
     }));
 

@@ -43,8 +43,8 @@ export default function LoginPage() {
       // Backend returns { access_token, token_type }
       const { access_token, username, email } = res.data;
 
-      // Save token in localStorage (or cookies if you want more security)
-      localStorage.setItem("token", access_token);
+      // Save token in sessionStorage (or cookies if you want more security)
+      sessionStorage.setItem("token", access_token);
       sessionStorage.setItem("username", username);
       sessionStorage.setItem("email", email);
 
