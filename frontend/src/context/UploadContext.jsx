@@ -29,6 +29,7 @@ export const UploadProvider = ({ children }) => {
     useState(false);
   const [incomeAnalyzerState, setIncomeAnalyzerState] = useState(null);
   const [filtered_borrower, set_filter_borrower] = useState("All");
+  const [borrowerList, setBorrowerList] = useState([]);
 
   useEffect(() => {
     console.log("++++++", normalized_json);
@@ -139,6 +140,8 @@ export const UploadProvider = ({ children }) => {
         isSAClicked,
         filtered_borrower,
         set_filter_borrower,
+        borrowerList,
+        setBorrowerList,
       }}
     >
       {children}

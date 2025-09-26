@@ -29,7 +29,14 @@ const UnderwritingRuleResult = ({
 }) => {
   const [value, setValue] = useState(Tabs[0]);
   const [expanded, setExpanded] = useState(false);
-  const { isLoading, filtered_borrower } = useUpload();
+  const {
+    isLoading,
+    filtered_borrower,
+    set_filter_borrower,
+    borrowerList,
+    setAnalyzedState,
+  } = useUpload();
+
   const totalSteps = 3;
   useEffect(() => {
     console.log("report", report);
@@ -111,7 +118,28 @@ const UnderwritingRuleResult = ({
               value={value}
               handleGetResult={handleGetResult}
             />
-            <p>Borrower Name: {filtered_borrower || ""}</p>
+            <div className="flex-1 flex justify-center">
+              <select
+                onChange={(e) => {
+                  setReport({});
+                  setAnalyzedState({
+                    isAnalyzed: false,
+                    analyzed_data: {},
+                  });
+                  set_filter_borrower(e.target.value);
+                }}
+                value={filtered_borrower || "All"}
+                className="px-3 py-2 mx-2 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-700"
+              >
+                <option value="All">All</option>
+                {borrowerList &&
+                  borrowerList.map((item, index) => (
+                    <option key={index} value={item}>
+                      {item}
+                    </option>
+                  ))}
+              </select>
+            </div>
             <Button variant="result_download" label={"Download"} width={200} />
           </div>
 

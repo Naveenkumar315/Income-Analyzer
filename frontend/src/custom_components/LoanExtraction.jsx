@@ -46,6 +46,8 @@ const LoanExtraction = ({
     setReport,
     filtered_borrower,
     set_filter_borrower,
+    borrowerList,
+    setBorrowerList,
   } = useUpload();
 
   const [rulesModel, setRulesModel] = useState(false);
@@ -93,6 +95,10 @@ const LoanExtraction = ({
 
   const currentData = activeTab === "original" ? originalData : modifiedData;
   const borrowers = currentData ? Object.keys(currentData) : [];
+
+  useEffect(() => {
+    setBorrowerList(borrowers);
+  }, [borrowers]);
 
   const toggleBorrower = (name) =>
     setOpenBorrowers((prev) => ({ ...prev, [name]: !prev[name] }));
@@ -246,23 +252,9 @@ const LoanExtraction = ({
           </div>
 
           {/* Center: Borrower select */}
-          {(isUploaded?.uploaded || normalized_json) && (
-            <div className="flex-1 flex justify-center">
-              <select
-                onChange={(e) => set_filter_borrower(e.target.value)}
-                value={filtered_borrower || "All"}
-                className="px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-700"
-              >
-                <option value="All">All</option>
-                {borrowers &&
-                  borrowers.map((item, index) => (
-                    <option key={index} value={item}>
-                      {item}
-                    </option>
-                  ))}
-              </select>
-            </div>
-          )}
+          {/* {(isUploaded?.uploaded || normalized_json) && (
+            
+          )} */}
 
           {/* Right: Action buttons */}
           {(isUploaded?.uploaded || normalized_json) && (
@@ -288,7 +280,7 @@ const LoanExtraction = ({
               )}
               <Button
                 variant="upload-doc"
-                width={160}
+                width={180}
                 label="Upload Documents"
                 className="whitespace-nowrap"
                 onClick={() =>

@@ -158,6 +158,8 @@ const IncomeAnalyzer = () => {
         insightsComment,
         filtered_borrower // include borrower in db update too
       );
+    } catch (ex) {
+      console.log("Error in fectAllData", ex);
     } finally {
       if (!signal.aborted) {
         setIsLoading(false);
