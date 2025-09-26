@@ -49,6 +49,8 @@ const LoanExtraction = ({
     borrowerList,
     setBorrowerList,
     set_normalized_json,
+    hasModifications,
+    setHasModifications,
   } = useUpload();
 
   const [rulesModel, setRulesModel] = useState(false);
@@ -83,11 +85,10 @@ const LoanExtraction = ({
   const [editingName, setEditingName] = useState("");
   const [deleteModal, setDeleteModal] = useState(null);
 
-  const [hasModifications, setHasModifications] = useState(false);
+  // const [hasModifications, setHasModifications] = useState(false);
 
   // initialize
   useEffect(() => {
-    debugger;
     if (normalized_json) {
       const snapshot = JSON.parse(JSON.stringify(normalized_json));
       setOriginalData(snapshot);
@@ -121,7 +122,7 @@ const LoanExtraction = ({
         raw_json: updatedJson,
       });
       setModifiedData(res.data.cleaned_json);
-      set_normalized_json(res.data.cleaned_json);
+      // set_normalized_json(res.data.cleaned_json);
       setActiveTab("modified");
       setHasModifications(true);
       if (successMsg) toast.success(successMsg);

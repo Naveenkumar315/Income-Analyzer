@@ -11,7 +11,7 @@ export const UploadProvider = ({ children }) => {
     uploadedModel: false,
     startAnalyzing: false,
   });
-
+  const [hasModifications, setHasModifications] = useState(false);
   const [loanId, setLoanId] = useState("");
   const [data, setData] = useState([]);
   const [activeStep, setActiveStep] = useState(0);
@@ -139,6 +139,8 @@ export const UploadProvider = ({ children }) => {
         set_filter_borrower,
         borrowerList,
         setBorrowerList,
+        hasModifications,
+        setHasModifications,
       }}
     >
       {children}
