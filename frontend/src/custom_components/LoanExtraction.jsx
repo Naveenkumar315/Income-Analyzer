@@ -104,7 +104,11 @@ const LoanExtraction = ({
   // }, [borrowers]);
   useEffect(() => {
     if (activeTab === "modified") {
-      setBorrowerList(Object.keys(modifiedData) || []);
+      const borrowers = Object.keys(modifiedData) || [];
+      setBorrowerList(borrowers);
+      if (!filtered_borrower && borrowers.length > 0) {
+        set_filter_borrower(borrowers[0]); // pick first borrower automatically
+      }
     }
   }, [activeTab, modifiedData]);
 

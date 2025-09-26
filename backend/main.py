@@ -462,8 +462,9 @@ async def income_insights(
 @app.post("/store-analyzed-data")
 async def store_analyzed_data(
     email: str = Body(...),
-    loanID: str = Body(...),
-    analyzed_data: dict = Body(...)
+   loanID: str = Body(...),
+   borrower: str = Body(...),
+   analyzed_data: dict = Body(...)
 ):
     existing = await db["uploadedData"].find_one({"loanID": loanID, "email": email})
     if not existing:
@@ -471,11 +472,19 @@ async def store_analyzed_data(
 
     timestamp = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")
 
-    await db["uploadedData"].update_one(
-        {"loanID": loanID, "email": email},
-        {"$set": {"analyzed_data": analyzed_data, "updated_at": timestamp}}
-    )
+    # await db["uploadedData"].update_one(
+    #     {"loanID": loanID, "email": email},
+    #     {"$set": {"analyzed_data": analyzed_data, "updated_at": timestamp}}
+    # )
+    # Merge per borrower
+    updated_analyzed = existing.get("analyzed_data", {})
+    updated_analyzed[borrower] = analyzed_data
 
+    await db["uploadedData"].update_one(
+       {"loanID": loanID, "email": email},
+       {"$set": {"analyzed_data": updated_analyzed, "updated_at": timestamp}}
+    )
+    
     return {"status": "success", "message": "Analyzed data stored"}
 
 @app.post("/view-loan", response_model=LoanViewResponse)

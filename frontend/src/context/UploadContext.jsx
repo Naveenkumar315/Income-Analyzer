@@ -28,7 +28,7 @@ export const UploadProvider = ({ children }) => {
   const [incomeAnalyzerInitialized, setIncomeAnalyzerInitialized] =
     useState(false);
   const [incomeAnalyzerState, setIncomeAnalyzerState] = useState(null);
-  const [filtered_borrower, set_filter_borrower] = useState("All");
+  const [filtered_borrower, set_filter_borrower] = useState("");
   const [borrowerList, setBorrowerList] = useState([]);
 
   useEffect(() => {
