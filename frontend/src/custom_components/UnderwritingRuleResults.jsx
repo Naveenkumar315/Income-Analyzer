@@ -35,8 +35,6 @@ const UnderwritingRuleResult = ({
   } = useUpload();
 
   const totalSteps = 3;
-
-  // Borrower-specific data
   const borrowerData = report?.[filtered_borrower];
 
   useEffect(() => {
@@ -47,7 +45,7 @@ const UnderwritingRuleResult = ({
     setValue(newValue);
   };
 
-  // 🔹 Global loader (first borrower only)
+  // 🔹 Global loader: before first borrower is analyzed
   if (isLoading && !borrowerData) {
     return (
       <LoadingModal
@@ -69,7 +67,7 @@ const UnderwritingRuleResult = ({
     );
   }
 
-  // 🔹 Per-borrower loader
+  // 🔹 Per-borrower loader: if selected borrower not yet ready
   if (!borrowerData) {
     return (
       <LoadingModal
@@ -93,7 +91,7 @@ const UnderwritingRuleResult = ({
         <div className="flex-1 flex justify-center">
           <select
             onChange={(e) => {
-              setReport({});
+              //setReport({});
               setAnalyzedState({
                 isAnalyzed: false,
                 analyzed_data: {},
@@ -122,13 +120,11 @@ const UnderwritingRuleResult = ({
           <div className="text-[#26a3dd] mt-2">
             Underwriting Summary{" "}
             <span className="text-black">
-              {" "}
               : {sessionStorage.getItem("loanId") || ""}
             </span>
           </div>
           <div className="relative h-[100px] mt-3 w-full rounded-2xl overflow-hidden shadow">
             <div className="absolute inset-0 bg-gradient-to-r from-[#26a3dd] to-[#bcdff0] opacity-30"></div>
-
             <div className="relative p-5 h-full">
               <div className="grid grid-cols-6 gap-4">
                 {(() => {
@@ -160,7 +156,6 @@ const UnderwritingRuleResult = ({
               </div>
             </div>
           </div>
-
           <div className="w-full">
             <SummarySection summary_data={borrowerData["summary"]} />
           </div>
@@ -178,7 +173,6 @@ const UnderwritingRuleResult = ({
           </div>
           <div className="h-[100px] mt-3 w-full relative rounded-2xl overflow-hidden shadow">
             <div className="absolute inset-0 bg-gradient-to-r from-[#26a3dd] to-[#bcdff0] opacity-30"></div>
-
             <div className="relative grid grid-cols-4 gap-4 h-full p-5">
               <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl">
                 <span className="text-black font-bold pl-1">
@@ -224,7 +218,6 @@ const UnderwritingRuleResult = ({
               {borrowerData?.rules?.results?.map((item, idx) => {
                 const { result } = item;
                 const status = result?.status || "Unknown";
-
                 return (
                   <Accordion
                     key={idx}

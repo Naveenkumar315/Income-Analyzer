@@ -52,92 +52,106 @@ const IncomeAnalyzer = () => {
     }));
   };
 
+  // 🔹 Sequential analysis: first borrower with loader, rest in background
   const fetchAllData = async (signal) => {
-    setIsLoading(true);
-    setLoadingStep(0);
-
     const email = sessionStorage.getItem("email") || "";
     const loanId = sessionStorage.getItem("loanId") || "";
 
-    let firstDone = false;
-    for (const borrower of borrowerList) {
-      console.log(`▶️ Starting analysis for borrower: ${borrower}`);
-      try {
-        const requests = [
-          api.post("/verify-rules", null, {
-            params: { email, loanID: loanId, borrower },
-            signal,
-          }),
-          api.post("/income-calc", null, {
-            params: { email, loanID: loanId, borrower },
-            signal,
-          }),
-          api.post("/income-insights", null, {
-            params: { email, loanID: loanId, borrower },
-            signal,
-          }),
-        ];
+    if (!borrowerList.length) return;
 
-        const results = await Promise.allSettled(
-          requests.map(async (req) => {
-            const res = await req;
-            setLoadingStep((prev) => prev + 1);
-            return res;
-          })
-        );
+    // Step 1: global loader for first borrower
+    setIsLoading(true);
+    setLoadingStep(0);
 
-        if (signal.aborted) return;
+    // Step 2: analyze first borrower
+    const firstBorrower = borrowerList[0];
+    await analyzeBorrower(firstBorrower, email, loanId, signal);
 
-        const [rulesRes, incomeRes, insightsRes] = results;
-        const getData = (r) => (r.status === "fulfilled" ? r.value.data : null);
+    // Step 3: hide loader and show UI
+    setIsLoading(false);
+    handleStepChange(1);
 
-        const rulesData = getData(rulesRes);
-        const incomeData = getData(incomeRes);
-        const insightsData = getData(insightsRes);
+    // Step 4: background analyze the rest
+    for (let i = 1; i < borrowerList.length; i++) {
+      const borrower = borrowerList[i];
+      analyzeBorrower(borrower, email, loanId, signal); // background, no loader
+    }
+  };
 
-        const incomeSummary = incomeData?.income?.[0]?.checks.reduce(
-          (acc, item) => {
-            acc[item.field] = item.value;
-            return acc;
-          },
-          {}
-        );
+  // 🔹 Analyze one borrower
+  const analyzeBorrower = async (borrower, email, loanId, signal) => {
+    console.log(`▶️ Starting analysis for borrower: ${borrower}`);
+    try {
+      const requests = [
+        api.post("/verify-rules", null, {
+          params: { email, loanID: loanId, borrower },
+          signal,
+        }),
+        api.post("/income-calc", null, {
+          params: { email, loanID: loanId, borrower },
+          signal,
+        }),
+        api.post("/income-insights", null, {
+          params: { email, loanID: loanId, borrower },
+          signal,
+        }),
+      ];
 
-        const summaryData = incomeData?.income?.[0]?.checks;
-        const insightsComment =
-          insightsData?.income_insights?.insight_commentry || "";
+      const results = await Promise.allSettled(
+        requests.map(async (req) => {
+          const res = await req;
+          setLoadingStep((prev) => prev + 1);
+          return res;
+        })
+      );
 
-        setReport((prev) => ({
-          ...prev,
-          [borrower]: {
-            rules: rulesData,
-            summary: summaryData,
-            income_summary: incomeSummary,
-            summaryData,
-            insights: insightsComment,
-          },
-        }));
+      if (signal.aborted) return;
 
-        console.log(`✅ Finished borrower: ${borrower}`);
+      const [rulesRes, incomeRes, insightsRes] = results;
+      const getData = (r) => (r.status === "fulfilled" ? r.value.data : null);
 
-        await update_analyzed_data_into_db(
-          email,
-          loanId,
-          rulesData,
-          incomeSummary,
+      const rulesData = getData(rulesRes);
+      const incomeData = getData(incomeRes);
+      const insightsData = getData(insightsRes);
+
+      const incomeSummary = incomeData?.income?.[0]?.checks.reduce(
+        (acc, item) => {
+          acc[item.field] = item.value;
+          return acc;
+        },
+        {}
+      );
+
+      const summaryData = incomeData?.income?.[0]?.checks;
+      const insightsComment =
+        insightsData?.income_insights?.insight_commentry || "";
+
+      // Save into state per borrower
+      setReport((prev) => ({
+        ...prev,
+        [borrower]: {
+          rules: rulesData,
+          summary: summaryData,
+          income_summary: incomeSummary,
           summaryData,
-          insightsComment,
-          borrower
-        );
+          insights: insightsComment,
+        },
+      }));
 
-        if (!firstDone) {
-          handleStepChange(1);
-          setIsLoading(false); // hide global loader after first borrower
-          firstDone = true;
-        }
-      } catch (ex) {
-        console.error(`❌ Error analyzing borrower ${borrower}`, ex);
-      }
+      console.log(`✅ Finished borrower: ${borrower}`);
+
+      // Save to DB
+      await update_analyzed_data_into_db(
+        email,
+        loanId,
+        rulesData,
+        incomeSummary,
+        summaryData,
+        insightsComment,
+        borrower
+      );
+    } catch (ex) {
+      console.error(`❌ Error analyzing borrower ${borrower}`, ex);
     }
   };
 
