@@ -43,7 +43,6 @@ const UnderwritingRuleResult = ({
   }, [report]);
 
   const handleGetResult = async (event, newValue) => {
-    debugger;
     try {
       setValue(newValue);
       let email = sessionStorage.getItem("email") || "";
@@ -70,7 +69,7 @@ const UnderwritingRuleResult = ({
         //   summaryData: summaryData,
         // }))
       } else if (newValue === "Insights") {
-        // debugger
+        //
         // const response = await api.post("/income-insights", null, {
         //   params: { email, loanID: loanId },
         // });

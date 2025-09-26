@@ -30,8 +30,6 @@ const IncomeAnalyzer = () => {
   const controllerRef = useRef(null);
 
   useEffect(() => {
-    debugger;
-
     handle_view_result_checker();
     if (Object.keys(report).length) return;
     if (showSection.startAnalyzing) {
@@ -196,7 +194,6 @@ const IncomeAnalyzer = () => {
   };
 
   const handleStepChange = (step) => {
-    debugger;
     // if (step === 1 && !analyzedState.isAnalyzed) {
     //   toast.warn("Start analyzing first.");
     //   return;
