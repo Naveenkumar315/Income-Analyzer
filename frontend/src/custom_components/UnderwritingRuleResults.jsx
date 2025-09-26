@@ -91,7 +91,7 @@ const UnderwritingRuleResult = ({
         <div className="flex-1 flex justify-center">
           <select
             onChange={(e) => {
-              //setReport({});
+              // setReport({});
               setAnalyzedState({
                 isAnalyzed: false,
                 analyzed_data: {},
@@ -102,11 +102,19 @@ const UnderwritingRuleResult = ({
             className="px-3 py-2 mx-2 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-700"
           >
             {borrowerList &&
-              borrowerList.map((item, index) => (
-                <option key={index} value={item}>
-                  {item}
-                </option>
-              ))}
+              borrowerList.map((item, index) => {
+                const isDisabled = !report[item];
+                return (
+                  <option
+                    key={index}
+                    value={item}
+                    disabled={isDisabled}
+                    className={isDisabled ? "text-gray-400" : "text-black"} // 🔹 apply gray
+                  >
+                    {item}
+                  </option>
+                );
+              })}
           </select>
         </div>
         <Button variant="result_download" label={"Download"} width={200} />
