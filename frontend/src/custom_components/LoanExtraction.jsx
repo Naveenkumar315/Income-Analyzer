@@ -48,6 +48,7 @@ const LoanExtraction = ({
     set_filter_borrower,
     borrowerList,
     setBorrowerList,
+    set_normalized_json,
   } = useUpload();
 
   const [rulesModel, setRulesModel] = useState(false);
@@ -86,6 +87,7 @@ const LoanExtraction = ({
 
   // initialize
   useEffect(() => {
+    debugger;
     if (normalized_json) {
       const snapshot = JSON.parse(JSON.stringify(normalized_json));
       setOriginalData(snapshot);
@@ -96,9 +98,14 @@ const LoanExtraction = ({
   const currentData = activeTab === "original" ? originalData : modifiedData;
   const borrowers = currentData ? Object.keys(currentData) : [];
 
+  // useEffect(() => {
+  //   setBorrowerList(Object.keys(currentData) || []);
+  // }, [borrowers]);
   useEffect(() => {
-    setBorrowerList(borrowers);
-  }, [borrowers]);
+    if (activeTab === "modified") {
+      setBorrowerList(Object.keys(modifiedData) || []);
+    }
+  }, [activeTab, modifiedData]);
 
   const toggleBorrower = (name) =>
     setOpenBorrowers((prev) => ({ ...prev, [name]: !prev[name] }));
@@ -114,6 +121,7 @@ const LoanExtraction = ({
         raw_json: updatedJson,
       });
       setModifiedData(res.data.cleaned_json);
+      set_normalized_json(res.data.cleaned_json);
       setActiveTab("modified");
       setHasModifications(true);
       if (successMsg) toast.success(successMsg);

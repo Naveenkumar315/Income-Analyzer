@@ -34,9 +34,6 @@ export const UploadProvider = ({ children }) => {
   useEffect(() => {
     console.log("++++++", normalized_json);
   }, [normalized_json]);
-  useEffect(() => {
-    console.log("filtered_borrower", filtered_borrower);
-  }, [filtered_borrower]);
 
   const goBack = () => {
     if (showSection.startAnalyzing) {
