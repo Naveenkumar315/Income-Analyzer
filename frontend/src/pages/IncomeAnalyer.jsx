@@ -6,6 +6,9 @@ import { useEffect, useState, useRef } from "react";
 import api from "../api/client";
 import StepChips from "../custom_components/StepChips";
 
+// 🔹 Configurable concurrency limit
+const CONCURRENCY_LIMIT = 3;
+
 const IncomeAnalyzer = () => {
   const {
     showSection,
@@ -52,30 +55,52 @@ const IncomeAnalyzer = () => {
     }));
   };
 
-  // 🔹 Sequential analysis: first borrower with loader, rest in background
+  // 🔹 Utility: run tasks with concurrency limit
+  const runWithLimit = async (items, limit, fn) => {
+    const results = [];
+    const executing = [];
+    for (const item of items) {
+      const p = Promise.resolve().then(() => fn(item));
+      results.push(p);
+
+      if (limit <= items.length) {
+        const e = p.then(() => executing.splice(executing.indexOf(e), 1));
+        executing.push(e);
+        if (executing.length >= limit) {
+          await Promise.race(executing);
+        }
+      }
+    }
+    return Promise.all(results);
+  };
+
+  // 🔹 Sequential + Parallel (with configurable cap)
   const fetchAllData = async (signal) => {
     const email = sessionStorage.getItem("email") || "";
     const loanId = sessionStorage.getItem("loanId") || "";
 
     if (!borrowerList.length) return;
 
-    // Step 1: global loader for first borrower
+    // Step 1: loader for first borrower
     setIsLoading(true);
     setLoadingStep(0);
 
-    // Step 2: analyze first borrower
+    // Step 2: analyze first borrower (blocking loader)
     const firstBorrower = borrowerList[0];
     await analyzeBorrower(firstBorrower, email, loanId, signal);
 
-    // Step 3: hide loader and show UI
+    // Step 3: hide loader & show UI
     setIsLoading(false);
     handleStepChange(1);
 
-    // Step 4: background analyze the rest
-    for (let i = 1; i < borrowerList.length; i++) {
-      const borrower = borrowerList[i];
-      analyzeBorrower(borrower, email, loanId, signal); // background, no loader
-    }
+    // Step 4: analyze remaining borrowers in parallel with concurrency cap
+    const remainingBorrowers = borrowerList.slice(1);
+
+    runWithLimit(remainingBorrowers, CONCURRENCY_LIMIT, (b) =>
+      analyzeBorrower(b, email, loanId, signal)
+    ).then(() => {
+      console.log("✅ All background borrowers analyzed");
+    });
   };
 
   // 🔹 Analyze one borrower
@@ -97,13 +122,8 @@ const IncomeAnalyzer = () => {
         }),
       ];
 
-      const results = await Promise.allSettled(
-        requests.map(async (req) => {
-          const res = await req;
-          setLoadingStep((prev) => prev + 1);
-          return res;
-        })
-      );
+      // fire 3 requests in parallel for this borrower
+      const results = await Promise.allSettled(requests);
 
       if (signal.aborted) return;
 
@@ -126,7 +146,7 @@ const IncomeAnalyzer = () => {
       const insightsComment =
         insightsData?.income_insights?.insight_commentry || "";
 
-      // Save into state per borrower
+      // Save into state (per borrower)
       setReport((prev) => ({
         ...prev,
         [borrower]: {
