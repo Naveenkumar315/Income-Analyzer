@@ -6,9 +6,6 @@ import { useEffect, useState, useRef } from "react";
 import api from "../api/client";
 import StepChips from "../custom_components/StepChips";
 
-// 🔹 Configurable concurrency limit
-const CONCURRENCY_LIMIT = 3;
-
 const IncomeAnalyzer = () => {
   const {
     showSection,
@@ -55,55 +52,54 @@ const IncomeAnalyzer = () => {
     }));
   };
 
-  // 🔹 Utility: run tasks with concurrency limit
-  const runWithLimit = async (items, limit, fn) => {
-    const results = [];
-    const executing = [];
-    for (const item of items) {
-      const p = Promise.resolve().then(() => fn(item));
-      results.push(p);
-
-      if (limit <= items.length) {
-        const e = p.then(() => executing.splice(executing.indexOf(e), 1));
-        executing.push(e);
-        if (executing.length >= limit) {
-          await Promise.race(executing);
-        }
-      }
-    }
-    return Promise.all(results);
-  };
-
-  // 🔹 Sequential + Parallel (with configurable cap)
   const fetchAllData = async (signal) => {
+    debugger;
     const email = sessionStorage.getItem("email") || "";
     const loanId = sessionStorage.getItem("loanId") || "";
 
     if (!borrowerList.length) return;
 
-    // Step 1: loader for first borrower
+    if (analyzedState.isAnalyzed) {
+      try {
+        setIsLoading(true);
+        const res = await api.post(
+          "/get-analyzed-data",
+          { email, loanId },
+          { signal }
+        );
+        const data = res.data?.analyzed_data || {};
+        setReport(data);
+        console.log("✅ Loaded analyzed data from DB", data);
+        setIsLoading(false);
+        handleStepChange(1);
+        return;
+      } catch (err) {
+        console.error("❌ Failed to load analyzed data:", err);
+        setIsLoading(false);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
     setIsLoading(true);
     setLoadingStep(0);
 
-    // Step 2: analyze first borrower (blocking loader)
     const firstBorrower = borrowerList[0];
     await analyzeBorrower(firstBorrower, email, loanId, signal);
 
-    // Step 3: hide loader & show UI
     setIsLoading(false);
     handleStepChange(1);
 
-    // Step 4: analyze remaining borrowers in parallel with concurrency cap
     const remainingBorrowers = borrowerList.slice(1);
 
-    runWithLimit(remainingBorrowers, CONCURRENCY_LIMIT, (b) =>
-      analyzeBorrower(b, email, loanId, signal)
+    // Run remaining borrowers fully in parallel
+    Promise.all(
+      remainingBorrowers.map((b) => analyzeBorrower(b, email, loanId, signal))
     ).then(() => {
       console.log("✅ All background borrowers analyzed");
     });
   };
 
-  // 🔹 Analyze one borrower
   const analyzeBorrower = async (borrower, email, loanId, signal) => {
     console.log(`▶️ Starting analysis for borrower: ${borrower}`);
     try {
@@ -122,9 +118,7 @@ const IncomeAnalyzer = () => {
         }),
       ];
 
-      // fire 3 requests in parallel for this borrower
       const results = await Promise.allSettled(requests);
-
       if (signal.aborted) return;
 
       const [rulesRes, incomeRes, insightsRes] = results;
@@ -146,7 +140,6 @@ const IncomeAnalyzer = () => {
       const insightsComment =
         insightsData?.income_insights?.insight_commentry || "";
 
-      // Save into state (per borrower)
       setReport((prev) => ({
         ...prev,
         [borrower]: {
@@ -160,7 +153,6 @@ const IncomeAnalyzer = () => {
 
       console.log(`✅ Finished borrower: ${borrower}`);
 
-      // Save to DB
       await update_analyzed_data_into_db(
         email,
         loanId,
@@ -221,7 +213,6 @@ const IncomeAnalyzer = () => {
         email: sessionStorage.getItem("email") || "",
         loanId: sessionStorage.getItem("loanId") || "",
       });
-
       const data = response.data;
       if (!Object.keys(data).length) return;
 
