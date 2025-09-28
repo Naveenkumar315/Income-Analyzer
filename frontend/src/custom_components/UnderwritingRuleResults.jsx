@@ -14,6 +14,8 @@ import {
 import SummarySection from "./SummarySection";
 import { useUpload } from "../context/UploadContext";
 import LoadingModal from "./LoaderModal";
+// import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
 
 const Tabs = ["Rule Results", "Summary", "Insights"];
 
@@ -91,11 +93,7 @@ const UnderwritingRuleResult = ({
         <div className="flex-1 flex justify-center">
           <select
             onChange={(e) => {
-              // setReport({});
-              setAnalyzedState({
-                isAnalyzed: false,
-                analyzed_data: {},
-              });
+              setAnalyzedState({ isAnalyzed: false, analyzed_data: {} });
               set_filter_borrower(e.target.value);
             }}
             value={filtered_borrower || ""}
@@ -103,14 +101,15 @@ const UnderwritingRuleResult = ({
           >
             {borrowerList &&
               borrowerList.map((item, index) => {
-                const isDisabled = !report[item];
+                const isReady = !!report[item];
                 return (
                   <option
                     key={index}
                     value={item}
-                    disabled={isDisabled}
-                    className={isDisabled ? "text-gray-400" : "text-black"} // 🔹 apply gray
+                    disabled={!isReady}
+                    className={isReady ? "text-black" : "text-gray-400"}
                   >
+                    {/* {isReady ? "✔ " : "⏳ "}  */}
                     {item}
                   </option>
                 );
