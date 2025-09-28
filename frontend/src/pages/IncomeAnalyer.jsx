@@ -52,35 +52,59 @@ const IncomeAnalyzer = () => {
     }));
   };
 
+  // 🔹 Main data loader
   const fetchAllData = async (signal) => {
-    debugger;
     const email = sessionStorage.getItem("email") || "";
     const loanId = sessionStorage.getItem("loanId") || "";
 
     if (!borrowerList.length) return;
 
+    // 🔹 If already analyzed, load from DB
     if (analyzedState.isAnalyzed) {
       try {
         setIsLoading(true);
         const res = await api.post(
           "/get-analyzed-data",
-          { email, loanId },
+          { email, loanId }, // <-- corrected key
           { signal }
         );
+
         const data = res.data?.analyzed_data || {};
         setReport(data);
         console.log("✅ Loaded analyzed data from DB", data);
+
+        // 🔹 Check if all borrowers are present
+        const missingBorrowers = borrowerList.filter(
+          (b) => !Object.prototype.hasOwnProperty.call(data, b)
+        );
+
+        if (missingBorrowers.length > 0) {
+          console.log("🔄 Missing borrowers detected:", missingBorrowers);
+
+          // analyze missing borrowers in background
+          Promise.all(
+            missingBorrowers.map((b) =>
+              analyzeBorrower(b, email, loanId, signal)
+            )
+          )
+            .then(() => {
+              console.log("✅ Missing borrowers analyzed and saved");
+            })
+            .catch((err) =>
+              console.error("❌ Error analyzing missing borrowers", err)
+            );
+        }
+
         setIsLoading(false);
         handleStepChange(1);
         return;
       } catch (err) {
         console.error("❌ Failed to load analyzed data:", err);
         setIsLoading(false);
-      } finally {
-        setIsLoading(false);
       }
     }
 
+    // 🔹 Standard flow for fresh analysis
     setIsLoading(true);
     setLoadingStep(0);
 
@@ -92,7 +116,6 @@ const IncomeAnalyzer = () => {
 
     const remainingBorrowers = borrowerList.slice(1);
 
-    // Run remaining borrowers fully in parallel
     Promise.all(
       remainingBorrowers.map((b) => analyzeBorrower(b, email, loanId, signal))
     ).then(() => {
@@ -140,6 +163,7 @@ const IncomeAnalyzer = () => {
       const insightsComment =
         insightsData?.income_insights?.insight_commentry || "";
 
+      // 🔹 Update report incrementally
       setReport((prev) => ({
         ...prev,
         [borrower]: {
