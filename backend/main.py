@@ -149,7 +149,7 @@ class CleanJsonRequest(BaseModel):
     username: str
     email: str
     loanID: str
-    file_name: str   # e.g. "folder_merge" / "file_merge" / "upload"
+    file_name: str
     raw_json: Dict[str, Any]
     threshold: Optional[float] = 0.7
     borrower_indicators: Optional[List[str]] = None
@@ -173,21 +173,23 @@ class GetAnalyzedDataRequest(BaseModel):
 # ---------- ROUTES ----------
 @app.post("/clean-json")
 async def clean_json(req: CleanJsonRequest):
-    """Insert new record with cleaned data (first time upload)."""
-    cleaned = clean_borrower_documents_from_dict(
-        data=req.raw_json,
-        threshold=req.threshold,
-        borrower_indicators=req.borrower_indicators,
-        employer_indicators=req.employer_indicators,
-    )
+    """
+    Insert new record with cleaned data (first-time upload).
+    Cleans borrower documents using nested cleanup utilities,
+    filters allowed document sections, and saves to MongoDB.
+    """
+    # 1. Clean borrower documents
+    #    New clean_borrower_documents_from_dict ignores threshold/indicators,
+    #    but we keep them in the request for future flexibility.
+    cleaned = clean_borrower_documents_from_dict(req.raw_json)
 
+    # 2. Optional post-processing
     cl_data = clean_json_data(cleaned)
     allowed_sections = ["BorrowerName", "W2", "VOE", "Paystubs", "Paystub"]
-
     filtered_data = filter_documents_by_type(cl_data, allowed_sections)
 
+    # 3. Build record for MongoDB
     timestamp = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")
-
     record = {
         "username": req.username,
         "email": req.email,
@@ -200,6 +202,7 @@ async def clean_json(req: CleanJsonRequest):
         "updated_at": timestamp,
     }
 
+    # 4. Insert into database
     await db["uploadedData"].insert_one(record)
 
     return {"message": "Upload saved successfully", "cleaned_json": cleaned}
