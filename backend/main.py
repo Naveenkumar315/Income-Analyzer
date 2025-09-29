@@ -218,17 +218,32 @@ async def update_cleaned_data(
 
     timestamp = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")
 
-    existing = await db["uploadedData"].find_one({"loanID": loanID, "email": email})
+    existing = await db["uploadedData"].find_one({"loanID": loanID})
     if not existing:
         raise HTTPException(status_code=404, detail="Record not found")
 
     old_cleaned = existing.get("cleaned_data", {})
 
+    cl_data = clean_json_data(raw_json)
+    allowed_sections = ["BorrowerName", "W2", "VOE", "Paystubs", "Paystub"]
+
+    filtered_data = filter_documents_by_type(cl_data, allowed_sections)
+
     # Save new cleaned_data
+    # await db["uploadedData"].update_one(
+    #     {"loanID": loanID},
+    #     {"$set": {"cleaned_data": raw_json, "filtered_data": filtered_data,"updated_at": timestamp}}
+    # )
+    
     await db["uploadedData"].update_one(
-        {"loanID": loanID, "email": email},
-        {"$set": {"cleaned_data": raw_json, "updated_at": timestamp}}
-    )
+        {"loanID": loanID},
+        {"$set": {
+            "cleaned_data": cl_data,           # <-- use cleaned data here
+            "filtered_data": filtered_data,
+            "updated_at": timestamp
+        }}
+)
+    
 
     # Log audit entry
     await log_action(
@@ -242,7 +257,7 @@ async def update_cleaned_data(
     )
 
     # Return updated cleaned_json from DB
-    updated = await db["uploadedData"].find_one({"loanID": loanID, "email": email})
+    updated = await db["uploadedData"].find_one({"loanID": loanID})
     return {
         "message": "Cleaned data updated successfully",
         "cleaned_json": updated.get("cleaned_data", {}),
@@ -252,7 +267,7 @@ async def update_cleaned_data(
 @app.get("/check-loanid")
 async def check_loanid(email: str = Query(...), loanID: str = Query(...)):
     """Check if a loanID already exists for a given email"""
-    existing = await db["uploadedData"].find_one({"loanID": loanID, "email": email})
+    existing = await db["uploadedData"].find_one({"loanID": loanID})
     return {"exists": bool(existing)}
 
 
@@ -267,157 +282,189 @@ def convert_objectid(obj):
         return obj
 
 
+
+
 @app.post("/verify-rules")
-async def verify_rules(email: str = Query(...), loanID: str = Query(...)):
+async def verify_rules(
+    email: str = Query(...),
+    loanID: str = Query(...),
+    borrower: str = Query("All")
+):
     """Verify rules for previously uploaded borrower JSON"""
-    content = await db["uploadedData"].find_one({"loanID": loanID, "email": email}, {"filtered_data": 1, "_id": 0})
-    if not content or 'filtered_data' not in content:
-        raise HTTPException(
-            status_code=404, detail="File not found or cleaned_data missing."
-        )
-    content = content['filtered_data']
-    # print('===================', content)
+    content = await db["uploadedData"].find_one(
+        {"loanID": loanID, "email": email},
+        {"filtered_data": 1, "_id": 0}
+    )
 
-    if not content:
+    if not content or "filtered_data" not in content:
+        raise HTTPException(status_code=404, detail="File not found or cleaned_data missing.")
+
+    data = content["filtered_data"]
+
+    # Handle borrower selection
+    if borrower != "All":
+        if borrower not in data:
+            raise HTTPException(status_code=404, detail=f"Borrower '{borrower}' not found.")
+        data = data[borrower]
+
+    if not data:
         raise HTTPException(status_code=404, detail="Data is not found.")
-
-    # content = convert_objectid(content)
 
     try:
         results = []
-        rule_result = {'Pass': 0, 'Fail': 0,
-                       'Insufficient data': 0, 'Error': 0}
+        rule_result = {"Pass": 0, "Fail": 0, "Insufficient data": 0, "Error": 0}
 
         async with client_lock:
             for rule in requirements["rules"]:
                 try:
                     response = await mcp_client.call_tool(
-                        "rule_verification", {
-                            "rules": rule, "content": json.dumps(content)}
+                        "rule_verification",
+                        {"rules": rule, "content": json.dumps(data)}
                     )
 
                     if response.content and len(response.content) > 0 and response.content[0].text.strip():
                         parsed_response = json.loads(response.content[0].text)
-                        if parsed_response['status'] == 'Pass':
-                            rule_result["Pass"] = rule_result["Pass"]+1
-                        elif parsed_response['status'] == 'Fail':
-                            rule_result["Fail"] = rule_result["Fail"]+1
+                        if parsed_response["status"] == "Pass":
+                            rule_result["Pass"] += 1
+                        elif parsed_response["status"] == "Fail":
+                            rule_result["Fail"] += 1
                         else:
-                            rule_result["Insufficient data"] = rule_result["Insufficient data"]+1
+                            rule_result["Insufficient data"] += 1
                     else:
-                        rule_result["Error"] = rule_result["Error"]+1
-                        parsed_response = {
-                            "error": "Empty response from MCP client"}
+                        rule_result["Error"] += 1
+                        parsed_response = {"error": "Empty response from MCP client"}
 
                 except json.JSONDecodeError as e:
-                    rule_result["Error"] = rule_result["Error"]+1
+                    rule_result["Error"] += 1
                     logger.error(f"JSON decode error for rule {rule}: {e}")
                     parsed_response = {"error": "Invalid JSON response"}
                 except Exception as e:
-                    rule_result["Error"] = rule_result["Error"]+1
+                    rule_result["Error"] += 1
                     logger.error(f"Rule verification error for {rule}: {e}")
-                    parsed_response = {
-                        "error": f"Verification failed: {str(e)}"}
+                    parsed_response = {"error": f"Verification failed: {str(e)}"}
 
                 results.append({"rule": rule, "result": parsed_response})
 
-        return {"status": "success", "results": results, "rule_result":  rule_result}
+        return {"status": "success", "results": results, "rule_result": rule_result}
 
     except Exception as e:
         logger.error(f"Rules verification failed: {e}")
-        raise HTTPException(
-            status_code=500, detail=f"Rules verification failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Rules verification failed: {str(e)}")
 
 
 @app.post("/income-calc")
-async def income_calc(email: str = Query(...), loanID: str = Query(...)):
+async def income_calc(
+    email: str = Query(...),
+    loanID: str = Query(...),
+    borrower: str = Query("All")
+):
     """Calculate income for previously uploaded borrower JSON"""
-    content = await db["uploadedData"].find_one({"loanID": loanID, "email": email}, {"filtered_data": 1, "_id": 0})
-    content = content['filtered_data']
-    # print("API calling", content)
+    content = await db["uploadedData"].find_one(
+        {"loanID": loanID, "email": email},
+        {"filtered_data": 1, "_id": 0}
+    )
 
-    if not content:
-        raise HTTPException(
-            status_code=404, detail="File not found. Please upload first.")
+    if not content or "filtered_data" not in content:
+        raise HTTPException(status_code=404, detail="File not found. Please upload first.")
+
+    data = content["filtered_data"]
+
+    if borrower != "All":
+        if borrower not in data:
+            raise HTTPException(status_code=404, detail=f"Borrower '{borrower}' not found.")
+        data = data[borrower]
+
+    if not data:
+        raise HTTPException(status_code=404, detail="Data is not found.")
 
     try:
-        final_resopnse = []
+        final_response = []
         header_key = requirements["required_fields"].keys()
         for key in header_key:
             async with client_lock:
                 try:
                     response = await mcp_client.call_tool(
                         "income_calculator",
-                        {"fields": requirements["required_fields"]
-                            [key], "content": json.dumps(content)},
+                        {"fields": requirements["required_fields"][key], "content": json.dumps(data)},
                     )
 
                     if response.content and len(response.content) > 0 and response.content[0].text.strip():
                         parsed_response = json.loads(response.content[0].text)
                     else:
-                        parsed_response = {
-                            "error": "Empty response from MCP client"}
+                        parsed_response = {"error": "Empty response from MCP client"}
 
                 except json.JSONDecodeError as e:
-                    logger.error(
-                        f"JSON decode error in income calculation: {e}")
+                    logger.error(f"JSON decode error in income calculation: {e}")
                     parsed_response = {"error": "Invalid JSON response"}
                 except Exception as e:
                     logger.error(f"Income calculation error: {e}")
-                    parsed_response = {
-                        "error": f"Calculation failed: {str(e)}"}
-            final_resopnse.append(parsed_response)
+                    parsed_response = {"error": f"Calculation failed: {str(e)}"}
+            final_response.append(parsed_response)
 
-        return {"status": "success", "income": final_resopnse}
+        return {"status": "success", "income": final_response}
 
     except Exception as e:
         logger.error(f"Income calculation failed: {e}")
-        raise HTTPException(
-            status_code=500, detail=f"Income calculation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Income calculation failed: {str(e)}")
 
 
 @app.post("/income-insights")
-async def income_insights(email: str = Query(...), loanID: str = Query(...)):
-    content = await db["uploadedData"].find_one({"loanID": loanID, "email": email}, {"filtered_data": 1, "_id": 0})
-    print(content)
-    content = content['filtered_data']
-    if not content:
-        raise HTTPException(
-            status_code=404, detail="File not found. Please upload first.")
+async def income_insights(
+    email: str = Query(...),
+    loanID: str = Query(...),
+    borrower: str = Query("All")
+):
+    """Generate income insights for borrower JSON"""
+    content = await db["uploadedData"].find_one(
+        {"loanID": loanID, "email": email},
+        {"filtered_data": 1, "_id": 0}
+    )
+
+    if not content or "filtered_data" not in content:
+        raise HTTPException(status_code=404, detail="File not found. Please upload first.")
+
+    data = content["filtered_data"]
+
+    if borrower != "All":
+        if borrower not in data:
+            raise HTTPException(status_code=404, detail=f"Borrower '{borrower}' not found.")
+        data = data[borrower]
+
+    if not data:
+        raise HTTPException(status_code=404, detail="Data is not found.")
 
     try:
         async with client_lock:
             try:
                 response = await mcp_client.call_tool(
                     "income_insights",
-                    {"content": json.dumps(content)},
+                    {"content": json.dumps(data)},
                 )
 
                 if response.content and len(response.content) > 0 and response.content[0].text.strip():
                     parsed_response = json.loads(response.content[0].text)
                 else:
-                    parsed_response = {
-                        "error": "Empty response from MCP client"}
+                    parsed_response = {"error": "Empty response from MCP client"}
 
             except json.JSONDecodeError as e:
-                logger.error(f"JSON decode error in income calculation: {e}")
+                logger.error(f"JSON decode error in income insights: {e}")
                 parsed_response = {"error": "Invalid JSON response"}
             except Exception as e:
-                logger.error(f"Income calculation error: {e}")
+                logger.error(f"Income insights error: {e}")
                 parsed_response = {"error": f"Calculation failed: {str(e)}"}
 
         return {"status": "success", "income_insights": parsed_response}
 
     except Exception as e:
-        logger.error(f"Income calculation failed: {e}")
-        raise HTTPException(
-            status_code=500, detail=f"Income calculation failed: {str(e)}")
+        logger.error(f"Income insights failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Income insights failed: {str(e)}")
 
 @app.post("/store-analyzed-data")
 async def store_analyzed_data(
     email: str = Body(...),
-    loanID: str = Body(...),
-    analyzed_data: dict = Body(...)
+   loanID: str = Body(...),
+   borrower: str = Body(...),
+   analyzed_data: dict = Body(...)
 ):
     existing = await db["uploadedData"].find_one({"loanID": loanID, "email": email})
     if not existing:
@@ -425,11 +472,19 @@ async def store_analyzed_data(
 
     timestamp = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")
 
-    await db["uploadedData"].update_one(
-        {"loanID": loanID, "email": email},
-        {"$set": {"analyzed_data": analyzed_data, "updated_at": timestamp}}
-    )
+    # await db["uploadedData"].update_one(
+    #     {"loanID": loanID, "email": email},
+    #     {"$set": {"analyzed_data": analyzed_data, "updated_at": timestamp}}
+    # )
+    # Merge per borrower
+    updated_analyzed = existing.get("analyzed_data", {})
+    updated_analyzed[borrower] = analyzed_data
 
+    await db["uploadedData"].update_one(
+       {"loanID": loanID, "email": email},
+       {"$set": {"analyzed_data": updated_analyzed, "updated_at": timestamp}}
+    )
+    
     return {"status": "success", "message": "Analyzed data stored"}
 
 @app.post("/view-loan", response_model=LoanViewResponse)
@@ -440,7 +495,7 @@ async def view_loan(req: LoanViewRequest):
     # except:
     #     raise HTTPException(status_code=400, detail="Invalid loanId format")
 
-    loan = await  db["uploadedData"].find_one({"loanID": req.loanId, "email": req.email})
+    loan = await  db["uploadedData"].find_one({"loanID": req.loanId})
 
     if not loan:
         raise HTTPException(status_code=404, detail="Loan not found for this email")

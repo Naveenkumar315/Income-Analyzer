@@ -11,7 +11,7 @@ export const UploadProvider = ({ children }) => {
     uploadedModel: false,
     startAnalyzing: false,
   });
-
+  const [hasModifications, setHasModifications] = useState(false);
   const [loanId, setLoanId] = useState("");
   const [data, setData] = useState([]);
   const [activeStep, setActiveStep] = useState(0);
@@ -28,6 +28,8 @@ export const UploadProvider = ({ children }) => {
   const [incomeAnalyzerInitialized, setIncomeAnalyzerInitialized] =
     useState(false);
   const [incomeAnalyzerState, setIncomeAnalyzerState] = useState(null);
+  const [filtered_borrower, set_filter_borrower] = useState("");
+  const [borrowerList, setBorrowerList] = useState([]);
 
   useEffect(() => {
     console.log("++++++", normalized_json);
@@ -133,6 +135,12 @@ export const UploadProvider = ({ children }) => {
         setAnalyzedState,
         setIsSAClicked,
         isSAClicked,
+        filtered_borrower,
+        set_filter_borrower,
+        borrowerList,
+        setBorrowerList,
+        hasModifications,
+        setHasModifications,
       }}
     >
       {children}

@@ -224,7 +224,6 @@ const ProcessLoanTable = ({
             <MenuItem value="All">All Status</MenuItem>
             <MenuItem value="Completed">Completed</MenuItem>
             <MenuItem value="Pending">Pending</MenuItem>
-            <MenuItem value="Error">Error</MenuItem>
           </Select>
 
           <Button

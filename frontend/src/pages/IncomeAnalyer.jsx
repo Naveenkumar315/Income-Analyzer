@@ -5,7 +5,6 @@ import LoanExatraction from "../custom_components/LoanExtraction";
 import { useEffect, useState, useRef } from "react";
 import api from "../api/client";
 import StepChips from "../custom_components/StepChips";
-import { toast } from "react-toastify";
 
 const IncomeAnalyzer = () => {
   const {
@@ -21,16 +20,14 @@ const IncomeAnalyzer = () => {
     isLoading,
     setIsLoading,
     analyzedState,
-    isSAClicked,
     setAnalyzedState,
+    borrowerList,
   } = useUpload();
 
   const [loadingStep, setLoadingStep] = useState(0);
   const controllerRef = useRef(null);
 
   useEffect(() => {
-    debugger;
-
     handle_view_result_checker();
     if (Object.keys(report).length) return;
     if (showSection.startAnalyzing) {
@@ -44,21 +41,10 @@ const IncomeAnalyzer = () => {
   }, [showSection.startAnalyzing]);
 
   const handleCancel = () => {
-    // abort requests
     controllerRef.current?.abort();
-
-    // reset state
     setIsLoading(false);
     setLoadingStep(0);
-    setReport({
-      rules: null,
-      summary: [],
-      income_summary: {},
-      summaryData: {},
-      insights: "",
-    });
-
-    // go back to previous step (optional)
+    setReport({});
     setShowSection((prev) => ({
       ...prev,
       startAnalyzing: false,
@@ -66,57 +52,96 @@ const IncomeAnalyzer = () => {
     }));
   };
 
+  // 🔹 Main data loader
   const fetchAllData = async (signal) => {
-    setIsLoading(true);
-    setLoadingStep(0);
-
     const email = sessionStorage.getItem("email") || "";
     const loanId = sessionStorage.getItem("loanId") || "";
 
-    // ✅ If already analyzed, fetch analyzed_data directly and exit
-    if (analyzedState?.isAnalyzed) {
+    if (!borrowerList.length) return;
+
+    // 🔹 If already analyzed, load from DB
+    if (analyzedState.isAnalyzed) {
       try {
+        setIsLoading(true);
         const res = await api.post(
           "/get-analyzed-data",
-          { email, loanId },
+          { email, loanId }, // <-- corrected key
           { signal }
         );
-        const data = res.data;
-        // update state directly
-        setReport(data.analyzed_data || {});
-        handleStepChange(1);
-      } finally {
-        if (!signal.aborted) {
-          setIsLoading(false);
+
+        const data = res.data?.analyzed_data || {};
+        setReport(data);
+        console.log("✅ Loaded analyzed data from DB", data);
+
+        // 🔹 Check if all borrowers are present
+        const missingBorrowers = borrowerList.filter(
+          (b) => !Object.prototype.hasOwnProperty.call(data, b)
+        );
+
+        if (missingBorrowers.length > 0) {
+          console.log("🔄 Missing borrowers detected:", missingBorrowers);
+
+          // analyze missing borrowers in background
+          Promise.all(
+            missingBorrowers.map((b) =>
+              analyzeBorrower(b, email, loanId, signal)
+            )
+          )
+            .then(() => {
+              console.log("✅ Missing borrowers analyzed and saved");
+            })
+            .catch((err) =>
+              console.error("❌ Error analyzing missing borrowers", err)
+            );
         }
+
+        setIsLoading(false);
+        handleStepChange(1);
+        return;
+      } catch (err) {
+        console.error("❌ Failed to load analyzed data:", err);
+        setIsLoading(false);
       }
-      return; // ✅ stop further execution
     }
 
+    // 🔹 Standard flow for fresh analysis
+    setIsLoading(true);
+    setLoadingStep(0);
+
+    const firstBorrower = borrowerList[0];
+    await analyzeBorrower(firstBorrower, email, loanId, signal);
+
+    setIsLoading(false);
+    handleStepChange(1);
+
+    const remainingBorrowers = borrowerList.slice(1);
+
+    Promise.all(
+      remainingBorrowers.map((b) => analyzeBorrower(b, email, loanId, signal))
+    ).then(() => {
+      console.log("✅ All background borrowers analyzed");
+    });
+  };
+
+  const analyzeBorrower = async (borrower, email, loanId, signal) => {
+    console.log(`▶️ Starting analysis for borrower: ${borrower}`);
     try {
       const requests = [
         api.post("/verify-rules", null, {
-          params: { email, loanID: loanId },
+          params: { email, loanID: loanId, borrower },
           signal,
         }),
         api.post("/income-calc", null, {
-          params: { email, loanID: loanId },
+          params: { email, loanID: loanId, borrower },
           signal,
         }),
         api.post("/income-insights", null, {
-          params: { email, loanID: loanId },
+          params: { email, loanID: loanId, borrower },
           signal,
         }),
       ];
 
-      const results = await Promise.allSettled(
-        requests.map(async (req) => {
-          const res = await req;
-          setLoadingStep((prev) => prev + 1);
-          return res;
-        })
-      );
-
+      const results = await Promise.allSettled(requests);
       if (signal.aborted) return;
 
       const [rulesRes, incomeRes, insightsRes] = results;
@@ -126,12 +151,6 @@ const IncomeAnalyzer = () => {
       const incomeData = getData(incomeRes);
       const insightsData = getData(insightsRes);
 
-      // // process income-calc into the structures you need
-      // const incomeChecks = incomeData?.income?.[0]?.checks || [];
-      // const currentIncomeChecks = incomeChecks.filter((x) =>
-      //   x.field.includes("current")
-      // );
-
       const incomeSummary = incomeData?.income?.[0]?.checks.reduce(
         (acc, item) => {
           acc[item.field] = item.value;
@@ -140,37 +159,35 @@ const IncomeAnalyzer = () => {
         {}
       );
 
-      // const summaryData = incomeData?.income?.[0]?.checks.reduce((acc, item) => {
-      //   acc[item.field] = item;
-      //   return acc;
-      // }, {});
-
       const summaryData = incomeData?.income?.[0]?.checks;
-
       const insightsComment =
         insightsData?.income_insights?.insight_commentry || "";
-      debugger;
-      setReport({
-        rules: rulesData,
-        summary: summaryData,
-        income_summary: incomeSummary,
-        summaryData,
-        insights: insightsComment,
-      });
-      handleStepChange(1);
-      update_analyzed_data_into_db(
+
+      // 🔹 Update report incrementally
+      setReport((prev) => ({
+        ...prev,
+        [borrower]: {
+          rules: rulesData,
+          summary: summaryData,
+          income_summary: incomeSummary,
+          summaryData,
+          insights: insightsComment,
+        },
+      }));
+
+      console.log(`✅ Finished borrower: ${borrower}`);
+
+      await update_analyzed_data_into_db(
         email,
         loanId,
         rulesData,
-        // currentIncomeChecks,
         incomeSummary,
         summaryData,
-        insightsComment
+        insightsComment,
+        borrower
       );
-    } finally {
-      if (!signal.aborted) {
-        setIsLoading(false);
-      }
+    } catch (ex) {
+      console.error(`❌ Error analyzing borrower ${borrower}`, ex);
     }
   };
 
@@ -178,65 +195,51 @@ const IncomeAnalyzer = () => {
     email,
     loanId,
     rulesData,
-    // currentIncomeChecks,
     incomeSummary,
     summaryData,
-    insightsComment
+    insightsComment,
+    borrower
   ) => {
     try {
       await api.post("/store-analyzed-data", {
         email,
         loanID: loanId,
+        borrower,
         analyzed_data: {
           rules: rulesData,
           summary: summaryData,
           income_summary: incomeSummary,
           summaryData,
-          insights: insightsComment, // already a string
+          insights: insightsComment,
         },
       });
       setAnalyzedState({ isAnalyzed: true, analyzed_data: {} });
-      console.log("✅ analyzed_data stored successfully");
+      console.log(`✅ analyzed_data stored successfully for ${borrower}`);
     } catch (err) {
-      console.error("❌ failed to store analyzed_data", err);
+      console.error(`❌ failed to store analyzed_data for ${borrower}`, err);
     }
   };
 
   const handleStepChange = (step) => {
-    debugger;
-    // if (step === 1 && !analyzedState.isAnalyzed) {
-    //   toast.warn("Start analyzing first.");
-    //   return;
-    // }
-
     setActiveStep(step);
     setShowSection((prev) => ({
       ...prev,
       processLoanSection: false,
       provideLoanIDSection: false,
-      extractedSection: step === 0 ? true : false,
-      startAnalyzing: step === 1 ? true : false,
+      extractedSection: step === 0,
+      startAnalyzing: step === 1,
     }));
   };
 
-  const handle_view_result_checker = async (row) => {
+  const handle_view_result_checker = async () => {
     try {
-      // setReport({});
       const response = await api.post("/view-loan", {
         email: sessionStorage.getItem("email") || "",
         loanId: sessionStorage.getItem("loanId") || "",
       });
-
       const data = response.data;
-      if (!Object.keys(data).length) {
-        console.log("Data is empty!");
-        return;
-      }
+      if (!Object.keys(data).length) return;
 
-      // console.log("check data", data);
-      // sessionStorage.setItem("loanId", row.loanId || "");
-
-      // set_normalized_json(data.cleaned_data);
       setAnalyzedState((prev) => ({
         ...prev,
         isAnalyzed: data.analyzed_data || false,

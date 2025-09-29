@@ -11,7 +11,6 @@ const LoanPackagePanel = ({
   fileSelectMode = false,
   onFileSelect = () => {},
 }) => {
-  debugger;
   const [openDocs, setOpenDocs] = useState({});
 
   useEffect(() => {

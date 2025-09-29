@@ -44,6 +44,13 @@ const LoanExtraction = ({
     setIsSAClicked,
     setAnalyzedState,
     setReport,
+    filtered_borrower,
+    set_filter_borrower,
+    borrowerList,
+    setBorrowerList,
+    set_normalized_json,
+    hasModifications,
+    setHasModifications,
   } = useUpload();
 
   const [rulesModel, setRulesModel] = useState(false);
@@ -78,7 +85,7 @@ const LoanExtraction = ({
   const [editingName, setEditingName] = useState("");
   const [deleteModal, setDeleteModal] = useState(null);
 
-  const [hasModifications, setHasModifications] = useState(false);
+  // const [hasModifications, setHasModifications] = useState(false);
 
   // initialize
   useEffect(() => {
@@ -91,6 +98,19 @@ const LoanExtraction = ({
 
   const currentData = activeTab === "original" ? originalData : modifiedData;
   const borrowers = currentData ? Object.keys(currentData) : [];
+
+  // useEffect(() => {
+  //   setBorrowerList(Object.keys(currentData) || []);
+  // }, [borrowers]);
+  useEffect(() => {
+    if (activeTab === "modified") {
+      const borrowers = Object.keys(modifiedData) || [];
+      setBorrowerList(borrowers);
+      if (!filtered_borrower && borrowers.length > 0) {
+        set_filter_borrower(borrowers[0]); // pick first borrower automatically
+      }
+    }
+  }, [activeTab, modifiedData]);
 
   const toggleBorrower = (name) =>
     setOpenBorrowers((prev) => ({ ...prev, [name]: !prev[name] }));
@@ -106,6 +126,7 @@ const LoanExtraction = ({
         raw_json: updatedJson,
       });
       setModifiedData(res.data.cleaned_json);
+      // set_normalized_json(res.data.cleaned_json);
       setActiveTab("modified");
       setHasModifications(true);
       if (successMsg) toast.success(successMsg);
@@ -237,17 +258,26 @@ const LoanExtraction = ({
     <>
       <div className="h-full flex flex-col">
         {/* Header */}
-        <div className="flex justify-between items-center pb-3 px-4 pt-4 bg-white border-b border-gray-200">
-          <div className="font-medium">
+        <div className="flex items-center justify-between pb-3 px-6 pt-4 bg-white border-b border-gray-200">
+          {/* Left: Loan ID */}
+          <div className="font-medium text-gray-700">
             Loan ID : {sessionStorage.getItem("loanId") || ""}
           </div>
+
+          {/* Center: Borrower select */}
+          {/* {(isUploaded?.uploaded || normalized_json) && (
+            
+          )} */}
+
+          {/* Right: Action buttons */}
           {(isUploaded?.uploaded || normalized_json) && (
-            <div className="flex gap-2">
+            <div className="flex items-center gap-3">
               {analyzedState?.isAnalyzed && (
                 <Button
                   variant="start-analyze"
-                  width={200}
+                  width={160}
                   label="View Result"
+                  className="whitespace-nowrap"
                   onClick={() => {
                     setIsSAClicked(false);
                     setShowSection((p) => ({
@@ -263,16 +293,18 @@ const LoanExtraction = ({
               )}
               <Button
                 variant="upload-doc"
-                width={200}
+                width={180}
                 label="Upload Documents"
+                className="whitespace-nowrap"
                 onClick={() =>
                   setShowSection((p) => ({ ...p, uploadedModel: true }))
                 }
               />
               <Button
                 variant="start-analyze"
-                width={200}
+                width={160}
                 label="Start Analyzing"
+                className="whitespace-nowrap"
                 onClick={() => {
                   setReport({});
                   setAnalyzedState((prev) => ({
