@@ -14,8 +14,7 @@ import {
 import SummarySection from "./SummarySection";
 import { useUpload } from "../context/UploadContext";
 import LoadingModal from "./LoaderModal";
-// import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import BorrowerDropdown from "./BorrowerDropdown";
 
 const Tabs = ["Rule Results", "Summary", "Insights"];
 
@@ -90,14 +89,28 @@ const UnderwritingRuleResult = ({
           value={value}
           handleGetResult={handleGetResult}
         />
-        <div className="flex-1 flex justify-center">
-          <select
+        <div className="flex-1 flex justify-center gap-5">
+          {/* <select
             onChange={(e) => {
               setAnalyzedState({ isAnalyzed: false, analyzed_data: {} });
               set_filter_borrower(e.target.value);
             }}
             value={filtered_borrower || ""}
-            className="px-3 py-2 mx-2 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-700"
+            className="
+                        px-4 py-2 mx-2
+                        bg-white
+                        border border-gray-300
+                        rounded-xl
+                        shadow-md
+                        text-gray-800
+                        focus:outline-none
+                        focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                        transition
+                        duration-150
+                        ease-in-out
+                        hover:border-blue-400
+                        appearance-none
+                      "
           >
             {borrowerList &&
               borrowerList.map((item, index) => {
@@ -109,14 +122,21 @@ const UnderwritingRuleResult = ({
                     disabled={!isReady}
                     className={isReady ? "text-black" : "text-gray-400"}
                   >
-                    {/* {isReady ? "✔ " : "⏳ "}  */}
                     {item}
                   </option>
                 );
               })}
-          </select>
+          </select> */}
+          <BorrowerDropdown
+            value={filtered_borrower}
+            onChange={(val) => {
+              setAnalyzedState({ isAnalyzed: false, analyzed_data: {} });
+              set_filter_borrower(val);
+            }}
+            options={borrowerList}
+          />
+          <Button variant="result_download" label={"Download"} width={200} />
         </div>
-        <Button variant="result_download" label={"Download"} width={200} />
       </div>
 
       <div className="mt-2 border-b-1 border-gray-300"></div>
