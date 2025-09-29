@@ -9,10 +9,6 @@ export default function BorrowerDropdown({ value, onChange, options = [] }) {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        // className="flex justify-between items-center w-full px-4 py-2
-        //            bg-white border border-gray-300 rounded-xl shadow-md
-        //            text-gray-800 focus:outline-none
-        //            focus:ring-2 focus:ring-blue-400 transition"
         className="flex justify-between items-center w-full px-4 py-2
              bg-white border border-gray-300 rounded-xl shadow-md
              text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition
