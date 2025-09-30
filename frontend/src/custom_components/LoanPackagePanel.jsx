@@ -39,7 +39,7 @@ const LoanPackagePanel = ({ borrower, category, docs }) => {
               <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
                 {headers.map((h) => (
                   <td key={h} className="p-2 border-b text-gray-700">
-                    {String(r[h] ?? "")}
+                    {String(r?.[h] ?? "")}
                   </td>
                 ))}
               </tr>
@@ -50,78 +50,75 @@ const LoanPackagePanel = ({ borrower, category, docs }) => {
     );
   };
 
-  const renderSummary = (doc) => (
-    <div className="grid grid-cols-2 gap-3 text-sm">
-      {Object.entries(doc).map(([field, value]) => {
-        if (Array.isArray(value)) return null;
-        return (
-          <div key={field}>
-            <span className="font-medium">{field}:</span>{" "}
-            <span className="text-gray-700">{String(value)}</span>
-          </div>
-        );
-      })}
-    </div>
-  );
+  const renderSummary = (doc) => {
+    if (doc == null) return null;
+    return (
+      <div className="grid grid-cols-2 gap-3 text-sm">
+        {Object.entries(doc || {}).map(([field, value]) => {
+          if (Array.isArray(value)) return null;
+          return (
+            <div key={field}>
+              <span className="font-medium">{field}:</span>{" "}
+              <span className="text-gray-700">{String(value ?? "")}</span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   const renderDoc = (doc, idx) => {
-    if (category === "Paystubs") {
-      const tab = activeSubTab[idx] || "Summary";
-      const subTabs = ["Summary"];
-      if (Array.isArray(doc.Earnings)) subTabs.push("Earnings");
-      if (Array.isArray(doc.Deductions)) subTabs.push("Deductions");
-      if (Array.isArray(doc["Pay Distribution"]))
-        subTabs.push("Pay Distribution");
-
-      return (
-        <div className="flex flex-col h-full space-y-3">
-          {/* Sub-tabs */}
-          <div className="border-b flex gap-6 text-sm shrink-0">
-            {subTabs.map((t) => (
-              <button
-                key={t}
-                onClick={() =>
-                  setActiveSubTab((prev) => ({ ...prev, [idx]: t }))
-                }
-                className={`pb-2 ${
-                  tab === t
-                    ? "border-b-2 border-sky-600 text-sky-600 font-medium"
-                    : "text-gray-600 hover:text-sky-600"
-                }`}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-
-          {/* Tab content */}
-          <div className="flex-1 overflow-auto pr-1">
-            {tab === "Summary" && renderSummary(doc)}
-            {tab === "Earnings" && renderTable(doc.Earnings)}
-            {tab === "Deductions" && renderTable(doc.Deductions)}
-            {tab === "Pay Distribution" && renderTable(doc["Pay Distribution"])}
-          </div>
-        </div>
-      );
+    if (doc == null) {
+      return <p className="text-gray-400 italic">No document data</p>;
     }
 
+    // build dynamic sub-tabs
+    const arrayTabs = Object.entries(doc)
+      .filter(
+        ([, value]) =>
+          Array.isArray(value) &&
+          value.length > 0 &&
+          typeof value[0] === "object"
+      )
+      .map(([key]) => key);
+
+    const subTabs = ["Summary", ...arrayTabs];
+    const tab = activeSubTab[idx] || "Summary";
+
     return (
-      <div className="flex flex-col h-full space-y-4">
-        <div className="shrink-0">{renderSummary(doc)}</div>
-        <div className="flex-1 overflow-auto pr-1 space-y-4">
-          {Object.entries(doc).map(([field, value]) => {
-            if (Array.isArray(value) && value.length > 0) {
-              return (
-                <div key={field}>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-1">
-                    {field}
+      <div className="flex flex-col h-full space-y-3">
+        {/* Dynamic Sub-tabs */}
+        <div className="border-b flex gap-6 text-sm shrink-0">
+          {subTabs.map((t) => (
+            <button
+              key={t}
+              onClick={() => setActiveSubTab((prev) => ({ ...prev, [idx]: t }))}
+              className={`pb-2 ${
+                tab === t
+                  ? "border-b-2 border-sky-600 text-sky-600 font-medium"
+                  : "text-gray-600 hover:text-sky-600"
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab content */}
+        <div className="flex-1 overflow-auto pr-1">
+          {tab === "Summary" && renderSummary(doc)}
+
+          {arrayTabs.map(
+            (key) =>
+              tab === key && (
+                <div key={key}>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">
+                    {key}
                   </h3>
-                  {renderTable(value)}
+                  {renderTable(doc[key])}
                 </div>
-              );
-            }
-            return null;
-          })}
+              )
+          )}
         </div>
       </div>
     );
@@ -189,10 +186,10 @@ const LoanPackagePanel = ({ borrower, category, docs }) => {
             backdropFilter: "blur(6px)",
             display: "flex",
             flexDirection: "column",
-            width: "80vw", // ✅ fixed width
-            maxWidth: "80vw", // ✅ enforce
-            height: "80vh", // ✅ fixed height
-            maxHeight: "80vh", // ✅ enforce
+            width: "80vw", // fixed width
+            maxWidth: "80vw",
+            height: "80vh", // fixed height
+            maxHeight: "80vh",
           },
         }}
       >
@@ -207,7 +204,7 @@ const LoanPackagePanel = ({ borrower, category, docs }) => {
           </IconButton>
         </div>
 
-        {/* Content inside fixed box */}
+        {/* Content */}
         <DialogContent
           sx={{ flex: 1, display: "flex", flexDirection: "column" }}
         >
