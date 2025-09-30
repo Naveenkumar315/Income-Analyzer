@@ -12,6 +12,7 @@ const LoanPackagePanel = ({
   onFileSelect = () => {},
 }) => {
   const [openDocs, setOpenDocs] = useState({});
+  const [openSubsections, setOpenSubsections] = useState({}); // for arrays inside
 
   useEffect(() => {
     if (Array.isArray(docs) && docs.length > 0) {
@@ -25,6 +26,11 @@ const LoanPackagePanel = ({
     setOpenDocs((prev) => ({ ...prev, [idx]: !prev[idx] }));
   };
 
+  const toggleSubsection = (docIdx, field) => {
+    const key = `${docIdx}-${field}`;
+    setOpenSubsections((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
   function formatCategory(cat = "") {
     return cat
       .replace(/([a-z])([A-Z])/g, "$1 $2")
@@ -33,25 +39,6 @@ const LoanPackagePanel = ({
       .trim()
       .replace(/\b\w/g, (c) => c.toUpperCase());
   }
-
-  const formatDocTitle = (doc) => {
-    const t =
-      (typeof doc === "string" && doc) ||
-      doc?.Title ||
-      doc?.title ||
-      doc?.fileName ||
-      doc?.file_name ||
-      doc?.name ||
-      "";
-    let s = String(t).split("~")[0];
-    s = s.replace(/\.(pdf|png|jpg|jpeg)$/i, "");
-    s = s.replace(/[_-]+/g, " ").trim();
-    if (s.length > 70) {
-      const parts = s.split(" ");
-      s = parts.slice(-3).join(" ");
-    }
-    return s || "Document";
-  };
 
   if (!Array.isArray(docs) || docs.length === 0) {
     return (
@@ -76,14 +63,13 @@ const LoanPackagePanel = ({
             ([field]) =>
               !["Title", "Url", "StageName", "GeneratedOn"].includes(field)
           );
-          const fieldCount = fieldEntries.length;
 
           return (
             <div
               key={idx}
               className="border border-gray-300 rounded-md bg-white shadow-sm"
             >
-              {/* Dropdown header */}
+              {/* Main dropdown header */}
               <div
                 className="flex items-center justify-between px-4 py-3 bg-gray-50 cursor-pointer rounded-t-md hover:bg-gray-100"
                 onClick={() => toggleDoc(idx)}
@@ -115,11 +101,7 @@ const LoanPackagePanel = ({
                   )}
                   <DescriptionIcon className="text-sky-600" />
                   <span className="font-semibold text-gray-800">
-                    {/* {formatDocTitle(doc)} */}
                     {category} - {idx + 1}
-                  </span>
-                  <span className="text-sm text-gray-500 ml-2">
-                    {fieldCount} Fields Extracted
                   </span>
                 </div>
                 {openDocs[idx] ? (
@@ -129,46 +111,104 @@ const LoanPackagePanel = ({
                 )}
               </div>
 
-              {/* Dropdown body */}
+              {/* Main dropdown body */}
               {openDocs[idx] && (
-                <div className="p-4">
-                  <table className="w-full text-left border-collapse text-sm">
-                    <thead>
-                      <tr className="bg-gray-100">
-                        <th className="p-2 font-semibold border-b w-1/3">
-                          Fields
-                        </th>
-                        <th className="p-2 font-semibold border-b">Value</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {fieldEntries.map(([field, value]) => (
-                        <tr
+                <div className="p-4 space-y-4">
+                  {fieldEntries.map(([field, value]) => {
+                    // If value is array of objects -> make nested dropdown
+                    if (
+                      Array.isArray(value) &&
+                      value.length > 0 &&
+                      typeof value[0] === "object"
+                    ) {
+                      const key = `${idx}-${field}`;
+                      const isOpen = openSubsections[key];
+                      return (
+                        <div
                           key={field}
-                          className="border-b last:border-0 hover:bg-gray-50"
+                          className="border rounded-md overflow-hidden"
                         >
-                          <td className="p-2 font-medium text-gray-700">
-                            {field}
-                          </td>
-                          <td className="p-2 text-gray-600">{String(value)}</td>
-                        </tr>
-                      ))}
-                      <tr>
-                        <td className="p-2 font-medium">Document</td>
-                        <td className="p-2">
-                          <a
-                            href={doc?.Url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sky-500 hover:underline flex items-center gap-1"
+                          <div
+                            className="flex justify-between items-center px-3 py-2 bg-gray-100 cursor-pointer"
+                            onClick={() => toggleSubsection(idx, field)}
                           >
-                            <DescriptionIcon fontSize="small" />
-                            View PDF
-                          </a>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                            <span className="font-medium text-gray-700">
+                              {field} ({value.length})
+                            </span>
+                            {isOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                          </div>
+                          {isOpen && (
+                            <div className="p-2">
+                              {value.map((row, rIdx) => (
+                                <div
+                                  key={rIdx}
+                                  className="mb-4 border rounded-md overflow-hidden"
+                                >
+                                  <div className="bg-gray-50 px-2 py-1 text-sm font-semibold text-gray-600">
+                                    {field} - Record {rIdx + 1}
+                                  </div>
+                                  <table className="w-full text-left border-collapse text-sm">
+                                    <thead>
+                                      <tr className="bg-gray-100">
+                                        <th className="p-2 font-semibold border-b w-1/3">
+                                          Field
+                                        </th>
+                                        <th className="p-2 font-semibold border-b">
+                                          Value
+                                        </th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {Object.entries(row).map(([k, v]) => (
+                                        <tr
+                                          key={k}
+                                          className="border-b last:border-0 hover:bg-gray-50"
+                                        >
+                                          <td className="p-2 font-medium text-gray-700">
+                                            {k}
+                                          </td>
+                                          <td className="p-2 text-gray-600">
+                                            {String(v)}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    // Default simple field
+                    return (
+                      <div key={field} className="flex border-b py-1">
+                        <div className="w-1/3 font-medium text-gray-700">
+                          {field}
+                        </div>
+                        <div className="flex-1 text-gray-600">
+                          {String(value)}
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Document link (if available) */}
+                  {doc?.Url && (
+                    <div className="mt-2">
+                      <a
+                        href={doc?.Url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sky-500 hover:underline flex items-center gap-1"
+                      >
+                        <DescriptionIcon fontSize="small" />
+                        View PDF
+                      </a>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -178,4 +218,5 @@ const LoanPackagePanel = ({
     </div>
   );
 };
+
 export default React.memo(LoanPackagePanel);
