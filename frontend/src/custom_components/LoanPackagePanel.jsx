@@ -2,11 +2,16 @@ import React, { useState } from "react";
 import { Dialog, DialogTitle, DialogContent, IconButton } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
+import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
+import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
+
+const DOCS_PER_PAGE = 5; // how many document tabs to show at once
 
 const LoanPackagePanel = ({ borrower, category, docs }) => {
   const [activeDoc, setActiveDoc] = useState(0);
   const [activeSubTab, setActiveSubTab] = useState({});
   const [expandedDoc, setExpandedDoc] = useState(null);
+  const [docPage, setDocPage] = useState(0); // pagination state
 
   function formatCategory(cat = "") {
     return cat
@@ -135,11 +140,16 @@ const LoanPackagePanel = ({ borrower, category, docs }) => {
     );
   }
 
+  // pagination for document tabs
+  const totalPages = Math.ceil(docs.length / DOCS_PER_PAGE);
+  const canGoLeft = docPage > 0;
+  const canGoRight = docPage < totalPages - 1;
+
   return (
     <div className="h-full flex flex-col overflow-hidden space-y-4">
       {/* Title + Expand */}
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold text-sky-600 border-b pb-2 shrink-0">
+        <h2 className="text-xl font-bold text-sky-600 border-b pb-2 text-center flex-1">
           {borrower} / {formatCategory(category)}
         </h2>
         <IconButton
@@ -151,21 +161,69 @@ const LoanPackagePanel = ({ borrower, category, docs }) => {
         </IconButton>
       </div>
 
-      {/* Document Tabs */}
-      <div className="flex gap-4 border-b overflow-x-auto">
-        {docs.map((_, idx) => (
-          <button
-            key={idx}
-            onClick={() => setActiveDoc(idx)}
-            className={`px-3 py-2 text-sm whitespace-nowrap ${
-              activeDoc === idx
-                ? "border-b-2 border-sky-600 text-sky-600 font-medium"
-                : "text-gray-600 hover:text-sky-600"
-            }`}
+      {/* Document Tabs with smooth transition */}
+      <div className="relative flex items-center border-b overflow-hidden">
+        {/* Left arrow fixed */}
+        <div className="absolute left-0 top-0 bottom-0 flex items-center bg-white z-10">
+          {canGoLeft && (
+            <IconButton onClick={() => setDocPage((p) => Math.max(0, p - 1))}>
+              <ArrowBackIosIcon fontSize="small" />
+            </IconButton>
+          )}
+        </div>
+
+        {/* Tabs container with padding to avoid overlap */}
+        <div className="flex-1 overflow-hidden px-12">
+          <div
+            className="flex transition-transform duration-500 ease-in-out"
+            style={{
+              transform: `translateX(-${docPage * 100}%)`,
+              width: `${totalPages * 100}%`,
+            }}
           >
-            {category} {idx + 1}
-          </button>
-        ))}
+            {Array.from({ length: totalPages }).map((_, pageIdx) => {
+              const sliceStart = pageIdx * DOCS_PER_PAGE;
+              const pageDocs = docs.slice(
+                sliceStart,
+                sliceStart + DOCS_PER_PAGE
+              );
+              return (
+                <div
+                  key={pageIdx}
+                  className="flex gap-4 justify-start flex-shrink-0 w-full"
+                >
+                  {pageDocs.map((_, idx) => {
+                    const realIdx = sliceStart + idx;
+                    return (
+                      <button
+                        key={realIdx}
+                        onClick={() => setActiveDoc(realIdx)}
+                        className={`px-3 py-2 text-sm whitespace-nowrap ${
+                          activeDoc === realIdx
+                            ? "border-b-2 border-sky-600 text-sky-600 font-medium"
+                            : "text-gray-600 hover:text-sky-600"
+                        }`}
+                      >
+                        {category} {realIdx + 1}
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Right arrow fixed */}
+        <div className="absolute right-0 top-0 bottom-0 flex items-center bg-white z-10">
+          {canGoRight && (
+            <IconButton
+              onClick={() => setDocPage((p) => Math.min(totalPages - 1, p + 1))}
+            >
+              <ArrowForwardIosIcon fontSize="small" />
+            </IconButton>
+          )}
+        </div>
       </div>
 
       {/* Active Document */}
@@ -186,9 +244,9 @@ const LoanPackagePanel = ({ borrower, category, docs }) => {
             backdropFilter: "blur(6px)",
             display: "flex",
             flexDirection: "column",
-            width: "80vw", // fixed width
+            width: "80vw",
             maxWidth: "80vw",
-            height: "80vh", // fixed height
+            height: "80vh",
             maxHeight: "80vh",
           },
         }}
