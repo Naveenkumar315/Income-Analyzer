@@ -1,8 +1,12 @@
 import React, { useState } from "react";
+import { Dialog, DialogTitle, DialogContent, IconButton } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
+import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 
 const LoanPackagePanel = ({ borrower, category, docs }) => {
   const [activeDoc, setActiveDoc] = useState(0);
-  const [activeSubTab, setActiveSubTab] = useState({}); // track subtabs per doc
+  const [activeSubTab, setActiveSubTab] = useState({});
+  const [expandedDoc, setExpandedDoc] = useState(null);
 
   function formatCategory(cat = "") {
     return cat
@@ -19,7 +23,7 @@ const LoanPackagePanel = ({ borrower, category, docs }) => {
     }
     const headers = Object.keys(rows[0] || {});
     return (
-      <div className="overflow-auto max-h-80 border rounded-md">
+      <div className="flex-1 overflow-auto border rounded-md">
         <table className="w-full border-collapse text-sm">
           <thead className="sticky top-0 bg-gray-100 z-10">
             <tr>
@@ -49,7 +53,7 @@ const LoanPackagePanel = ({ borrower, category, docs }) => {
   const renderSummary = (doc) => (
     <div className="grid grid-cols-2 gap-3 text-sm">
       {Object.entries(doc).map(([field, value]) => {
-        if (Array.isArray(value)) return null; // arrays handled separately
+        if (Array.isArray(value)) return null;
         return (
           <div key={field}>
             <span className="font-medium">{field}:</span>{" "}
@@ -61,20 +65,18 @@ const LoanPackagePanel = ({ borrower, category, docs }) => {
   );
 
   const renderDoc = (doc, idx) => {
-    // special case Paystubs: has structured arrays
     if (category === "Paystubs") {
       const tab = activeSubTab[idx] || "Summary";
       const subTabs = ["Summary"];
-
       if (Array.isArray(doc.Earnings)) subTabs.push("Earnings");
       if (Array.isArray(doc.Deductions)) subTabs.push("Deductions");
       if (Array.isArray(doc["Pay Distribution"]))
         subTabs.push("Pay Distribution");
 
       return (
-        <div className="space-y-3">
+        <div className="flex flex-col h-full space-y-3">
           {/* Sub-tabs */}
-          <div className="border-b flex gap-6 text-sm">
+          <div className="border-b flex gap-6 text-sm shrink-0">
             {subTabs.map((t) => (
               <button
                 key={t}
@@ -92,8 +94,8 @@ const LoanPackagePanel = ({ borrower, category, docs }) => {
             ))}
           </div>
 
-          {/* Sub-tab content */}
-          <div className="mt-2 overflow-auto max-h-[400px] pr-1">
+          {/* Tab content */}
+          <div className="flex-1 overflow-auto pr-1">
             {tab === "Summary" && renderSummary(doc)}
             {tab === "Earnings" && renderTable(doc.Earnings)}
             {tab === "Deductions" && renderTable(doc.Deductions)}
@@ -103,23 +105,24 @@ const LoanPackagePanel = ({ borrower, category, docs }) => {
       );
     }
 
-    // generic case: render summary + any arrays as tables
     return (
-      <div className="space-y-4">
-        {renderSummary(doc)}
-        {Object.entries(doc).map(([field, value]) => {
-          if (Array.isArray(value) && value.length > 0) {
-            return (
-              <div key={field}>
-                <h3 className="text-sm font-semibold text-gray-700 mb-1">
-                  {field}
-                </h3>
-                {renderTable(value)}
-              </div>
-            );
-          }
-          return null;
-        })}
+      <div className="flex flex-col h-full space-y-4">
+        <div className="shrink-0">{renderSummary(doc)}</div>
+        <div className="flex-1 overflow-auto pr-1 space-y-4">
+          {Object.entries(doc).map(([field, value]) => {
+            if (Array.isArray(value) && value.length > 0) {
+              return (
+                <div key={field}>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-1">
+                    {field}
+                  </h3>
+                  {renderTable(value)}
+                </div>
+              );
+            }
+            return null;
+          })}
+        </div>
       </div>
     );
   };
@@ -137,10 +140,19 @@ const LoanPackagePanel = ({ borrower, category, docs }) => {
 
   return (
     <div className="h-full flex flex-col overflow-hidden space-y-4">
-      {/* Title */}
-      <h2 className="text-xl font-bold text-sky-600 border-b pb-2 shrink-0">
-        {borrower} / {formatCategory(category)}
-      </h2>
+      {/* Title + Expand */}
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-bold text-sky-600 border-b pb-2 shrink-0">
+          {borrower} / {formatCategory(category)}
+        </h2>
+        <IconButton
+          size="small"
+          onClick={() => setExpandedDoc(activeDoc)}
+          title="Expand"
+        >
+          <OpenInFullIcon className="text-sky-600" />
+        </IconButton>
+      </div>
 
       {/* Document Tabs */}
       <div className="flex gap-4 border-b overflow-x-auto">
@@ -163,6 +175,45 @@ const LoanPackagePanel = ({ borrower, category, docs }) => {
       <div className="flex-1 overflow-auto p-4">
         {renderDoc(docs[activeDoc], activeDoc)}
       </div>
+
+      {/* Floating Expand Modal */}
+      <Dialog
+        open={expandedDoc !== null}
+        onClose={() => setExpandedDoc(null)}
+        fullScreen={false}
+        PaperProps={{
+          sx: {
+            margin: "40px",
+            borderRadius: "16px",
+            overflow: "hidden",
+            backdropFilter: "blur(6px)",
+            display: "flex",
+            flexDirection: "column",
+            width: "80vw", // ✅ fixed width
+            maxWidth: "80vw", // ✅ enforce
+            height: "80vh", // ✅ fixed height
+            maxHeight: "80vh", // ✅ enforce
+          },
+        }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-2 border-b bg-gray-50">
+          <DialogTitle className="!p-0 text-lg font-semibold text-sky-700">
+            {borrower} / {formatCategory(category)} -{" "}
+            {expandedDoc !== null ? expandedDoc + 1 : ""}
+          </DialogTitle>
+          <IconButton onClick={() => setExpandedDoc(null)}>
+            <CloseIcon />
+          </IconButton>
+        </div>
+
+        {/* Content inside fixed box */}
+        <DialogContent
+          sx={{ flex: 1, display: "flex", flexDirection: "column" }}
+        >
+          {expandedDoc !== null && renderDoc(docs[expandedDoc], expandedDoc)}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
