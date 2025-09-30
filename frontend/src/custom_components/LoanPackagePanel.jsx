@@ -11,7 +11,7 @@ const LoanPackagePanel = ({ borrower, category, docs }) => {
   const [activeDoc, setActiveDoc] = useState(0);
   const [activeSubTab, setActiveSubTab] = useState({});
   const [expandedDoc, setExpandedDoc] = useState(null);
-  const [docPage, setDocPage] = useState(0); // pagination state
+  const [docPage, setDocPage] = useState(0);
 
   function formatCategory(cat = "") {
     return cat
