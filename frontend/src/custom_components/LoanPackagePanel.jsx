@@ -5,7 +5,7 @@ import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 
-const DOCS_PER_PAGE = 5; // how many document tabs to show at once
+const DOCS_PER_PAGE = 5;
 
 const LoanPackagePanel = ({ borrower, category, docs }) => {
   const [activeDoc, setActiveDoc] = useState(0);
