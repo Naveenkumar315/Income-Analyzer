@@ -197,6 +197,7 @@ async def clean_json(req: CleanJsonRequest):
         "file_name": req.file_name,
         "original_data": req.raw_json,
         "cleaned_data": cleaned,
+        "original_cleaned_data": cleaned,
         "filtered_data": filtered_data,
         "created_at": timestamp,
         "updated_at": timestamp,
@@ -216,6 +217,7 @@ async def update_cleaned_data(
     action: str = Body(...),   # e.g. "folder_merge", "file_merge"
     # description: str = Body(...),
     raw_json: dict = Body(...),
+    hasModifications: bool = Body(False)
 ):
     """Update cleaned_data for merges/moves and log into auditLogs."""
 
@@ -241,8 +243,9 @@ async def update_cleaned_data(
     await db["uploadedData"].update_one(
         {"loanID": loanID},
         {"$set": {
-            "cleaned_data": cl_data,           # <-- use cleaned data here
+            "cleaned_data": cl_data,         # <-- use cleaned data here
             "filtered_data": filtered_data,
+            "hasModifications": hasModifications,
             "updated_at": timestamp
         }}
 )
@@ -505,6 +508,23 @@ async def view_loan(req: LoanViewRequest):
 
     return {
         "cleaned_data": loan.get("cleaned_data", {}),
+        "analyzed_data": bool(loan.get("analyzed_data", False)),
+    }
+@app.post("/get-original-data", response_model=LoanViewResponse)
+async def view_loan(req: LoanViewRequest):
+    # if loanId is an ObjectId, convert it
+    # try:
+    #     loan_id = ObjectId(req.loanId)
+    # except:
+    #     raise HTTPException(status_code=400, detail="Invalid loanId format")
+
+    loan = await  db["uploadedData"].find_one({"loanID": req.loanId})
+
+    if not loan:
+        raise HTTPException(status_code=404, detail="Loan not found for this email")
+
+    return {
+        "cleaned_data": loan.get("original_cleaned_data", {}),
         "analyzed_data": bool(loan.get("analyzed_data", False)),
     }
 

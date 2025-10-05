@@ -1,4 +1,4 @@
-import React, { Fragment, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import UploadedModel from "./UploadedModel";
 import DescriptionIcon from "@mui/icons-material/Description";
 import UnderwritingRulesModel from "./UnderwritingRulesModel";
@@ -8,26 +8,22 @@ import LoanPackagePanel from "./LoanPackagePanel";
 import PersonSharpIcon from "@mui/icons-material/PersonSharp";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-
 import { FaFolder } from "react-icons/fa";
 import EnterBorrowerName from "./EnterBorrowerName";
 import Checkbox from "@mui/material/Checkbox";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
-import { TbArrowMerge, TbArrowRight } from "react-icons/tb";
+import { TbArrowMerge, TbArrowRight, TbDatabaseEdit } from "react-icons/tb";
 import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SaveIcon from "@mui/icons-material/Save";
-// import CloseIcon from '@mui/icons-material/Close';
-import { IoMdSave } from "react-icons/io";
 import api from "../api/client";
 import ConfirmMoveModal from "./ConfirmMoveModal";
 import ConfirmMergeModal from "./ConfirmMergeModal";
 import ConfirmDeleteModal from "./ConfirmDeleteModal";
 import { toast } from "react-toastify";
 import Button from "../components/Button";
-import { TbDatabaseEdit } from "react-icons/tb";
 import Tooltip from "@mui/material/Tooltip";
 import ResizableLayout from "../utils/ResizableLayout";
 
@@ -54,13 +50,10 @@ const LoanExtraction = ({
   } = useUpload();
 
   const [rulesModel, setRulesModel] = useState(false);
-
-  // data states
   const [originalData, setOriginalData] = useState({});
   const [modifiedData, setModifiedData] = useState({});
-  const [activeTab, setActiveTab] = useState("modified"); // default modified
+  const [activeTab, setActiveTab] = useState("modified");
 
-  // selection & UI
   const [selectedBorrower, setSelectedBorrower] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [openBorrowers, setOpenBorrowers] = useState({});
@@ -69,25 +62,20 @@ const LoanExtraction = ({
     borrowerName: "",
   });
 
-  // select/multi modes
   const [selectMode, setSelectMode] = useState(false);
   const [selectedBorrowers, setSelectedBorrowers] = useState([]);
   const [selectedFiles, setSelectedFiles] = useState([]);
 
-  // merge/move UI
   const [mergeAnchorEl, setMergeAnchorEl] = useState(null);
   const [mergeModal, setMergeModal] = useState(null);
   const [moveAnchorEl, setMoveAnchorEl] = useState(null);
   const [moveModal, setMoveModal] = useState(null);
 
-  // edit/delete borrower (only for modified tab)
   const [editingBorrower, setEditingBorrower] = useState(null);
   const [editingName, setEditingName] = useState("");
   const [deleteModal, setDeleteModal] = useState(null);
 
-  // const [hasModifications, setHasModifications] = useState(false);
-
-  // initialize
+  // Load normalized JSON initially
   useEffect(() => {
     if (normalized_json) {
       const snapshot = JSON.parse(JSON.stringify(normalized_json));
@@ -99,23 +87,30 @@ const LoanExtraction = ({
   const currentData = activeTab === "original" ? originalData : modifiedData;
   const borrowers = currentData ? Object.keys(currentData) : [];
 
-  // useEffect(() => {
-  //   setBorrowerList(Object.keys(currentData) || []);
-  // }, [borrowers]);
+  // Keep borrower list in sync
   useEffect(() => {
     if (activeTab === "modified") {
       const borrowers = Object.keys(modifiedData) || [];
       setBorrowerList(borrowers);
       if (!filtered_borrower && borrowers.length > 0) {
-        set_filter_borrower(borrowers[0]); // pick first borrower automatically
+        set_filter_borrower(borrowers[0]);
       }
     }
   }, [activeTab, modifiedData]);
 
+  // Clean up openBorrowers keys that no longer exist
+  useEffect(() => {
+    setOpenBorrowers((prev) =>
+      Object.fromEntries(
+        Object.entries(prev).filter(([b]) => borrowers.includes(b))
+      )
+    );
+  }, [borrowers]);
+
   const toggleBorrower = (name) =>
     setOpenBorrowers((prev) => ({ ...prev, [name]: !prev[name] }));
 
-  // helper: persist to DB
+  // Persist to DB and mark hasModifications = true
   const persistAndSetModified = async (updatedJson, actionTag, successMsg) => {
     try {
       const res = await api.post("/update-cleaned-data", {
@@ -124,19 +119,19 @@ const LoanExtraction = ({
         username: sessionStorage.getItem("username") || "",
         action: actionTag,
         raw_json: updatedJson,
+        hasModifications: true,
       });
-      setModifiedData(res.data.cleaned_json);
-      // set_normalized_json(res.data.cleaned_json);
+
+      setModifiedData(res?.data?.cleaned_json || updatedJson);
       setActiveTab("modified");
       setHasModifications(true);
-      if (successMsg) toast.success(successMsg);
+      toast.success(successMsg);
     } catch (err) {
       console.error(`${actionTag} error:`, err);
       toast.error("Operation failed. Please try again.");
     }
   };
 
-  // add borrower
   const handleAddBorrower = async (name) => {
     if (!name || !name.trim()) return;
     const updated = { ...modifiedData, [name]: {} };
@@ -147,7 +142,6 @@ const LoanExtraction = ({
     );
   };
 
-  // delete borrower
   const handleDeleteBorrower = async (name) => {
     if (!name) return;
     const updated = { ...modifiedData };
@@ -164,16 +158,9 @@ const LoanExtraction = ({
     }
   };
 
-  // rename borrower
   const handleRenameBorrower = async (oldName, newName) => {
-    if (!newName || !newName.trim()) {
-      setEditingBorrower(null);
-      return;
-    }
-    if (oldName === newName) {
-      setEditingBorrower(null);
-      return;
-    }
+    if (!newName || !newName.trim()) return setEditingBorrower(null);
+    if (oldName === newName) return setEditingBorrower(null);
     const updated = { ...modifiedData };
     updated[newName] = updated[oldName];
     delete updated[oldName];
@@ -183,12 +170,9 @@ const LoanExtraction = ({
       `Renamed "${oldName}" → "${newName}"`
     );
     setEditingBorrower(null);
-    if (selectedBorrower === oldName) {
-      setSelectedBorrower(newName);
-    }
+    if (selectedBorrower === oldName) setSelectedBorrower(newName);
   };
 
-  // merge
   const handleMerge = async (targetBorrower) => {
     if (!targetBorrower || selectedBorrowers.length === 0) return;
     const mergedData = JSON.parse(JSON.stringify(modifiedData));
@@ -214,7 +198,6 @@ const LoanExtraction = ({
     setMergeAnchorEl(null);
   };
 
-  // move
   const handleMove = async (toBorrower) => {
     if (!toBorrower || selectedFiles.length === 0) return;
     const mergedData = JSON.parse(JSON.stringify(modifiedData));
@@ -249,6 +232,27 @@ const LoanExtraction = ({
     setMoveAnchorEl(null);
   };
 
+  // 🔄 Fetch original data from DB
+  const handleViewOriginalData = async () => {
+    try {
+      const res = await api.post("/get-original-data", {
+        email: sessionStorage.getItem("email") || "",
+        loanId: sessionStorage.getItem("loanId") || "",
+      });
+
+      const newOriginal =
+        res?.data?.original_cleaned_data || res?.data?.cleaned_data || {};
+      setOriginalData(newOriginal);
+      setActiveTab("original");
+      setSelectedBorrower(null);
+      setSelectedCategory(null);
+      // toast.info("Loaded original data from database");
+    } catch (err) {
+      console.error("Error fetching original data:", err);
+      toast.error("Failed to load original data");
+    }
+  };
+
   const isCategorySelected = (borrower, category) =>
     selectedFiles.some(
       (f) => f.borrower === borrower && f.category === category
@@ -259,17 +263,10 @@ const LoanExtraction = ({
       <div className="h-full flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 px-6 pt-4 bg-white border-b border-gray-200">
-          {/* Left: Loan ID */}
           <div className="font-medium text-gray-700">
             Loan ID : {sessionStorage.getItem("loanId") || ""}
           </div>
 
-          {/* Center: Borrower select */}
-          {/* {(isUploaded?.uploaded || normalized_json) && (
-            
-          )} */}
-
-          {/* Right: Action buttons */}
           {(isUploaded?.uploaded || normalized_json) && (
             <div className="flex items-center gap-3">
               {analyzedState?.isAnalyzed && (
@@ -277,7 +274,6 @@ const LoanExtraction = ({
                   variant="start-analyze"
                   width={160}
                   label="View Result"
-                  className="whitespace-nowrap"
                   onClick={() => {
                     setIsSAClicked(false);
                     setShowSection((p) => ({
@@ -295,7 +291,6 @@ const LoanExtraction = ({
                 variant="upload-doc"
                 width={180}
                 label="Upload Documents"
-                className="whitespace-nowrap"
                 onClick={() =>
                   setShowSection((p) => ({ ...p, uploadedModel: true }))
                 }
@@ -304,7 +299,6 @@ const LoanExtraction = ({
                 variant="start-analyze"
                 width={160}
                 label="Start Analyzing"
-                className="whitespace-nowrap"
                 onClick={() => {
                   setReport({});
                   setAnalyzedState((prev) => ({
@@ -325,24 +319,21 @@ const LoanExtraction = ({
           )}
         </div>
 
-        {/* Loan Package Header */}
-
-        {/* Content */}
+        {/* Main Layout */}
         <div className="flex flex-1 min-h-0">
           {isUploaded?.uploaded || normalized_json ? (
             <>
               <ResizableLayout
                 left={
                   <div className="h-full flex flex-col">
-                    {/* Top actions when in select mode */}
-                    {!selectMode && (
-                      <div className="flex items-center justify-between bg-gray-50 border-b border-gray-200 px-4 py-2 shadow-sm rounded-t-md">
-                        {/* Left side: Add Borrower + Select */}
+                    {/* Toolbar */}
+                    {!selectMode ? (
+                      <div className="flex items-center justify-between bg-gray-50 border-b border-gray-200 px-4 py-2 shadow-sm">
                         <div className="flex items-center gap-4">
-                          {activeTab === "modified" && !selectMode && (
+                          {activeTab === "modified" && (
                             <>
                               <button
-                                className="text-sm text-[#26a3dd] cursor-pointer"
+                                className="text-sm text-[#26a3dd]"
                                 onClick={() =>
                                   setAddBorrower({
                                     model: true,
@@ -354,7 +345,7 @@ const LoanExtraction = ({
                                 Add Borrower
                               </button>
                               <button
-                                className="text-sm text-gray-600 hover:text-[#26a3dd] cursor-pointer"
+                                className="text-sm text-gray-600 hover:text-[#26a3dd]"
                                 onClick={() => setSelectMode(true)}
                               >
                                 Select
@@ -362,75 +353,69 @@ const LoanExtraction = ({
                             </>
                           )}
                         </div>
-
-                        {/* Right side: Filter / Close */}
                         <div className="flex items-center gap-3">
                           {hasModifications && activeTab === "modified" && (
                             <Tooltip title="View Original Data">
                               <TbDatabaseEdit
                                 className="text-gray-600 cursor-pointer"
-                                onClick={() => {
-                                  setActiveTab("original");
-                                  setSelectedBorrower(null);
-                                  setSelectedCategory(null);
-                                }}
+                                onClick={handleViewOriginalData}
                               />
                             </Tooltip>
                           )}
                           {activeTab === "original" && (
                             <CloseIcon
                               className="text-red-500 cursor-pointer"
-                              onClick={() => {
-                                setActiveTab("modified");
-                                setSelectedBorrower(null);
-                                setSelectedCategory(null);
-                              }}
+                              onClick={() => setActiveTab("modified")}
                             />
                           )}
                         </div>
                       </div>
-                    )}
-                    {activeTab === "modified" && selectMode && (
-                      <div className="flex justify-end items-center px-4 py-2 border-b border-gray-100">
+                    ) : (
+                      <div className="flex items-center justify-end bg-gray-50 border-b border-gray-200 px-4 py-2 shadow-sm">
                         <div className="flex gap-4 items-center">
-                          <TbArrowMerge
-                            size={20}
-                            className={`cursor-pointer ${
-                              selectedBorrowers.length > 0
-                                ? "text-[#26a3dd]"
-                                : "text-gray-300"
-                            }`}
-                            onClick={(e) => {
-                              if (selectedBorrowers.length === 0) return;
-                              setMergeAnchorEl(e.currentTarget);
-                            }}
-                          />
-                          <TbArrowRight
-                            size={20}
-                            className={`cursor-pointer ${
-                              selectedFiles.length > 0
-                                ? "text-[#26a3dd]"
-                                : "text-gray-300"
-                            }`}
-                            onClick={(e) => {
-                              if (selectedFiles.length === 0) return;
-                              setMoveAnchorEl(e.currentTarget);
-                            }}
-                          />
-                          <CloseIcon
-                            className="text-red-500 cursor-pointer"
-                            fontSize="small"
-                            onClick={() => {
-                              setSelectMode(false);
-                              setSelectedBorrowers([]);
-                              setSelectedFiles([]);
-                            }}
-                          />
+                          <Tooltip title="Merge Selected">
+                            <TbArrowMerge
+                              size={22}
+                              className={`cursor-pointer ${
+                                selectedBorrowers.length > 0
+                                  ? "text-[#26a3dd]"
+                                  : "text-gray-300"
+                              }`}
+                              onClick={(e) => {
+                                if (selectedBorrowers.length === 0) return;
+                                setMergeAnchorEl(e.currentTarget);
+                              }}
+                            />
+                          </Tooltip>
+                          <Tooltip title="Move Selected">
+                            <TbArrowRight
+                              size={22}
+                              className={`cursor-pointer ${
+                                selectedFiles.length > 0
+                                  ? "text-[#26a3dd]"
+                                  : "text-gray-300"
+                              }`}
+                              onClick={(e) => {
+                                if (selectedFiles.length === 0) return;
+                                setMoveAnchorEl(e.currentTarget);
+                              }}
+                            />
+                          </Tooltip>
+                          <Tooltip title="Cancel Selection">
+                            <CloseIcon
+                              className="text-red-500 cursor-pointer"
+                              onClick={() => {
+                                setSelectMode(false);
+                                setSelectedBorrowers([]);
+                                setSelectedFiles([]);
+                              }}
+                            />
+                          </Tooltip>
                         </div>
                       </div>
                     )}
 
-                    {/* Borrowers */}
+                    {/* Borrowers list and categories */}
                     <div className="flex-1 overflow-y-auto px-4 py-2">
                       <ul className="space-y-2">
                         {borrowers.map((name) => {
@@ -477,7 +462,7 @@ const LoanExtraction = ({
                                     <span className="font-medium">{name}</span>
                                   )}
                                 </div>
-                                {/* Only show edit/delete in modified tab */}
+
                                 {activeTab === "modified" && !selectMode && (
                                   <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                     {isEditing ? (
@@ -498,8 +483,8 @@ const LoanExtraction = ({
                                           className="text-gray-600 cursor-pointer"
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                            setEditingBorrower(null); // exit edit mode
-                                            setEditingName(""); // optional reset
+                                            setEditingBorrower(null);
+                                            setEditingName("");
                                           }}
                                         />
                                       </>
@@ -526,7 +511,6 @@ const LoanExtraction = ({
                                     )}
                                   </div>
                                 )}
-
                                 {openBorrowers[name] ? (
                                   <ExpandLessIcon />
                                 ) : (
@@ -656,7 +640,7 @@ const LoanExtraction = ({
         )}
       </div>
 
-      {/* Add Borrower */}
+      {/* Modals */}
       {addBorrower?.model && (
         <EnterBorrowerName
           setAddBorrower={setAddBorrower}
@@ -666,7 +650,6 @@ const LoanExtraction = ({
         />
       )}
 
-      {/* Merge */}
       {mergeModal && (
         <ConfirmMergeModal
           borrowers={selectedBorrowers}
@@ -676,17 +659,21 @@ const LoanExtraction = ({
         />
       )}
 
-      {/* Move */}
       {moveModal && (
         <ConfirmMoveModal
           fromBorrower={moveModal.from}
           toBorrower={moveModal.to}
           files={moveModal.files}
           onCancel={() => setMoveModal(null)}
-          onConfirm={() => {
-            handleMove(moveModal.to);
-            setMoveModal(null);
-          }}
+          onConfirm={() => handleMove(moveModal.to)}
+        />
+      )}
+
+      {deleteModal && (
+        <ConfirmDeleteModal
+          borrower={deleteModal}
+          onCancel={() => setDeleteModal(null)}
+          onConfirm={(b) => handleDeleteBorrower(b)}
         />
       )}
 
@@ -741,15 +728,6 @@ const LoanExtraction = ({
             </MenuItem>
           ))}
       </Menu>
-
-      {/* Delete Borrower */}
-      {deleteModal && (
-        <ConfirmDeleteModal
-          borrower={deleteModal}
-          onCancel={() => setDeleteModal(null)}
-          onConfirm={(b) => handleDeleteBorrower(b)}
-        />
-      )}
     </>
   );
 };
