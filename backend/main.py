@@ -164,6 +164,13 @@ class LoanViewRequest(BaseModel):
 class LoanViewResponse(BaseModel):
     cleaned_data: dict
     analyzed_data: bool
+    hasModifications: bool  # ✅ NEW
+
+class LoanGETResponse(BaseModel):
+    cleaned_data: dict
+    analyzed_data: bool
+
+
 
 class GetAnalyzedDataRequest(BaseModel):
     email: str
@@ -201,6 +208,7 @@ async def clean_json(req: CleanJsonRequest):
         "filtered_data": filtered_data,
         "created_at": timestamp,
         "updated_at": timestamp,
+        "hasModifications": False  # New field to track modifications
     }
 
     # 4. Insert into database
@@ -509,8 +517,9 @@ async def view_loan(req: LoanViewRequest):
     return {
         "cleaned_data": loan.get("cleaned_data", {}),
         "analyzed_data": bool(loan.get("analyzed_data", False)),
+         "hasModifications": bool(loan.get("hasModifications", False)),  # ✅ NEW
     }
-@app.post("/get-original-data", response_model=LoanViewResponse)
+@app.post("/get-original-data", response_model=LoanGETResponse)
 async def view_loan(req: LoanViewRequest):
     # if loanId is an ObjectId, convert it
     # try:

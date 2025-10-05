@@ -40,6 +40,7 @@ const ProcessLoanTable = ({
     setAnalyzedState,
     setReport,
     set_filter_borrower,
+    setHasModifications,
   } = useUpload(); // make sure you import from UploadContext
 
   const handleView = async (row) => {
@@ -65,6 +66,8 @@ const ProcessLoanTable = ({
         ...prev,
         isAnalyzed: data.analyzed_data,
       }));
+      // ✅ Capture hasModifications from backend
+      setHasModifications(!!data.hasModifications);
       handleViewChange();
       console.log("view data, ", data);
     } catch (error) {

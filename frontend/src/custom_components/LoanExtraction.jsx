@@ -87,24 +87,34 @@ const LoanExtraction = ({
   const currentData = activeTab === "original" ? originalData : modifiedData;
   const borrowers = currentData ? Object.keys(currentData) : [];
 
-  // Keep borrower list in sync
+  // ✅ FIXED: Borrower list sync (no infinite loop)
   useEffect(() => {
-    if (activeTab === "modified") {
-      const borrowers = Object.keys(modifiedData) || [];
-      setBorrowerList(borrowers);
-      if (!filtered_borrower && borrowers.length > 0) {
-        set_filter_borrower(borrowers[0]);
-      }
-    }
-  }, [activeTab, modifiedData]);
+    if (activeTab !== "modified") return;
+    const borrowersFromData = Object.keys(modifiedData || {});
+    const currentList = borrowerList || [];
 
-  // Clean up openBorrowers keys that no longer exist
+    // update borrower list only if actually changed
+    if (JSON.stringify(borrowersFromData) !== JSON.stringify(currentList)) {
+      setBorrowerList(borrowersFromData);
+    }
+
+    // set first borrower only once when empty
+    if (!filtered_borrower && borrowersFromData.length > 0) {
+      set_filter_borrower(borrowersFromData[0]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modifiedData]);
+
+  // ✅ FIXED: Clean openBorrowers without causing re-renders
   useEffect(() => {
-    setOpenBorrowers((prev) =>
-      Object.fromEntries(
+    if (!borrowers?.length) return;
+    setOpenBorrowers((prev) => {
+      const cleaned = Object.fromEntries(
         Object.entries(prev).filter(([b]) => borrowers.includes(b))
-      )
-    );
+      );
+      if (JSON.stringify(cleaned) !== JSON.stringify(prev)) return cleaned;
+      return prev;
+    });
   }, [borrowers]);
 
   const toggleBorrower = (name) =>
@@ -232,7 +242,7 @@ const LoanExtraction = ({
     setMoveAnchorEl(null);
   };
 
-  // 🔄 Fetch original data from DB
+  // Load original data from DB
   const handleViewOriginalData = async () => {
     try {
       const res = await api.post("/get-original-data", {
@@ -246,7 +256,7 @@ const LoanExtraction = ({
       setActiveTab("original");
       setSelectedBorrower(null);
       setSelectedCategory(null);
-      // toast.info("Loaded original data from database");
+      toast.info("Loaded original data from database");
     } catch (err) {
       console.error("Error fetching original data:", err);
       toast.error("Failed to load original data");
