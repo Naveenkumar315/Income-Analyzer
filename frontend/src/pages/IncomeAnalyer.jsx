@@ -125,41 +125,50 @@ const IncomeAnalyzer = () => {
 
   const analyzeBorrower = async (borrower, email, loanId, signal) => {
     console.log(`▶️ Starting analysis for borrower: ${borrower}`);
-    try {
-      const requests = [
-        api.post("/verify-rules", null, {
-          params: { email, loanID: loanId, borrower },
-          signal,
-        }),
-        api.post("/income-calc", null, {
-          params: { email, loanID: loanId, borrower },
-          signal,
-        }),
-        api.post("/income-insights", null, {
-          params: { email, loanID: loanId, borrower },
-          signal,
-        }),
-      ];
 
-      const results = await Promise.allSettled(requests);
+    const totalSteps = 3; // 3 API calls
+    let step = 0;
+
+    const updateProgress = () => {
+      step += 1;
+      setLoadingStep(step);
+    };
+
+    try {
+      // 🔹 Step 1: Verify Rules
+      const rulesRes = await api.post("/verify-rules", null, {
+        params: { email, loanID: loanId, borrower },
+        signal,
+      });
+      const rulesData = rulesRes.data;
+      updateProgress(); // now progress = 33%
+
+      // 🔹 Step 2: Income Calculation
+      const incomeRes = await api.post("/income-calc", null, {
+        params: { email, loanID: loanId, borrower },
+        signal,
+      });
+      const incomeData = incomeRes.data;
+      updateProgress(); // now progress = 66%
+
+      // 🔹 Step 3: Income Insights
+      const insightsRes = await api.post("/income-insights", null, {
+        params: { email, loanID: loanId, borrower },
+        signal,
+      });
+      const insightsData = insightsRes.data;
+      updateProgress(); // now progress = 100%
+
       if (signal.aborted) return;
 
-      const [rulesRes, incomeRes, insightsRes] = results;
-      const getData = (r) => (r.status === "fulfilled" ? r.value.data : null);
-
-      const rulesData = getData(rulesRes);
-      const incomeData = getData(incomeRes);
-      const insightsData = getData(insightsRes);
-
-      const incomeSummary = incomeData?.income?.[0]?.checks.reduce(
-        (acc, item) => {
+      // 🔹 Build summary objects
+      const incomeSummary =
+        incomeData?.income?.[0]?.checks?.reduce((acc, item) => {
           acc[item.field] = item.value;
           return acc;
-        },
-        {}
-      );
+        }, {}) || {};
 
-      const summaryData = incomeData?.income?.[0]?.checks;
+      const summaryData = incomeData?.income?.[0]?.checks || [];
       const insightsComment =
         insightsData?.income_insights?.insight_commentry || "";
 
@@ -177,6 +186,7 @@ const IncomeAnalyzer = () => {
 
       console.log(`✅ Finished borrower: ${borrower}`);
 
+      // 🔹 Persist analyzed data into DB
       await update_analyzed_data_into_db(
         email,
         loanId,
@@ -186,6 +196,9 @@ const IncomeAnalyzer = () => {
         insightsComment,
         borrower
       );
+
+      // Mark analysis complete for this borrower
+      setAnalyzedState({ isAnalyzed: true, analyzed_data: {} });
     } catch (ex) {
       console.error(`❌ Error analyzing borrower ${borrower}`, ex);
     }
