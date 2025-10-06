@@ -1,17 +1,34 @@
 import React, { useState } from "react";
-import { Dialog, DialogTitle, DialogContent, IconButton } from "@mui/material";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  IconButton,
+  Menu,
+  MenuItem,
+} from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
+import { TbArrowRight } from "react-icons/tb";
 
 const DOCS_PER_PAGE = 5;
 
-const LoanPackagePanel = ({ borrower, category, docs }) => {
+const LoanPackagePanel = ({
+  borrower,
+  category,
+  docs,
+  borrowersList = [],
+  onMoveDocument = () => {},
+  isModifiedView = false,
+}) => {
   const [activeDoc, setActiveDoc] = useState(0);
   const [activeSubTab, setActiveSubTab] = useState({});
   const [expandedDoc, setExpandedDoc] = useState(null);
   const [docPage, setDocPage] = useState(0);
+  const [moveAnchor, setMoveAnchor] = useState(null);
+  const [selectedDocIdx, setSelectedDocIdx] = useState(null);
 
   function formatCategory(cat = "") {
     return cat
@@ -37,6 +54,7 @@ const LoanPackagePanel = ({ borrower, category, docs }) => {
                   {h}
                 </th>
               ))}
+              {isModifiedView && <th className="p-2 border-b text-left">Move</th>}
             </tr>
           </thead>
           <tbody>
@@ -47,6 +65,20 @@ const LoanPackagePanel = ({ borrower, category, docs }) => {
                     {String(r?.[h] ?? "")}
                   </td>
                 ))}
+                {isModifiedView && (
+                  <td className="p-2 border-b text-right">
+                    <IconButton
+                      size="small"
+                      title="Move this document"
+                      onClick={(e) => {
+                        setSelectedDocIdx(i);
+                        setMoveAnchor(e.currentTarget);
+                      }}
+                    >
+                      <TbArrowRight className="text-sky-600" />
+                    </IconButton>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -55,19 +87,34 @@ const LoanPackagePanel = ({ borrower, category, docs }) => {
     );
   };
 
-  const renderSummary = (doc) => {
+  const renderSummary = (doc, idx) => {
     if (doc == null) return null;
+    const flatFields = Object.entries(doc || {}).filter(
+      ([, value]) => !Array.isArray(value)
+    );
     return (
-      <div className="grid grid-cols-2 gap-3 text-sm">
-        {Object.entries(doc || {}).map(([field, value]) => {
-          if (Array.isArray(value)) return null;
-          return (
-            <div key={field}>
-              <span className="font-medium">{field}:</span>{" "}
-              <span className="text-gray-700">{String(value ?? "")}</span>
-            </div>
-          );
-        })}
+      <div className="grid grid-cols-2 gap-3 text-sm relative">
+        {flatFields.map(([field, value]) => (
+          <div key={field}>
+            <span className="font-medium">{field}:</span>{" "}
+            <span className="text-gray-700">{String(value ?? "")}</span>
+          </div>
+        ))}
+        {/* Always visible move icon for flat docs */}
+        {isModifiedView && (
+          <div className="absolute top-0 right-0">
+            <IconButton
+              size="small"
+              title="Move this document"
+              onClick={(e) => {
+                setSelectedDocIdx(idx);
+                setMoveAnchor(e.currentTarget);
+              }}
+            >
+              <TbArrowRight className="text-sky-600" />
+            </IconButton>
+          </div>
+        )}
       </div>
     );
   };
@@ -77,7 +124,6 @@ const LoanPackagePanel = ({ borrower, category, docs }) => {
       return <p className="text-gray-400 italic">No document data</p>;
     }
 
-    // build dynamic sub-tabs
     const arrayTabs = Object.entries(doc)
       .filter(
         ([, value]) =>
@@ -92,7 +138,7 @@ const LoanPackagePanel = ({ borrower, category, docs }) => {
 
     return (
       <div className="flex flex-col h-full space-y-3">
-        {/* Dynamic Sub-tabs */}
+        {/* Sub-tabs */}
         <div className="border-b flex gap-6 text-sm shrink-0">
           {subTabs.map((t) => (
             <button
@@ -109,10 +155,8 @@ const LoanPackagePanel = ({ borrower, category, docs }) => {
           ))}
         </div>
 
-        {/* Tab content */}
         <div className="flex-1 overflow-auto pr-1">
-          {tab === "Summary" && renderSummary(doc)}
-
+          {tab === "Summary" && renderSummary(doc, idx)}
           {arrayTabs.map(
             (key) =>
               tab === key && (
@@ -129,25 +173,12 @@ const LoanPackagePanel = ({ borrower, category, docs }) => {
     );
   };
 
-  if (!Array.isArray(docs) || docs.length === 0) {
-    return (
-      <div className="h-full flex flex-col items-center justify-center text-gray-400">
-        <h2 className="text-xl font-bold text-sky-600 border-b pb-2">
-          {borrower} / {formatCategory(category)}
-        </h2>
-        <p>No documents found</p>
-      </div>
-    );
-  }
-
-  // pagination for document tabs
   const totalPages = Math.ceil(docs.length / DOCS_PER_PAGE);
   const canGoLeft = docPage > 0;
   const canGoRight = docPage < totalPages - 1;
 
   return (
     <div className="h-full flex flex-col overflow-hidden space-y-4">
-      {/* Title + Expand */}
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-bold text-sky-600 border-b pb-2 text-center flex-1">
           {borrower} / {formatCategory(category)}
@@ -161,114 +192,35 @@ const LoanPackagePanel = ({ borrower, category, docs }) => {
         </IconButton>
       </div>
 
-      {/* Document Tabs with smooth transition */}
-      <div className="relative flex items-center border-b overflow-hidden">
-        {/* Left arrow fixed */}
-        <div className="absolute left-0 top-0 bottom-0 flex items-center bg-white z-10">
-          {canGoLeft && (
-            <IconButton onClick={() => setDocPage((p) => Math.max(0, p - 1))}>
-              <ArrowBackIosIcon fontSize="small" />
-            </IconButton>
-          )}
-        </div>
-
-        {/* Tabs container with padding to avoid overlap */}
-        <div className="flex-1 overflow-hidden px-12">
-          <div
-            className="flex transition-transform duration-500 ease-in-out"
-            style={{
-              transform: `translateX(-${docPage * 100}%)`,
-              width: `${totalPages * 100}%`,
-            }}
-          >
-            {Array.from({ length: totalPages }).map((_, pageIdx) => {
-              const sliceStart = pageIdx * DOCS_PER_PAGE;
-              const pageDocs = docs.slice(
-                sliceStart,
-                sliceStart + DOCS_PER_PAGE
-              );
-              return (
-                <div
-                  key={pageIdx}
-                  className="flex gap-4 justify-start flex-shrink-0 w-full"
-                >
-                  {pageDocs.map((_, idx) => {
-                    const realIdx = sliceStart + idx;
-                    return (
-                      <button
-                        key={realIdx}
-                        onClick={() => setActiveDoc(realIdx)}
-                        className={`px-3 py-2 text-sm whitespace-nowrap ${
-                          activeDoc === realIdx
-                            ? "border-b-2 border-sky-600 text-sky-600 font-medium"
-                            : "text-gray-600 hover:text-sky-600"
-                        }`}
-                      >
-                        {category} {realIdx + 1}
-                      </button>
-                    );
-                  })}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Right arrow fixed */}
-        <div className="absolute right-0 top-0 bottom-0 flex items-center bg-white z-10">
-          {canGoRight && (
-            <IconButton
-              onClick={() => setDocPage((p) => Math.min(totalPages - 1, p + 1))}
-            >
-              <ArrowForwardIosIcon fontSize="small" />
-            </IconButton>
-          )}
-        </div>
-      </div>
-
-      {/* Active Document */}
       <div className="flex-1 overflow-auto p-4">
-        {renderDoc(docs[activeDoc], activeDoc)}
+        {docs.length > 0 ? renderDoc(docs[activeDoc], activeDoc) : (
+          <p className="text-gray-400 italic text-center">No document data</p>
+        )}
       </div>
 
-      {/* Floating Expand Modal */}
-      <Dialog
-        open={expandedDoc !== null}
-        onClose={() => setExpandedDoc(null)}
-        fullScreen={false}
-        PaperProps={{
-          sx: {
-            margin: "40px",
-            borderRadius: "16px",
-            overflow: "hidden",
-            backdropFilter: "blur(6px)",
-            display: "flex",
-            flexDirection: "column",
-            width: "80vw",
-            maxWidth: "80vw",
-            height: "80vh",
-            maxHeight: "80vh",
-          },
-        }}
+      {/* Move dropdown for document-level move */}
+      <Menu
+        anchorEl={moveAnchor}
+        open={Boolean(moveAnchor)}
+        onClose={() => setMoveAnchor(null)}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-2 border-b bg-gray-50">
-          <DialogTitle className="!p-0 text-lg font-semibold text-sky-700">
-            {borrower} / {formatCategory(category)} -{" "}
-            {expandedDoc !== null ? expandedDoc + 1 : ""}
-          </DialogTitle>
-          <IconButton onClick={() => setExpandedDoc(null)}>
-            <CloseIcon />
-          </IconButton>
+        <div className="px-4 py-2 text-sm font-semibold text-[#097aaf] border-b border-gray-200">
+          Move document to
         </div>
-
-        {/* Content */}
-        <DialogContent
-          sx={{ flex: 1, display: "flex", flexDirection: "column" }}
-        >
-          {expandedDoc !== null && renderDoc(docs[expandedDoc], expandedDoc)}
-        </DialogContent>
-      </Dialog>
+        {borrowersList
+          .filter((b) => b !== borrower)
+          .map((b) => (
+            <MenuItem
+              key={b}
+              onClick={() => {
+                setMoveAnchor(null);
+                onMoveDocument(selectedDocIdx, b);
+              }}
+            >
+              {b}
+            </MenuItem>
+          ))}
+      </Menu>
     </div>
   );
 };

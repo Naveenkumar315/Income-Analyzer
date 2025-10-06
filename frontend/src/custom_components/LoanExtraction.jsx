@@ -268,6 +268,42 @@ const LoanExtraction = ({
       (f) => f.borrower === borrower && f.category === category
     );
 
+  // 🔹 Handle moving a single document to another borrower
+  const handleMoveDocument = async (docIndex, toBorrower) => {
+    if (
+      !selectedBorrower ||
+      !selectedCategory ||
+      !Number.isInteger(docIndex) ||
+      !toBorrower
+    )
+      return;
+
+    try {
+      const updated = JSON.parse(JSON.stringify(modifiedData));
+
+      const currentDocs = updated[selectedBorrower][selectedCategory] || [];
+      const [movedDoc] = currentDocs.splice(docIndex, 1);
+
+      if (!updated[toBorrower]) updated[toBorrower] = {};
+      if (!updated[toBorrower][selectedCategory])
+        updated[toBorrower][selectedCategory] = [];
+
+      updated[toBorrower][selectedCategory].push(movedDoc);
+
+      await persistAndSetModified(
+        updated,
+        "doc_move",
+        `Moved ${selectedCategory} document to ${toBorrower}`
+      );
+
+      setSelectedBorrower(toBorrower);
+      setSelectedCategory(selectedCategory);
+    } catch (err) {
+      console.error("Error moving document:", err);
+      toast.error("Failed to move document");
+    }
+  };
+
   return (
     <>
       <div className="h-full flex flex-col">
@@ -617,6 +653,9 @@ const LoanExtraction = ({
                             currentData[selectedBorrower][selectedCategory] ||
                             []
                           }
+                          borrowersList={Object.keys(modifiedData || {})}
+                          onMoveDocument={handleMoveDocument}
+                          isModifiedView={activeTab === "modified"}
                         />
                       ) : (
                         <div className="text-gray-400 flex items-center justify-center h-full">
