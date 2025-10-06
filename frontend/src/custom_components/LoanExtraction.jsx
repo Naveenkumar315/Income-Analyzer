@@ -268,39 +268,87 @@ const LoanExtraction = ({
       (f) => f.borrower === borrower && f.category === category
     );
 
-  // 🔹 Handle moving a single document to another borrower
-  const handleMoveDocument = async (docIndex, toBorrower) => {
-    if (
-      !selectedBorrower ||
-      !selectedCategory ||
-      !Number.isInteger(docIndex) ||
-      !toBorrower
-    )
-      return;
+  // 🔹 Handle moving a document OR an entire category to another borrower
+  const handleMoveDocument = async (docIndex, toBorrower, subCategory) => {
+    if (!selectedBorrower || !selectedCategory || !toBorrower) return;
 
     try {
       const updated = JSON.parse(JSON.stringify(modifiedData));
 
-      const currentDocs = updated[selectedBorrower][selectedCategory] || [];
+      // Case 1️⃣: Move the entire category (triggered by top Move icon)
+      if (docIndex === null) {
+        const fromCat = subCategory || selectedCategory;
+        const fullSection = updated[selectedBorrower]?.[fromCat] || [];
+
+        if (fullSection.length === 0) {
+          toast.warning(`No data to move from ${fromCat}`);
+          return;
+        }
+
+        // Ensure target borrower + category exist
+        if (!updated[toBorrower]) updated[toBorrower] = {};
+        if (!updated[toBorrower][fromCat]) updated[toBorrower][fromCat] = [];
+
+        // Move the entire category array
+        updated[toBorrower][fromCat] = [
+          ...(updated[toBorrower][fromCat] || []),
+          ...fullSection,
+        ];
+
+        // Remove category from source borrower
+        delete updated[selectedBorrower][fromCat];
+
+        // If borrower has no remaining categories, remove borrower
+        if (Object.keys(updated[selectedBorrower] || {}).length === 0) {
+          delete updated[selectedBorrower];
+        }
+
+        await persistAndSetModified(
+          updated,
+          "category_move",
+          `Moved entire ${fromCat} section to ${toBorrower}`
+        );
+
+        // Reset selected borrower/category to the target
+        setSelectedBorrower(toBorrower);
+        setSelectedCategory(fromCat);
+        return;
+      }
+
+      // Case 2️⃣: Move single document (row-level move)
+      const currentDocs =
+        updated[selectedBorrower][subCategory || selectedCategory] || [];
       const [movedDoc] = currentDocs.splice(docIndex, 1);
 
       if (!updated[toBorrower]) updated[toBorrower] = {};
-      if (!updated[toBorrower][selectedCategory])
-        updated[toBorrower][selectedCategory] = [];
+      if (!updated[toBorrower][subCategory || selectedCategory])
+        updated[toBorrower][subCategory || selectedCategory] = [];
 
-      updated[toBorrower][selectedCategory].push(movedDoc);
+      updated[toBorrower][subCategory || selectedCategory].push(movedDoc);
+
+      // Remove empty category if necessary
+      if (
+        updated[selectedBorrower][subCategory || selectedCategory]?.length === 0
+      ) {
+        delete updated[selectedBorrower][subCategory || selectedCategory];
+      }
+
+      // Remove borrower entirely if now empty
+      if (Object.keys(updated[selectedBorrower]).length === 0) {
+        delete updated[selectedBorrower];
+      }
 
       await persistAndSetModified(
         updated,
         "doc_move",
-        `Moved ${selectedCategory} document to ${toBorrower}`
+        `Moved ${subCategory || selectedCategory} document to ${toBorrower}`
       );
 
       setSelectedBorrower(toBorrower);
-      setSelectedCategory(selectedCategory);
+      setSelectedCategory(subCategory || selectedCategory);
     } catch (err) {
-      console.error("Error moving document:", err);
-      toast.error("Failed to move document");
+      console.error("Error moving document/category:", err);
+      toast.error("Failed to move. Please try again.");
     }
   };
 
