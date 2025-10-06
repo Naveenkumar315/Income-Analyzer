@@ -41,12 +41,29 @@ const ProcessLoanTable = ({
     setReport,
     set_filter_borrower,
     setHasModifications,
+    setBorrowerList,
+    setIsSAClicked,
+    setIsUploaded,
   } = useUpload(); // make sure you import from UploadContext
 
   const handleView = async (row) => {
     try {
+      console.log("🔄 Preparing fresh view for loan:", row.loanId);
+
+      // 🧹 1️⃣ clear all old states before starting new view
+      set_normalized_json(null);
       setReport({});
       set_filter_borrower("");
+      setBorrowerList([]);
+      setAnalyzedState({ isAnalyzed: false, analyzed_data: {} });
+      setHasModifications(false);
+      setIsSAClicked(false);
+      setIsUploaded({ uploaded: false });
+
+      // optional: show a quick loading state in UI if you want
+      // setLoading(true);
+
+      // 📨 2️⃣ make API call to load loan data
       const response = await api.post("/view-loan", {
         email: sessionStorage.getItem("email") || "",
         loanId: row.loanId,
@@ -54,24 +71,28 @@ const ProcessLoanTable = ({
 
       const data = response.data;
       if (!Object.keys(data).length) {
-        console.log("Data is empty!");
+        console.warn("⚠️ Empty response for loan:", row.loanId);
+        // setLoading(false);
         return;
       }
 
-      console.log("check data", data);
-      sessionStorage.setItem("loanId", row.loanId || "");
+      console.log("✅ Loan data fetched:", data);
 
+      // 🧩 3️⃣ update context with fresh loan data
+      sessionStorage.setItem("loanId", row.loanId || "");
       set_normalized_json(data.cleaned_data);
-      setAnalyzedState((prev) => ({
-        ...prev,
-        isAnalyzed: data.analyzed_data,
-      }));
-      // ✅ Capture hasModifications from backend
+      setAnalyzedState({
+        isAnalyzed: !!data.analyzed_data,
+        analyzed_data: data.analyzed_data || {},
+      });
       setHasModifications(!!data.hasModifications);
+
+      // 🟢 4️⃣ move to extracted section
       handleViewChange();
-      console.log("view data, ", data);
     } catch (error) {
-      console.error("Error fetching loan data:", error);
+      console.error("❌ Error fetching loan data:", error);
+    } finally {
+      // setLoading(false);
     }
   };
 

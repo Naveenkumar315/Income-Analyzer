@@ -45,7 +45,7 @@ const IncomeAnalyzer = () => {
   const handleCancel = () => {
     try {
       console.log("🛑 Cancel requested — aborting all requests...");
-      cancelledRef.current = true; // mark as cancelled
+      controllerRef.current = true; // mark as cancelled
       controllerRef.current?.abort();
     } catch (err) {
       console.error("Abort failed:", err);
