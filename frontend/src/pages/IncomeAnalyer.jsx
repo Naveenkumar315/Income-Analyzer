@@ -22,6 +22,7 @@ const IncomeAnalyzer = () => {
     analyzedState,
     setAnalyzedState,
     borrowerList,
+    set_filter_borrower,
   } = useUpload();
 
   const [loadingStep, setLoadingStep] = useState(0);
@@ -40,59 +41,59 @@ const IncomeAnalyzer = () => {
     };
   }, [showSection.startAnalyzing]);
 
+  // 🛑 STOP button handler — immediate cancel + close loader
   const handleCancel = () => {
-    controllerRef.current?.abort();
-    setIsLoading(false);
-    setLoadingStep(0);
-    setReport({});
-    setShowSection((prev) => ({
-      ...prev,
-      startAnalyzing: false,
-      extractedSection: true,
-    }));
+    try {
+      console.log("🛑 Cancel requested — aborting all requests...");
+      cancelledRef.current = true; // mark as cancelled
+      controllerRef.current?.abort();
+    } catch (err) {
+      console.error("Abort failed:", err);
+    } finally {
+      setIsLoading(false);
+      setLoadingStep(0);
+      setReport({});
+      controllerRef.current = null;
+
+      // ✅ force reset UI to extraction (step 0)
+      handleStepChange(0);
+    }
   };
 
-  // 🔹 Main data loader
+  // 🔹 Main orchestrator
   const fetchAllData = async (signal) => {
+    debugger;
     const email = sessionStorage.getItem("email") || "";
     const loanId = sessionStorage.getItem("loanId") || "";
 
     if (!borrowerList.length) return;
 
-    // 🔹 If already analyzed, load from DB
+    // If already analyzed → load from DB
     if (analyzedState.isAnalyzed) {
       try {
         setIsLoading(true);
         const res = await api.post(
           "/get-analyzed-data",
-          { email, loanId }, // <-- corrected key
+          { email, loanId },
           { signal }
         );
 
         const data = res.data?.analyzed_data || {};
         setReport(data);
-        console.log("✅ Loaded analyzed data from DB", data);
 
-        // 🔹 Check if all borrowers are present
         const missingBorrowers = borrowerList.filter(
           (b) => !Object.prototype.hasOwnProperty.call(data, b)
         );
 
         if (missingBorrowers.length > 0) {
           console.log("🔄 Missing borrowers detected:", missingBorrowers);
-
-          // analyze missing borrowers in background
           Promise.all(
             missingBorrowers.map((b) =>
               analyzeBorrower(b, email, loanId, signal)
             )
-          )
-            .then(() => {
-              console.log("✅ Missing borrowers analyzed and saved");
-            })
-            .catch((err) =>
-              console.error("❌ Error analyzing missing borrowers", err)
-            );
+          ).catch((err) =>
+            console.error("❌ Error analyzing missing borrowers", err)
+          );
         }
 
         setIsLoading(false);
@@ -104,7 +105,7 @@ const IncomeAnalyzer = () => {
       }
     }
 
-    // 🔹 Standard flow for fresh analysis
+    // Fresh run
     setIsLoading(true);
     setLoadingStep(0);
 
@@ -115,7 +116,6 @@ const IncomeAnalyzer = () => {
     handleStepChange(1);
 
     const remainingBorrowers = borrowerList.slice(1);
-
     Promise.all(
       remainingBorrowers.map((b) => analyzeBorrower(b, email, loanId, signal))
     ).then(() => {
@@ -123,10 +123,11 @@ const IncomeAnalyzer = () => {
     });
   };
 
+  // ✅ NEW analyzeBorrower with live loader update
   const analyzeBorrower = async (borrower, email, loanId, signal) => {
     console.log(`▶️ Starting analysis for borrower: ${borrower}`);
 
-    const totalSteps = 3; // 3 API calls
+    const totalSteps = 3;
     let step = 0;
 
     const updateProgress = () => {
@@ -135,33 +136,32 @@ const IncomeAnalyzer = () => {
     };
 
     try {
-      // 🔹 Step 1: Verify Rules
+      // 1️⃣ Verify Rules
       const rulesRes = await api.post("/verify-rules", null, {
         params: { email, loanID: loanId, borrower },
         signal,
       });
       const rulesData = rulesRes.data;
-      updateProgress(); // now progress = 33%
+      updateProgress();
 
-      // 🔹 Step 2: Income Calculation
+      // 2️⃣ Income Calculation
       const incomeRes = await api.post("/income-calc", null, {
         params: { email, loanID: loanId, borrower },
         signal,
       });
       const incomeData = incomeRes.data;
-      updateProgress(); // now progress = 66%
+      updateProgress();
 
-      // 🔹 Step 3: Income Insights
+      // 3️⃣ Income Insights
       const insightsRes = await api.post("/income-insights", null, {
         params: { email, loanID: loanId, borrower },
         signal,
       });
       const insightsData = insightsRes.data;
-      updateProgress(); // now progress = 100%
+      updateProgress();
 
       if (signal.aborted) return;
 
-      // 🔹 Build summary objects
       const incomeSummary =
         incomeData?.income?.[0]?.checks?.reduce((acc, item) => {
           acc[item.field] = item.value;
@@ -172,7 +172,6 @@ const IncomeAnalyzer = () => {
       const insightsComment =
         insightsData?.income_insights?.insight_commentry || "";
 
-      // 🔹 Update report incrementally
       setReport((prev) => ({
         ...prev,
         [borrower]: {
@@ -186,7 +185,6 @@ const IncomeAnalyzer = () => {
 
       console.log(`✅ Finished borrower: ${borrower}`);
 
-      // 🔹 Persist analyzed data into DB
       await update_analyzed_data_into_db(
         email,
         loanId,
@@ -197,9 +195,12 @@ const IncomeAnalyzer = () => {
         borrower
       );
 
-      // Mark analysis complete for this borrower
       setAnalyzedState({ isAnalyzed: true, analyzed_data: {} });
     } catch (ex) {
+      if (signal.aborted) {
+        console.warn("🛑 Analysis aborted — stopping execution immediately");
+        return;
+      }
       console.error(`❌ Error analyzing borrower ${borrower}`, ex);
     }
   };
@@ -226,7 +227,6 @@ const IncomeAnalyzer = () => {
           insights: insightsComment,
         },
       });
-      setAnalyzedState({ isAnalyzed: true, analyzed_data: {} });
       console.log(`✅ analyzed_data stored successfully for ${borrower}`);
     } catch (err) {
       console.error(`❌ failed to store analyzed_data for ${borrower}`, err);
@@ -234,6 +234,7 @@ const IncomeAnalyzer = () => {
   };
 
   const handleStepChange = (step) => {
+    debugger;
     setActiveStep(step);
     setShowSection((prev) => ({
       ...prev,
@@ -294,7 +295,7 @@ const IncomeAnalyzer = () => {
             report={report}
             setReport={setReport}
             loadingStep={loadingStep}
-            onCancel={handleCancel}
+            onCancel={handleCancel} // ✅ Stop button now fully functional
           />
         )}
       </div>

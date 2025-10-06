@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import ResultTab from "./ResultTab";
 import Button from "../components/Button";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -37,7 +37,12 @@ const UnderwritingRuleResult = ({
   } = useUpload();
 
   const totalSteps = 3;
-  const borrowerData = report?.[filtered_borrower];
+  // const borrowerData = report?.[filtered_borrower];
+  const [borrowerData, setBorrowerData] = useState({});
+
+  useEffect(() => {
+    setBorrowerData(report?.[filtered_borrower]);
+  }, [report, filtered_borrower]);
 
   useEffect(() => {
     console.log("report", report);
@@ -70,7 +75,7 @@ const UnderwritingRuleResult = ({
   }
 
   // 🔹 Per-borrower loader: if selected borrower not yet ready
-  if (!borrowerData) {
+  if (Object.keys(report).length && !borrowerData) {
     return (
       <LoadingModal
         progress={0}
