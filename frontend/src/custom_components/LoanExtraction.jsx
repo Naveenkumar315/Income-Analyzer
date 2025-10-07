@@ -136,65 +136,100 @@ const LoanExtraction = ({
   };
 
   // Move a single document or entire category (called from right panel)
+  // Replace your existing handleMoveDocument with this
   const handleMoveDocument = async (docIndex, toBorrower, subCategory) => {
     if (!selectedBorrower || !selectedCategory || !toBorrower) return;
+
     try {
+      // Work on a deep copy of modifiedData to avoid accidental shared refs
       const updated = JSON.parse(JSON.stringify(modifiedData));
 
-      // move entire category
+      // CASE 1: Move entire category (docIndex === null)
       if (docIndex === null) {
         const fromCat = subCategory || selectedCategory;
         const fullSection = updated[selectedBorrower]?.[fromCat] || [];
+
         if (fullSection.length === 0) {
           toast.warning(`No data to move from ${fromCat}`);
           return;
         }
 
+        // Ensure target borrower/category exist
         if (!updated[toBorrower]) updated[toBorrower] = {};
         if (!updated[toBorrower][fromCat]) updated[toBorrower][fromCat] = [];
+
+        // Deep clone items when appending to avoid reference sharing
+        const clones = fullSection.map((d) => JSON.parse(JSON.stringify(d)));
         updated[toBorrower][fromCat] = [
           ...(updated[toBorrower][fromCat] || []),
-          ...fullSection,
+          ...clones,
         ];
 
+        // Remove category from source borrower
         delete updated[selectedBorrower][fromCat];
-        if (Object.keys(updated[selectedBorrower] || {}).length === 0)
+
+        // If borrower has no remaining categories, remove borrower
+        if (Object.keys(updated[selectedBorrower] || {}).length === 0) {
           delete updated[selectedBorrower];
+        }
 
         await persistAndSetModified(
           updated,
           "category_move",
           `Moved entire ${fromCat} section to ${toBorrower}`
         );
+
+        // Reset selection to the moved-to borrower/category
         setSelectedBorrower(toBorrower);
         setSelectedCategory(fromCat);
         setPanelResetKey(Date.now());
         return;
       }
 
-      // move single document
-      const currentDocs =
+      // CASE 2: Move single document (row-level move)
+      // Use a direct reference to the source list in updated (we already deep-copied modifiedData)
+      const sourceList =
         updated[selectedBorrower][subCategory || selectedCategory] || [];
-      const [movedDoc] = currentDocs.splice(docIndex, 1);
 
+      // Defensive: ensure docIndex exists in sourceList
+      if (docIndex < 0 || docIndex >= sourceList.length) {
+        toast.error("Invalid document index");
+        return;
+      }
+
+      // Extract and deep-clone the moved doc so destination gets its own copy
+      const movedDocClone = JSON.parse(JSON.stringify(sourceList[docIndex]));
+
+      // Remove the item from the source list by index
+      sourceList.splice(docIndex, 1);
+
+      // Ensure target borrower/category exist
       if (!updated[toBorrower]) updated[toBorrower] = {};
       if (!updated[toBorrower][subCategory || selectedCategory])
         updated[toBorrower][subCategory || selectedCategory] = [];
-      updated[toBorrower][subCategory || selectedCategory].push(movedDoc);
 
+      // Append the cloned doc
+      updated[toBorrower][subCategory || selectedCategory].push(movedDocClone);
+
+      // If source category became empty, delete it
       if (
         updated[selectedBorrower][subCategory || selectedCategory]?.length === 0
       ) {
         delete updated[selectedBorrower][subCategory || selectedCategory];
       }
-      if (Object.keys(updated[selectedBorrower] || {}).length === 0)
+
+      // If borrower became empty, delete borrower
+      if (Object.keys(updated[selectedBorrower] || {}).length === 0) {
         delete updated[selectedBorrower];
+      }
 
       await persistAndSetModified(
         updated,
         "doc_move",
         `Moved ${subCategory || selectedCategory} document to ${toBorrower}`
       );
+
+      // Focus on the moved-to borrower/category
       setSelectedBorrower(toBorrower);
       setSelectedCategory(subCategory || selectedCategory);
       setPanelResetKey(Date.now());
