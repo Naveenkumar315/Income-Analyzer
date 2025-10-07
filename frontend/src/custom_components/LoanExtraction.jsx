@@ -46,13 +46,11 @@ const LoanExtraction = ({
     setHasModifications,
   } = useUpload();
 
-  // UI state
   const [rulesModel, setRulesModel] = useState(false);
   const [originalData, setOriginalData] = useState({});
   const [modifiedData, setModifiedData] = useState({});
   const [activeTab, setActiveTab] = useState("modified");
 
-  // selection / navigation state
   const [selectedBorrower, setSelectedBorrower] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [openBorrowers, setOpenBorrowers] = useState({});
@@ -62,20 +60,18 @@ const LoanExtraction = ({
   });
 
   const [selectMode, setSelectMode] = useState(false);
-  const [selectedBorrowers, setSelectedBorrowers] = useState([]); // borrower-level selections
-  const [selectedFiles, setSelectedFiles] = useState([]); // category-level selections (borrower+category+docs)
+  const [selectedBorrowers, setSelectedBorrowers] = useState([]);
+  const [selectedFiles, setSelectedFiles] = useState([]);
 
-  // anchors & modals
   const [mergeAnchorEl, setMergeAnchorEl] = useState(null);
   const [mergeModal, setMergeModal] = useState(null);
   const [moveAnchorEl, setMoveAnchorEl] = useState(null);
   const [moveModal, setMoveModal] = useState(null);
   const [deleteModal, setDeleteModal] = useState(null);
 
-  // helper for resetting the right-panel component so activeDoc goes to 0
   const [panelResetKey, setPanelResetKey] = useState(0);
 
-  // initial load of normalized json
+  // Initial data load
   useEffect(() => {
     if (normalized_json) {
       const snapshot = JSON.parse(JSON.stringify(normalized_json));
@@ -87,22 +83,20 @@ const LoanExtraction = ({
   const currentData = activeTab === "original" ? originalData : modifiedData;
   const borrowers = currentData ? Object.keys(currentData) : [];
 
-  // keep borrower list in sync
+  // Keep borrower list synced
   useEffect(() => {
     if (activeTab !== "modified") return;
     const borrowersFromData = Object.keys(modifiedData || {});
     const currentList = borrowerList || [];
-
     if (JSON.stringify(borrowersFromData) !== JSON.stringify(currentList)) {
       setBorrowerList(borrowersFromData);
     }
-
     if (!filtered_borrower && borrowersFromData.length > 0) {
       set_filter_borrower(borrowersFromData[0]);
     }
   }, [modifiedData]);
 
-  // clean openBorrowers map when borrowers change
+  // Clean open borrowers when list changes
   useEffect(() => {
     if (!borrowers?.length) return;
     setOpenBorrowers((prev) => {
@@ -117,7 +111,7 @@ const LoanExtraction = ({
   const toggleBorrower = (name) =>
     setOpenBorrowers((prev) => ({ ...prev, [name]: !prev[name] }));
 
-  // persist helper
+  // Persist changes
   const persistAndSetModified = async (updatedJson, actionTag, successMsg) => {
     try {
       const res = await api.post("/update-cleaned-data", {
@@ -138,6 +132,7 @@ const LoanExtraction = ({
     }
   };
 
+  // 🔹 Fetch Original Data
   const fetchOriginalData = async () => {
     try {
       const email = sessionStorage.getItem("email") || "";
@@ -148,47 +143,33 @@ const LoanExtraction = ({
         return;
       }
 
-      const res = await api.post("/get-original-data", {
-        email,
-        loanId,
-      });
-
-      // prefer cleaned_data key like your previous backend return
+      const res = await api.post("/get-original-data", { email, loanId });
       const data =
         res?.data?.cleaned_data ?? res?.data?.original_data ?? res?.data ?? {};
 
-      // set original data and switch to original view
       setOriginalData(data);
       setActiveTab("original");
 
-      // DO NOT auto-select borrower/category here.
-      // Leave selectedBorrower/selectedCategory untouched so user must click a category.
-      // (Optional: clear the previous selection if you prefer an empty right pane)
+      // Do NOT auto-select borrower/category — user chooses manually
       setSelectedBorrower(null);
       setSelectedCategory(null);
-      // no panelResetKey change — right panel will show the "Select a category..." message
 
-      // toast.success("Original data loaded.");
+      toast.success("Original data loaded.");
     } catch (err) {
       console.error("Failed to fetch original data:", err);
       toast.error("Failed to load original data. Check console for details.");
     }
   };
 
-  // Move a single document or entire category (called from right panel)
-  // Use the deep-clone safe implementation
+  // Move single doc or category
   const handleMoveDocument = async (docIndex, toBorrower, subCategory) => {
     if (!selectedBorrower || !selectedCategory || !toBorrower) return;
-
     try {
-      // Work on a deep copy of modifiedData to avoid accidental shared refs
       const updated = JSON.parse(JSON.stringify(modifiedData));
 
-      // CASE 1: Move entire category (docIndex === null)
       if (docIndex === null) {
         const fromCat = subCategory || selectedCategory;
         const fullSection = updated[selectedBorrower]?.[fromCat] || [];
-
         if (fullSection.length === 0) {
           toast.warning(`No data to move from ${fromCat}`);
           return;
@@ -198,16 +179,11 @@ const LoanExtraction = ({
         if (!updated[toBorrower][fromCat]) updated[toBorrower][fromCat] = [];
 
         const clones = fullSection.map((d) => JSON.parse(JSON.stringify(d)));
-        updated[toBorrower][fromCat] = [
-          ...(updated[toBorrower][fromCat] || []),
-          ...clones,
-        ];
+        updated[toBorrower][fromCat].push(...clones);
 
         delete updated[selectedBorrower][fromCat];
-
-        if (Object.keys(updated[selectedBorrower] || {}).length === 0) {
+        if (Object.keys(updated[selectedBorrower]).length === 0)
           delete updated[selectedBorrower];
-        }
 
         await persistAndSetModified(
           updated,
@@ -221,33 +197,22 @@ const LoanExtraction = ({
         return;
       }
 
-      // CASE 2: Move single document (row-level move)
       const sourceList =
         updated[selectedBorrower][subCategory || selectedCategory] || [];
-
-      if (docIndex < 0 || docIndex >= sourceList.length) {
-        toast.error("Invalid document index");
-        return;
-      }
-
-      const movedDocClone = JSON.parse(JSON.stringify(sourceList[docIndex]));
+      const movedDoc = JSON.parse(JSON.stringify(sourceList[docIndex]));
       sourceList.splice(docIndex, 1);
 
       if (!updated[toBorrower]) updated[toBorrower] = {};
       if (!updated[toBorrower][subCategory || selectedCategory])
         updated[toBorrower][subCategory || selectedCategory] = [];
-
-      updated[toBorrower][subCategory || selectedCategory].push(movedDocClone);
+      updated[toBorrower][subCategory || selectedCategory].push(movedDoc);
 
       if (
         updated[selectedBorrower][subCategory || selectedCategory]?.length === 0
-      ) {
+      )
         delete updated[selectedBorrower][subCategory || selectedCategory];
-      }
-
-      if (Object.keys(updated[selectedBorrower] || {}).length === 0) {
+      if (Object.keys(updated[selectedBorrower]).length === 0)
         delete updated[selectedBorrower];
-      }
 
       await persistAndSetModified(
         updated,
@@ -259,12 +224,11 @@ const LoanExtraction = ({
       setSelectedCategory(subCategory || selectedCategory);
       setPanelResetKey(Date.now());
     } catch (err) {
-      console.error("Error moving document/category:", err);
+      console.error("Move error:", err);
       toast.error("Failed to move. Please try again.");
     }
   };
 
-  // Batch merge selected borrowers into targetBorrower
   const handleMerge = async (targetBorrower) => {
     if (!targetBorrower || selectedBorrowers.length === 0) return;
     try {
@@ -276,7 +240,7 @@ const LoanExtraction = ({
         const targetCats = mergedData[b] || {};
         Object.keys(targetCats).forEach((cat) => {
           if (!Array.isArray(baseCats[cat])) baseCats[cat] = [];
-          baseCats[cat] = baseCats[cat].concat(targetCats[cat]);
+          baseCats[cat].push(...targetCats[cat]);
         });
         delete mergedData[b];
       });
@@ -287,8 +251,6 @@ const LoanExtraction = ({
         "folder_merge",
         `Merged ${others.join(", ")} into ${targetBorrower}`
       );
-
-      // reset selection UI
       setSelectMode(false);
       setSelectedBorrowers([]);
       setMergeModal(null);
@@ -299,7 +261,6 @@ const LoanExtraction = ({
     }
   };
 
-  // Batch move selected category groups to a borrower
   const handleMove = async (toBorrower) => {
     if (!toBorrower || selectedFiles.length === 0) return;
     try {
@@ -308,26 +269,17 @@ const LoanExtraction = ({
         if (!mergedData[toBorrower]) mergedData[toBorrower] = {};
         if (!mergedData[toBorrower][category])
           mergedData[toBorrower][category] = [];
-        mergedData[toBorrower][category] =
-          mergedData[toBorrower][category].concat(docs);
+        mergedData[toBorrower][category].push(...docs);
 
         if (mergedData[borrower] && mergedData[borrower][category])
           mergedData[borrower][category] = [];
       });
 
-      // cleanup empty categories and borrowers
       Object.keys(mergedData).forEach((b) => {
         Object.keys(mergedData[b] || {}).forEach((cat) => {
-          if (
-            Array.isArray(mergedData[b][cat]) &&
-            mergedData[b][cat].length === 0
-          ) {
-            delete mergedData[b][cat];
-          }
+          if (!mergedData[b][cat]?.length) delete mergedData[b][cat];
         });
-      });
-      Object.keys(mergedData).forEach((b) => {
-        if (!Object.keys(mergedData[b] || {}).length) delete mergedData[b];
+        if (!Object.keys(mergedData[b]).length) delete mergedData[b];
       });
 
       await persistAndSetModified(
@@ -335,7 +287,6 @@ const LoanExtraction = ({
         "file_merge",
         `Moved ${selectedFiles.length} category(ies) to ${toBorrower}`
       );
-
       setSelectMode(false);
       setSelectedFiles([]);
       setMoveModal(null);
@@ -346,7 +297,6 @@ const LoanExtraction = ({
     }
   };
 
-  // delete borrower
   const handleDeleteBorrower = async (name) => {
     if (!name) return;
     try {
@@ -363,79 +313,32 @@ const LoanExtraction = ({
         setSelectedCategory(null);
       }
     } catch (err) {
-      console.error("Delete borrower error:", err);
+      console.error("Delete error:", err);
       toast.error("Delete failed. Please try again.");
     }
   };
 
-  // helper to check if a category for a borrower is selected (used for checkboxes)
   const isCategorySelected = (borrower, category) =>
     selectedFiles.some(
       (f) => f.borrower === borrower && f.category === category
     );
 
   return (
-    <>
-      <div className="h-full flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between pb-3 px-6 pt-4 bg-white border-b border-gray-200">
-          {/* left: header title (kept unchanged) */}
-          <div className="font-medium text-gray-700">
-            Loan ID : {sessionStorage.getItem("loanId") || ""}
-          </div>
+    <div className="h-full flex flex-col">
+      {/* Header buttons styled */}
+      <div className="flex items-center justify-between pb-3 px-6 pt-4 bg-white border-b border-gray-200">
+        <div className="font-medium text-gray-700">
+          Loan ID : {sessionStorage.getItem("loanId") || ""}
+        </div>
 
-          {/* right: Upload / Start buttons styled like the screenshot */}
-          {(isUploaded?.uploaded || normalized_json) && (
-            <div className="flex items-center gap-3">
-              {/* View Result (when available) - styled like Start Analyzing */}
-              {analyzedState?.isAnalyzed && (
-                <Button
-                  variant="start-analyze"
-                  width={160}
-                  label="View Result"
-                  className="whitespace-nowrap"
-                  onClick={() => {
-                    setIsSAClicked(false);
-                    setShowSection((p) => ({
-                      ...p,
-                      startAnalyzing: true,
-                      processLoanSection: false,
-                      provideLoanIDSection: false,
-                      extractedSection: false,
-                    }));
-                    handleStepChange(1);
-                  }}
-                >
-                  View Result
-                </Button>
-              )}
-
-              {/* Upload Documents - outlined like screenshot */}
+        {(isUploaded?.uploaded || normalized_json) && (
+          <div className="flex items-center gap-3">
+            {analyzedState?.isAnalyzed && (
               <Button
-                variant="upload-doc"
-                width={180}
-                label="Upload Documents"
-                className="whitespace-nowrap"
-                onClick={() =>
-                  setShowSection((p) => ({ ...p, uploadedModel: true }))
-                }
-              >
-                Upload Documents
-              </Button>
-
-              {/* Start Analyzing - primary style */}
-              <Button
-                variant="start-analyze"
-                width={160}
-                label="Start Analyzing"
-                className="whitespace-nowrap"
+                className="px-4 py-1 rounded text-white bg-sky-600 hover:bg-sky-700 text-sm"
+                label={"View Result"}
                 onClick={() => {
-                  setReport({});
-                  setAnalyzedState((prev) => ({
-                    ...prev,
-                    isAnalyzed: false,
-                    analyzed_data: {},
-                  }));
+                  setIsSAClicked(false);
                   setShowSection((p) => ({
                     ...p,
                     startAnalyzing: true,
@@ -443,370 +346,402 @@ const LoanExtraction = ({
                     provideLoanIDSection: false,
                     extractedSection: false,
                   }));
+                  handleStepChange(1);
                 }}
               >
-                Start Analyzing
+                View Result
               </Button>
-            </div>
-          )}
-        </div>
+            )}
 
-        {/* Main Layout */}
-        <div className="flex flex-1 min-h-0">
-          {isUploaded?.uploaded || normalized_json ? (
-            <ResizableLayout
-              left={
-                <div className="h-full flex flex-col">
-                  {/* Toolbar */}
-                  {!selectMode ? (
-                    <div className="flex items-center justify-between bg-gray-50 border-b border-gray-200 px-4 py-2 shadow-sm">
-                      <div className="flex items-center gap-4">
-                        {activeTab === "modified" && (
-                          <>
-                            <button
-                              className="text-sm text-[#26a3dd]"
-                              onClick={() =>
-                                setAddBorrower({
-                                  model: true,
-                                  borrowerName: "",
-                                  onSave: async (name) => {
-                                    if (!name || !name.trim()) return;
-                                    const updated = {
-                                      ...modifiedData,
-                                      [name]: {},
-                                    };
-                                    await persistAndSetModified(
-                                      updated,
-                                      "add_borrower",
-                                      `Borrower "${name}" added`
-                                    );
-                                  },
-                                })
-                              }
-                            >
-                              Add Borrower
-                            </button>
-                            <button
-                              className="text-sm text-gray-600 hover:text-[#26a3dd]"
-                              onClick={() => setSelectMode(true)}
-                            >
-                              Select
-                            </button>
-                          </>
-                        )}
-                      </div>
+            <Button
+              className="px-4 py-1 rounded border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 text-sm"
+              label={"Upload Document"}
+              onClick={() =>
+                setShowSection((p) => ({ ...p, uploadedModel: true }))
+              }
+            >
+              Upload Documents
+            </Button>
 
-                      <div className="flex items-center gap-3">
-                        {/* keep toolbar DB icon here (left pane toolbar) so fetchOriginalData is still accessible */}
+            <Button
+              className="px-4 py-1 rounded text-white bg-sky-600 hover:bg-sky-700 text-sm"
+              label={"Start Analyzing"}
+              onClick={() => {
+                setReport({});
+                setAnalyzedState((prev) => ({
+                  ...prev,
+                  isAnalyzed: false,
+                  analyzed_data: {},
+                }));
+                setShowSection((p) => ({
+                  ...p,
+                  startAnalyzing: true,
+                  processLoanSection: false,
+                  provideLoanIDSection: false,
+                  extractedSection: false,
+                }));
+              }}
+            >
+              Start Analyzing
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Layout */}
+      <div className="flex flex-1 min-h-0">
+        {isUploaded?.uploaded || normalized_json ? (
+          <ResizableLayout
+            left={
+              <div className="h-full flex flex-col">
+                {/* Toolbar */}
+                {!selectMode ? (
+                  <div className="flex items-center justify-between bg-gray-50 border-b border-gray-200 px-4 py-2 shadow-sm">
+                    {/* left side buttons */}
+                    <div className="flex items-center gap-4">
+                      {activeTab === "modified" && (
+                        <>
+                          <button
+                            className="text-sm text-[#26a3dd]"
+                            onClick={() =>
+                              setAddBorrower({
+                                model: true,
+                                borrowerName: "",
+                                onSave: async (name) => {
+                                  if (!name || !name.trim()) return;
+                                  const updated = {
+                                    ...modifiedData,
+                                    [name]: {},
+                                  };
+                                  await persistAndSetModified(
+                                    updated,
+                                    "add_borrower",
+                                    `Borrower "${name}" added`
+                                  );
+                                },
+                              })
+                            }
+                          >
+                            Add Borrower
+                          </button>
+
+                          <button
+                            className="text-sm text-gray-600 hover:text-[#26a3dd]"
+                            onClick={() => setSelectMode(true)}
+                          >
+                            Select
+                          </button>
+                        </>
+                      )}
+                    </div>
+
+                    {/* right side icons */}
+                    <div className="flex items-center gap-3">
+                      {activeTab !== "original" ? (
                         <Tooltip title="View Original Data">
                           <TbDatabaseEdit
                             className="text-gray-600 cursor-pointer"
                             onClick={fetchOriginalData}
                           />
                         </Tooltip>
-                        {activeTab === "original" && (
-                          <CloseIcon
-                            className="text-red-500 cursor-pointer"
-                            onClick={() => setActiveTab("modified")}
-                          />
-                        )}
-                      </div>
+                      ) : (
+                        <CloseIcon
+                          className="text-red-500 cursor-pointer"
+                          onClick={() => {
+                            setActiveTab("modified");
+                            setSelectedBorrower(null);
+                            setSelectedCategory(null);
+                            setPanelResetKey(Date.now());
+                          }}
+                        />
+                      )}
                     </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-end bg-gray-50 border-b border-gray-200 px-4 py-2 shadow-sm">
+                    <div className="flex gap-4 items-center">
+                      <Tooltip title="Merge Selected">
+                        <TbArrowMerge
+                          size={22}
+                          className={`cursor-pointer ${
+                            selectedBorrowers.length > 0
+                              ? "text-[#26a3dd]"
+                              : "text-gray-300"
+                          }`}
+                          onClick={(e) => {
+                            if (!selectedBorrowers.length) return;
+                            setMergeAnchorEl(e.currentTarget);
+                          }}
+                        />
+                      </Tooltip>
+                      <Tooltip title="Move Selected">
+                        <TbArrowRight
+                          size={22}
+                          className={`cursor-pointer ${
+                            selectedFiles.length > 0
+                              ? "text-[#26a3dd]"
+                              : "text-gray-300"
+                          }`}
+                          onClick={(e) => {
+                            if (!selectedFiles.length) return;
+                            setMoveAnchorEl(e.currentTarget);
+                          }}
+                        />
+                      </Tooltip>
+                      <Tooltip title="Cancel Selection">
+                        <CloseIcon
+                          className="text-red-500 cursor-pointer"
+                          onClick={() => {
+                            setSelectMode(false);
+                            setSelectedBorrowers([]);
+                            setSelectedFiles([]);
+                          }}
+                        />
+                      </Tooltip>
+                    </div>
+                  </div>
+                )}
+
+                {/* Borrowers List */}
+                <div className="flex-1 overflow-y-auto px-4 py-2">
+                  <ul className="space-y-2">
+                    {borrowers.map((name) => {
+                      const categories = Object.keys(currentData[name] || {});
+                      return (
+                        <li key={name}>
+                          <div
+                            className="group flex items-center justify-between p-2 cursor-pointer hover:bg-gray-50 rounded-md"
+                            onClick={() => toggleBorrower(name)}
+                          >
+                            <div className="flex items-center gap-2 flex-1">
+                              {activeTab === "modified" && selectMode && (
+                                <Checkbox
+                                  size="small"
+                                  checked={selectedBorrowers.includes(name)}
+                                  onChange={(e) => {
+                                    setSelectedBorrowers((prev) =>
+                                      e.target.checked
+                                        ? [...prev, name]
+                                        : prev.filter((b) => b !== name)
+                                    );
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              )}
+                              <PersonSharpIcon fontSize="small" />
+                              <span className="font-medium">{name}</span>
+                            </div>
+                            {openBorrowers[name] ? (
+                              <ExpandLessIcon />
+                            ) : (
+                              <ExpandMoreIcon />
+                            )}
+                          </div>
+
+                          {openBorrowers[name] && (
+                            <ul className="ml-8 mt-2 space-y-1">
+                              {categories.map((cat) => {
+                                const docs = currentData[name][cat] || [];
+                                const isSelected = isCategorySelected(
+                                  name,
+                                  cat
+                                );
+                                return (
+                                  <li key={cat}>
+                                    <div
+                                      className={`flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer hover:bg-gray-100 ${
+                                        selectedBorrower === name &&
+                                        selectedCategory === cat
+                                          ? "bg-blue-50 border border-blue-300"
+                                          : ""
+                                      }`}
+                                      onClick={() => {
+                                        setSelectedBorrower(name);
+                                        setSelectedCategory(cat);
+                                        setPanelResetKey(Date.now());
+                                      }}
+                                    >
+                                      {activeTab === "modified" &&
+                                        selectMode && (
+                                          <Checkbox
+                                            size="small"
+                                            checked={isSelected}
+                                            onClick={(e) => e.stopPropagation()}
+                                            onChange={(e) => {
+                                              if (e.target.checked) {
+                                                setSelectedFiles((prev) => [
+                                                  ...prev,
+                                                  {
+                                                    borrower: name,
+                                                    category: cat,
+                                                    docs,
+                                                  },
+                                                ]);
+                                              } else {
+                                                setSelectedFiles((prev) =>
+                                                  prev.filter(
+                                                    (f) =>
+                                                      !(
+                                                        f.borrower === name &&
+                                                        f.category === cat
+                                                      )
+                                                  )
+                                                );
+                                              }
+                                            }}
+                                          />
+                                        )}
+                                      <FaFolder className="text-gray-500" />
+                                      <span className="truncate text-sm font-medium">
+                                        {cat}
+                                      </span>
+                                      <span className="ml-auto text-xs text-gray-500">
+                                        ({docs.length})
+                                      </span>
+                                    </div>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              </div>
+            }
+            right={
+              <div className="h-full flex flex-col">
+                <div className="flex-1 overflow-y-auto p-4">
+                  {selectedBorrower &&
+                  currentData[selectedBorrower] &&
+                  selectedCategory &&
+                  currentData[selectedBorrower][selectedCategory] ? (
+                    <LoanPackagePanel
+                      key={panelResetKey}
+                      borrower={selectedBorrower}
+                      category={selectedCategory}
+                      docs={
+                        currentData[selectedBorrower][selectedCategory] || []
+                      }
+                      borrowersList={Object.keys(currentData || {})}
+                      onMoveDocument={handleMoveDocument}
+                      isModifiedView={activeTab === "modified"}
+                    />
                   ) : (
-                    <div className="flex items-center justify-end bg-gray-50 border-b border-gray-200 px-4 py-2 shadow-sm">
-                      <div className="flex gap-4 items-center">
-                        <Tooltip title="Merge Selected">
-                          <TbArrowMerge
-                            size={22}
-                            className={`cursor-pointer ${
-                              selectedBorrowers.length > 0
-                                ? "text-[#26a3dd]"
-                                : "text-gray-300"
-                            }`}
-                            onClick={(e) => {
-                              if (selectedBorrowers.length === 0) return;
-                              setMergeAnchorEl(e.currentTarget);
-                            }}
-                          />
-                        </Tooltip>
-                        <Tooltip title="Move Selected">
-                          <TbArrowRight
-                            size={22}
-                            className={`cursor-pointer ${
-                              selectedFiles.length > 0
-                                ? "text-[#26a3dd]"
-                                : "text-gray-300"
-                            }`}
-                            onClick={(e) => {
-                              if (selectedFiles.length === 0) return;
-                              setMoveAnchorEl(e.currentTarget);
-                            }}
-                          />
-                        </Tooltip>
-                        <Tooltip title="Cancel Selection">
-                          <CloseIcon
-                            className="text-red-500 cursor-pointer"
-                            onClick={() => {
-                              setSelectMode(false);
-                              setSelectedBorrowers([]);
-                              setSelectedFiles([]);
-                            }}
-                          />
-                        </Tooltip>
-                      </div>
+                    <div className="text-gray-400 flex items-center justify-center h-full">
+                      Select a category to view documents
                     </div>
                   )}
-
-                  {/* Borrowers list with checkboxes */}
-                  <div className="flex-1 overflow-y-auto px-4 py-2">
-                    <ul className="space-y-2">
-                      {borrowers.map((name) => {
-                        const categories = Object.keys(currentData[name] || {});
-                        return (
-                          <li key={name}>
-                            <div
-                              className="group flex items-center justify-between p-2 cursor-pointer hover:bg-gray-50 rounded-md"
-                              onClick={() => toggleBorrower(name)}
-                            >
-                              <div className="flex items-center gap-2 flex-1">
-                                {activeTab === "modified" && selectMode && (
-                                  <Checkbox
-                                    size="small"
-                                    checked={selectedBorrowers.includes(name)}
-                                    onChange={(e) => {
-                                      setSelectedBorrowers((prev) =>
-                                        e.target.checked
-                                          ? [...prev, name]
-                                          : prev.filter((b) => b !== name)
-                                      );
-                                    }}
-                                    onClick={(e) => e.stopPropagation()}
-                                  />
-                                )}
-
-                                <PersonSharpIcon fontSize="small" />
-                                <span className="font-medium">{name}</span>
-                              </div>
-                              {openBorrowers[name] ? (
-                                <ExpandLessIcon />
-                              ) : (
-                                <ExpandMoreIcon />
-                              )}
-                            </div>
-
-                            {openBorrowers[name] && (
-                              <ul className="ml-8 mt-2 space-y-1">
-                                {categories.map((cat) => {
-                                  const docs = currentData[name][cat] || [];
-                                  const isSelected = isCategorySelected(
-                                    name,
-                                    cat
-                                  );
-                                  return (
-                                    <li key={cat}>
-                                      <div
-                                        className={`flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer hover:bg-gray-100 ${
-                                          selectedBorrower === name &&
-                                          selectedCategory === cat
-                                            ? "bg-blue-50 border border-blue-300"
-                                            : ""
-                                        }`}
-                                        onClick={() => {
-                                          setSelectedBorrower(name);
-                                          setSelectedCategory(cat);
-                                          setPanelResetKey(Date.now());
-                                        }}
-                                      >
-                                        {activeTab === "modified" &&
-                                          selectMode && (
-                                            <Checkbox
-                                              size="small"
-                                              checked={isSelected}
-                                              onClick={(e) =>
-                                                e.stopPropagation()
-                                              }
-                                              onChange={(e) => {
-                                                if (e.target.checked) {
-                                                  setSelectedFiles((prev) => [
-                                                    ...prev,
-                                                    {
-                                                      borrower: name,
-                                                      category: cat,
-                                                      docs,
-                                                    },
-                                                  ]);
-                                                } else {
-                                                  setSelectedFiles((prev) =>
-                                                    prev.filter(
-                                                      (f) =>
-                                                        !(
-                                                          f.borrower === name &&
-                                                          f.category === cat
-                                                        )
-                                                    )
-                                                  );
-                                                }
-                                              }}
-                                            />
-                                          )}
-
-                                        <FaFolder className="text-gray-500" />
-                                        <span className="truncate text-sm font-medium">
-                                          {cat}
-                                        </span>
-                                        <span className="ml-auto text-xs text-gray-500">
-                                          ({docs.length})
-                                        </span>
-                                      </div>
-                                    </li>
-                                  );
-                                })}
-                              </ul>
-                            )}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
                 </div>
-              }
-              right={
-                <div className="h-full flex flex-col">
-                  <div className="flex-1 overflow-y-auto p-4">
-                    {selectedBorrower &&
-                    currentData[selectedBorrower] &&
-                    selectedCategory &&
-                    currentData[selectedBorrower][selectedCategory] ? (
-                      <LoanPackagePanel
-                        key={panelResetKey}
-                        borrower={selectedBorrower}
-                        category={selectedCategory}
-                        docs={
-                          currentData[selectedBorrower][selectedCategory] || []
-                        }
-                        borrowersList={Object.keys(currentData || {})}
-                        onMoveDocument={handleMoveDocument}
-                        isModifiedView={activeTab === "modified"}
-                      />
-                    ) : (
-                      <div className="text-gray-400 flex items-center justify-center h-full">
-                        Select a category to view documents
-                      </div>
-                    )}
-                  </div>
-                </div>
-              }
-            />
-          ) : (
-            <UnuploadedScreen setShowSection={setShowSection} />
-          )}
-        </div>
-
-        {/* Floating rules button */}
-        <div className="fixed bottom-4 right-4 w-[50px] h-[50px] bg-[#12699D] rounded-full flex items-center justify-center shadow-lg hover:bg-[#0f5a7a] transition-colors">
-          <DescriptionIcon
-            onClick={() => setRulesModel(true)}
-            className="text-white cursor-pointer"
+              </div>
+            }
           />
-        </div>
-
-        <UnderwritingRulesModel
-          rulesModel={rulesModel}
-          OpenRulesModel={setRulesModel}
-        />
-        {showSection.uploadedModel && (
-          <UploadedModel setShowSection={setShowSection} />
-        )}
-
-        {/* --- MERGE MENU (triggered by mergeAnchorEl) --- */}
-        <Menu
-          anchorEl={mergeAnchorEl}
-          open={Boolean(mergeAnchorEl)}
-          onClose={() => setMergeAnchorEl(null)}
-        >
-          <div className="px-4 py-2 text-sm font-semibold text-[#097aaf] border-b border-gray-200">
-            Merge selected into
-          </div>
-          {borrowers
-            .filter((b) => !selectedBorrowers.includes(b))
-            .map((b) => (
-              <MenuItem
-                key={b}
-                onClick={() => {
-                  setMergeAnchorEl(null);
-                  setMergeModal({ target: b });
-                }}
-              >
-                {b}
-              </MenuItem>
-            ))}
-        </Menu>
-
-        {/* --- MOVE MENU (triggered by moveAnchorEl) --- */}
-        <Menu
-          anchorEl={moveAnchorEl}
-          open={Boolean(moveAnchorEl)}
-          onClose={() => setMoveAnchorEl(null)}
-        >
-          <div className="px-4 py-2 text-sm font-semibold text-[#097aaf] border-b border-gray-200">
-            Move categories to
-          </div>
-          {borrowers
-            .filter((b) => !selectedFiles.some((f) => f.borrower === b))
-            .map((b) => (
-              <MenuItem
-                key={b}
-                onClick={() => {
-                  setMoveAnchorEl(null);
-                  setMoveModal({
-                    from: selectedFiles[0]?.borrower || "",
-                    to: b,
-                    files: selectedFiles,
-                  });
-                }}
-              >
-                {b}
-              </MenuItem>
-            ))}
-        </Menu>
-
-        {/* Add borrower modal */}
-        {addBorrower?.model && (
-          <EnterBorrowerName
-            setAddBorrower={setAddBorrower}
-            addBorrower={addBorrower}
-          />
-        )}
-
-        {/* Confirm modals */}
-        {mergeModal && (
-          <ConfirmMergeModal
-            borrowers={selectedBorrowers}
-            target={mergeModal.target}
-            onCancel={() => setMergeModal(null)}
-            onConfirm={() => handleMerge(mergeModal.target)}
-          />
-        )}
-
-        {moveModal && (
-          <ConfirmMoveModal
-            fromBorrower={moveModal.from}
-            toBorrower={moveModal.to}
-            files={moveModal.files}
-            onCancel={() => setMoveModal(null)}
-            onConfirm={() => handleMove(moveModal.to)}
-          />
-        )}
-
-        {deleteModal && (
-          <ConfirmDeleteModal
-            borrower={deleteModal}
-            onCancel={() => setDeleteModal(null)}
-            onConfirm={(b) => handleDeleteBorrower(b)}
-          />
+        ) : (
+          <UnuploadedScreen setShowSection={setShowSection} />
         )}
       </div>
-    </>
+
+      {/* Floating Rules */}
+      <div className="fixed bottom-4 right-4 w-[50px] h-[50px] bg-[#12699D] rounded-full flex items-center justify-center shadow-lg hover:bg-[#0f5a7a] transition-colors">
+        <DescriptionIcon
+          onClick={() => setRulesModel(true)}
+          className="text-white cursor-pointer"
+        />
+      </div>
+
+      <UnderwritingRulesModel
+        rulesModel={rulesModel}
+        OpenRulesModel={setRulesModel}
+      />
+      {showSection.uploadedModel && (
+        <UploadedModel setShowSection={setShowSection} />
+      )}
+
+      {/* Merge / Move Menus */}
+      <Menu
+        anchorEl={mergeAnchorEl}
+        open={Boolean(mergeAnchorEl)}
+        onClose={() => setMergeAnchorEl(null)}
+      >
+        <div className="px-4 py-2 text-sm font-semibold text-[#097aaf] border-b border-gray-200">
+          Merge selected into
+        </div>
+        {borrowers
+          .filter((b) => !selectedBorrowers.includes(b))
+          .map((b) => (
+            <MenuItem
+              key={b}
+              onClick={() => {
+                setMergeAnchorEl(null);
+                setMergeModal({ target: b });
+              }}
+            >
+              {b}
+            </MenuItem>
+          ))}
+      </Menu>
+
+      <Menu
+        anchorEl={moveAnchorEl}
+        open={Boolean(moveAnchorEl)}
+        onClose={() => setMoveAnchorEl(null)}
+      >
+        <div className="px-4 py-2 text-sm font-semibold text-[#097aaf] border-b border-gray-200">
+          Move categories to
+        </div>
+        {borrowers
+          .filter((b) => !selectedFiles.some((f) => f.borrower === b))
+          .map((b) => (
+            <MenuItem
+              key={b}
+              onClick={() => {
+                setMoveAnchorEl(null);
+                setMoveModal({
+                  from: selectedFiles[0]?.borrower || "",
+                  to: b,
+                  files: selectedFiles,
+                });
+              }}
+            >
+              {b}
+            </MenuItem>
+          ))}
+      </Menu>
+
+      {/* Modals */}
+      {addBorrower?.model && (
+        <EnterBorrowerName
+          setAddBorrower={setAddBorrower}
+          addBorrower={addBorrower}
+        />
+      )}
+      {mergeModal && (
+        <ConfirmMergeModal
+          borrowers={selectedBorrowers}
+          target={mergeModal.target}
+          onCancel={() => setMergeModal(null)}
+          onConfirm={() => handleMerge(mergeModal.target)}
+        />
+      )}
+      {moveModal && (
+        <ConfirmMoveModal
+          fromBorrower={moveModal.from}
+          toBorrower={moveModal.to}
+          files={moveModal.files}
+          onCancel={() => setMoveModal(null)}
+          onConfirm={() => handleMove(moveModal.to)}
+        />
+      )}
+      {deleteModal && (
+        <ConfirmDeleteModal
+          borrower={deleteModal}
+          onCancel={() => setDeleteModal(null)}
+          onConfirm={(b) => handleDeleteBorrower(b)}
+        />
+      )}
+    </div>
   );
 };
 
