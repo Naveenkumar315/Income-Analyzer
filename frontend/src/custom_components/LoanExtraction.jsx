@@ -22,6 +22,7 @@ import ConfirmDeleteModal from "./ConfirmDeleteModal";
 import { toast } from "react-toastify";
 import Tooltip from "@mui/material/Tooltip";
 import ResizableLayout from "../utils/ResizableLayout";
+import Button from "../components/Button";
 
 const LoanExtraction = ({
   showSection = {},
@@ -395,7 +396,10 @@ const LoanExtraction = ({
               {/* View Result (when available) - styled like Start Analyzing */}
               {analyzedState?.isAnalyzed && (
                 <button
-                  className="px-4 py-1 rounded text-white bg-sky-600 hover:bg-sky-700 text-sm"
+                  variant="start-analyze"
+                  width={160}
+                  label="Start Analyzing"
+                  className="whitespace-nowrap"
                   onClick={() => {
                     setIsSAClicked(false);
                     setShowSection((p) => ({
@@ -413,18 +417,24 @@ const LoanExtraction = ({
               )}
 
               {/* Upload Documents - outlined like screenshot */}
-              <button
-                className="px-4 py-1 rounded border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 text-sm"
+              <Button
+                variant="upload-doc"
+                width={180}
+                label="Upload Documents"
+                className="whitespace-nowrap"
                 onClick={() =>
                   setShowSection((p) => ({ ...p, uploadedModel: true }))
                 }
               >
                 Upload Documents
-              </button>
+              </Button>
 
               {/* Start Analyzing - primary style */}
-              <button
-                className="px-4 py-1 rounded text-white bg-sky-600 hover:bg-sky-700 text-sm"
+              <Button
+                variant="start-analyze"
+                width={160}
+                label="Start Analyzing"
+                className="whitespace-nowrap"
                 onClick={() => {
                   setReport({});
                   setAnalyzedState((prev) => ({
@@ -442,7 +452,7 @@ const LoanExtraction = ({
                 }}
               >
                 Start Analyzing
-              </button>
+              </Button>
             </div>
           )}
         </div>
