@@ -91,9 +91,11 @@ const LoanExtraction = ({
     if (activeTab !== "modified") return;
     const borrowersFromData = Object.keys(modifiedData || {});
     const currentList = borrowerList || [];
+
     if (JSON.stringify(borrowersFromData) !== JSON.stringify(currentList)) {
       setBorrowerList(borrowersFromData);
     }
+
     if (!filtered_borrower && borrowersFromData.length > 0) {
       set_filter_borrower(borrowersFromData[0]);
     }
@@ -135,8 +137,51 @@ const LoanExtraction = ({
     }
   };
 
+  // --- Fetch original data from server and switch to original view ---
+  const fetchOriginalData = async () => {
+    try {
+      const email = sessionStorage.getItem("email") || "";
+      const loanId = sessionStorage.getItem("loanId") || "";
+
+      if (!loanId) {
+        toast.error("Loan ID missing in session.");
+        return;
+      }
+
+      const res = await api.post("/get-original-data", {
+        email,
+        loanId,
+      });
+
+      // prefer cleaned_data key like your previous backend return
+      const data =
+        res?.data?.cleaned_data ?? res?.data?.original_data ?? res?.data ?? {};
+
+      setOriginalData(data);
+      setActiveTab("original");
+
+      // pre-select first borrower/category so UI shows something
+      const borrowerKeys = Object.keys(data || {});
+      if (borrowerKeys.length > 0) {
+        const firstBorrower = borrowerKeys[0];
+        const firstCategory = Object.keys(data[firstBorrower] || {})[0] || null;
+        setSelectedBorrower(firstBorrower);
+        setSelectedCategory(firstCategory);
+        setPanelResetKey(Date.now());
+      } else {
+        setSelectedBorrower(null);
+        setSelectedCategory(null);
+      }
+
+      toast.success("Original data loaded.");
+    } catch (err) {
+      console.error("Failed to fetch original data:", err);
+      toast.error("Failed to load original data. Check console for details.");
+    }
+  };
+
   // Move a single document or entire category (called from right panel)
-  // Replace your existing handleMoveDocument with this
+  // Use the deep-clone safe implementation
   const handleMoveDocument = async (docIndex, toBorrower, subCategory) => {
     if (!selectedBorrower || !selectedCategory || !toBorrower) return;
 
@@ -154,21 +199,17 @@ const LoanExtraction = ({
           return;
         }
 
-        // Ensure target borrower/category exist
         if (!updated[toBorrower]) updated[toBorrower] = {};
         if (!updated[toBorrower][fromCat]) updated[toBorrower][fromCat] = [];
 
-        // Deep clone items when appending to avoid reference sharing
         const clones = fullSection.map((d) => JSON.parse(JSON.stringify(d)));
         updated[toBorrower][fromCat] = [
           ...(updated[toBorrower][fromCat] || []),
           ...clones,
         ];
 
-        // Remove category from source borrower
         delete updated[selectedBorrower][fromCat];
 
-        // If borrower has no remaining categories, remove borrower
         if (Object.keys(updated[selectedBorrower] || {}).length === 0) {
           delete updated[selectedBorrower];
         }
@@ -179,7 +220,6 @@ const LoanExtraction = ({
           `Moved entire ${fromCat} section to ${toBorrower}`
         );
 
-        // Reset selection to the moved-to borrower/category
         setSelectedBorrower(toBorrower);
         setSelectedCategory(fromCat);
         setPanelResetKey(Date.now());
@@ -187,38 +227,29 @@ const LoanExtraction = ({
       }
 
       // CASE 2: Move single document (row-level move)
-      // Use a direct reference to the source list in updated (we already deep-copied modifiedData)
       const sourceList =
         updated[selectedBorrower][subCategory || selectedCategory] || [];
 
-      // Defensive: ensure docIndex exists in sourceList
       if (docIndex < 0 || docIndex >= sourceList.length) {
         toast.error("Invalid document index");
         return;
       }
 
-      // Extract and deep-clone the moved doc so destination gets its own copy
       const movedDocClone = JSON.parse(JSON.stringify(sourceList[docIndex]));
-
-      // Remove the item from the source list by index
       sourceList.splice(docIndex, 1);
 
-      // Ensure target borrower/category exist
       if (!updated[toBorrower]) updated[toBorrower] = {};
       if (!updated[toBorrower][subCategory || selectedCategory])
         updated[toBorrower][subCategory || selectedCategory] = [];
 
-      // Append the cloned doc
       updated[toBorrower][subCategory || selectedCategory].push(movedDocClone);
 
-      // If source category became empty, delete it
       if (
         updated[selectedBorrower][subCategory || selectedCategory]?.length === 0
       ) {
         delete updated[selectedBorrower][subCategory || selectedCategory];
       }
 
-      // If borrower became empty, delete borrower
       if (Object.keys(updated[selectedBorrower] || {}).length === 0) {
         delete updated[selectedBorrower];
       }
@@ -229,7 +260,6 @@ const LoanExtraction = ({
         `Moved ${subCategory || selectedCategory} document to ${toBorrower}`
       );
 
-      // Focus on the moved-to borrower/category
       setSelectedBorrower(toBorrower);
       setSelectedCategory(subCategory || selectedCategory);
       setPanelResetKey(Date.now());
@@ -286,7 +316,6 @@ const LoanExtraction = ({
         mergedData[toBorrower][category] =
           mergedData[toBorrower][category].concat(docs);
 
-        // clear moved category from source
         if (mergedData[borrower] && mergedData[borrower][category])
           mergedData[borrower][category] = [];
       });
@@ -355,18 +384,76 @@ const LoanExtraction = ({
       <div className="h-full flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 px-6 pt-4 bg-white border-b border-gray-200">
+          {/* left: header title (kept unchanged) */}
           <div className="font-medium text-gray-700">
             Loan ID : {sessionStorage.getItem("loanId") || ""}
           </div>
+
+          {/* right: Upload / Start buttons styled like the screenshot */}
+          {(isUploaded?.uploaded || normalized_json) && (
+            <div className="flex items-center gap-3">
+              {/* View Result (when available) - styled like Start Analyzing */}
+              {analyzedState?.isAnalyzed && (
+                <button
+                  className="px-4 py-1 rounded text-white bg-sky-600 hover:bg-sky-700 text-sm"
+                  onClick={() => {
+                    setIsSAClicked(false);
+                    setShowSection((p) => ({
+                      ...p,
+                      startAnalyzing: true,
+                      processLoanSection: false,
+                      provideLoanIDSection: false,
+                      extractedSection: false,
+                    }));
+                    handleStepChange(1);
+                  }}
+                >
+                  View Result
+                </button>
+              )}
+
+              {/* Upload Documents - outlined like screenshot */}
+              <button
+                className="px-4 py-1 rounded border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 text-sm"
+                onClick={() =>
+                  setShowSection((p) => ({ ...p, uploadedModel: true }))
+                }
+              >
+                Upload Documents
+              </button>
+
+              {/* Start Analyzing - primary style */}
+              <button
+                className="px-4 py-1 rounded text-white bg-sky-600 hover:bg-sky-700 text-sm"
+                onClick={() => {
+                  setReport({});
+                  setAnalyzedState((prev) => ({
+                    ...prev,
+                    isAnalyzed: false,
+                    analyzed_data: {},
+                  }));
+                  setShowSection((p) => ({
+                    ...p,
+                    startAnalyzing: true,
+                    processLoanSection: false,
+                    provideLoanIDSection: false,
+                    extractedSection: false,
+                  }));
+                }}
+              >
+                Start Analyzing
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Main layout */}
+        {/* Main Layout */}
         <div className="flex flex-1 min-h-0">
           {isUploaded?.uploaded || normalized_json ? (
             <ResizableLayout
               left={
                 <div className="h-full flex flex-col">
-                  {/* toolbar */}
+                  {/* Toolbar */}
                   {!selectMode ? (
                     <div className="flex items-center justify-between bg-gray-50 border-b border-gray-200 px-4 py-2 shadow-sm">
                       <div className="flex items-center gap-4">
@@ -378,6 +465,18 @@ const LoanExtraction = ({
                                 setAddBorrower({
                                   model: true,
                                   borrowerName: "",
+                                  onSave: async (name) => {
+                                    if (!name || !name.trim()) return;
+                                    const updated = {
+                                      ...modifiedData,
+                                      [name]: {},
+                                    };
+                                    await persistAndSetModified(
+                                      updated,
+                                      "add_borrower",
+                                      `Borrower "${name}" added`
+                                    );
+                                  },
                                 })
                               }
                             >
@@ -394,14 +493,13 @@ const LoanExtraction = ({
                       </div>
 
                       <div className="flex items-center gap-3">
-                        {hasModifications && activeTab === "modified" && (
-                          <Tooltip title="View Original Data">
-                            <TbDatabaseEdit
-                              className="text-gray-600 cursor-pointer"
-                              onClick={() => setActiveTab("original")}
-                            />
-                          </Tooltip>
-                        )}
+                        {/* keep toolbar DB icon here (left pane toolbar) so fetchOriginalData is still accessible */}
+                        <Tooltip title="View Original Data">
+                          <TbDatabaseEdit
+                            className="text-gray-600 cursor-pointer"
+                            onClick={fetchOriginalData}
+                          />
+                        </Tooltip>
                         {activeTab === "original" && (
                           <CloseIcon
                             className="text-red-500 cursor-pointer"
@@ -427,7 +525,6 @@ const LoanExtraction = ({
                             }}
                           />
                         </Tooltip>
-
                         <Tooltip title="Move Selected">
                           <TbArrowRight
                             size={22}
@@ -442,7 +539,6 @@ const LoanExtraction = ({
                             }}
                           />
                         </Tooltip>
-
                         <Tooltip title="Cancel Selection">
                           <CloseIcon
                             className="text-red-500 cursor-pointer"
