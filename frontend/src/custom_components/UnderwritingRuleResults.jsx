@@ -75,17 +75,17 @@ const UnderwritingRuleResult = ({
   }
 
   // 🔹 Per-borrower loader: if selected borrower not yet ready
-  if (Object.keys(report).length && !borrowerData) {
-    return (
-      <LoadingModal
-        progress={0}
-        currentStep={0}
-        totalSteps={1}
-        message={`Analyzing ${filtered_borrower}...`}
-        isCompleted={false}
-      />
-    );
-  }
+  // if (Object.keys(report).length && !borrowerData) {
+  //   return (
+  //     <LoadingModal
+  //       progress={0}
+  //       currentStep={0}
+  //       totalSteps={1}
+  //       message={`Analyzing ${filtered_borrower}...`}
+  //       isCompleted={false}
+  //     />
+  //   );
+  // }
 
   return (
     <>

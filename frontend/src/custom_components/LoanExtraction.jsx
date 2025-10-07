@@ -395,10 +395,10 @@ const LoanExtraction = ({
             <div className="flex items-center gap-3">
               {/* View Result (when available) - styled like Start Analyzing */}
               {analyzedState?.isAnalyzed && (
-                <button
+                <Button
                   variant="start-analyze"
                   width={160}
-                  label="Start Analyzing"
+                  label="View Result"
                   className="whitespace-nowrap"
                   onClick={() => {
                     setIsSAClicked(false);
@@ -413,7 +413,7 @@ const LoanExtraction = ({
                   }}
                 >
                   View Result
-                </button>
+                </Button>
               )}
 
               {/* Upload Documents - outlined like screenshot */}

@@ -21,13 +21,15 @@ const Home = () => {
     restoreIncomeAnalyzerState,
     resetIncomeAnalyzerState,
     incomeAnalyzerInitialized,
+    setLoanId,
   } = useUpload();
 
   const shouldShowRules =
     (!incomeTabVisible && tab === 1) || (incomeTabVisible && tab === 2);
 
   const handleAddLoanPackage = () => {
-    // Set initial state for Income Analyzer
+    // Set initial state for Income Analyzer(
+    setLoanId("");
     setShowSection({
       processLoanSection: false,
       provideLoanIDSection: true,
