@@ -1,407 +1,316 @@
-import React, { useEffect, useState } from "react";
-import UploadedModel from "./UploadedModel";
-import DescriptionIcon from "@mui/icons-material/Description";
-import UnderwritingRulesModel from "./UnderwritingRulesModel";
-import UnuploadedScreen from "./UnuploadedScreen";
-import { useUpload } from "../context/UploadContext";
-import LoanPackagePanel from "./LoanPackagePanel";
-import PersonSharpIcon from "@mui/icons-material/PersonSharp";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import { FaFolder } from "react-icons/fa";
-import EnterBorrowerName from "./EnterBorrowerName";
-import Checkbox from "@mui/material/Checkbox";
-import Menu from "@mui/material/Menu";
-import MenuItem from "@mui/material/MenuItem";
-import { TbArrowMerge, TbArrowRight, TbDatabaseEdit } from "react-icons/tb";
+import React, { useState } from "react";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  IconButton,
+  Menu,
+  MenuItem,
+} from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
-import SaveIcon from "@mui/icons-material/Save";
-import api from "../api/client";
-import ConfirmMoveModal from "./ConfirmMoveModal";
-import ConfirmMergeModal from "./ConfirmMergeModal";
-import ConfirmDeleteModal from "./ConfirmDeleteModal";
-import { toast } from "react-toastify";
-import Button from "../components/Button";
-import Tooltip from "@mui/material/Tooltip";
-import ResizableLayout from "../utils/ResizableLayout";
+import OpenInFullIcon from "@mui/icons-material/OpenInFull";
+import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
+import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
+import { TbArrowRight } from "react-icons/tb";
 
-const LoanExtraction = ({
-  showSection = {},
-  setShowSection = () => {},
-  goBack,
-  handleStepChange = () => {},
+const DOCS_PER_PAGE = 5;
+
+const LoanPackagePanel = ({
+  borrower,
+  category,
+  docs,
+  borrowersList = [],
+  onMoveDocument = () => {},
+  isModifiedView = false,
 }) => {
-  const {
-    isUploaded,
-    normalized_json,
-    analyzedState,
-    setIsSAClicked,
-    setAnalyzedState,
-    setReport,
-    filtered_borrower,
-    set_filter_borrower,
-    borrowerList,
-    setBorrowerList,
-    set_normalized_json,
-    hasModifications,
-    setHasModifications,
-  } = useUpload();
+  const [activeDoc, setActiveDoc] = useState(0);
+  const [activeSubTab, setActiveSubTab] = useState({});
+  const [expandedDoc, setExpandedDoc] = useState(null);
+  const [docPage, setDocPage] = useState(0);
+  const [moveAnchor, setMoveAnchor] = useState(null);
 
-  const [rulesModel, setRulesModel] = useState(false);
-  const [originalData, setOriginalData] = useState({});
-  const [modifiedData, setModifiedData] = useState({});
-  const [activeTab, setActiveTab] = useState("modified");
+  function formatCategory(cat = "") {
+    return cat
+      .replace(/([a-z])([A-Z])/g, "$1 $2")
+      .replace(/[_-]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+  }
 
-  const [selectedBorrower, setSelectedBorrower] = useState(null);
-  const [selectedCategory, setSelectedCategory] = useState(null);
-  const [openBorrowers, setOpenBorrowers] = useState({});
-  const [addBorrower, setAddBorrower] = useState({
-    model: false,
-    borrowerName: "",
-  });
-
-  const [selectMode, setSelectMode] = useState(false);
-  const [selectedBorrowers, setSelectedBorrowers] = useState([]);
-  const [selectedFiles, setSelectedFiles] = useState([]);
-
-  const [mergeAnchorEl, setMergeAnchorEl] = useState(null);
-  const [mergeModal, setMergeModal] = useState(null);
-  const [moveAnchorEl, setMoveAnchorEl] = useState(null);
-  const [moveModal, setMoveModal] = useState(null);
-
-  const [editingBorrower, setEditingBorrower] = useState(null);
-  const [editingName, setEditingName] = useState("");
-  const [deleteModal, setDeleteModal] = useState(null);
-
-  // ✅ added to reset right panel state
-  const [panelResetKey, setPanelResetKey] = useState(0);
-
-  // Load normalized JSON initially
-  useEffect(() => {
-    if (normalized_json) {
-      const snapshot = JSON.parse(JSON.stringify(normalized_json));
-      setOriginalData(snapshot);
-      setModifiedData(snapshot);
+  const renderTable = (rows = []) => {
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return <p className="text-gray-400 italic">No data</p>;
     }
-  }, [normalized_json]);
-
-  const currentData = activeTab === "original" ? originalData : modifiedData;
-  const borrowers = currentData ? Object.keys(currentData) : [];
-
-  // ✅ Borrower list sync
-  useEffect(() => {
-    if (activeTab !== "modified") return;
-    const borrowersFromData = Object.keys(modifiedData || {});
-    const currentList = borrowerList || [];
-
-    if (JSON.stringify(borrowersFromData) !== JSON.stringify(currentList)) {
-      setBorrowerList(borrowersFromData);
-    }
-
-    if (!filtered_borrower && borrowersFromData.length > 0) {
-      set_filter_borrower(borrowersFromData[0]);
-    }
-  }, [modifiedData]);
-
-  // ✅ Clean openBorrowers
-  useEffect(() => {
-    if (!borrowers?.length) return;
-    setOpenBorrowers((prev) => {
-      const cleaned = Object.fromEntries(
-        Object.entries(prev).filter(([b]) => borrowers.includes(b))
-      );
-      if (JSON.stringify(cleaned) !== JSON.stringify(prev)) return cleaned;
-      return prev;
-    });
-  }, [borrowers]);
-
-  const toggleBorrower = (name) =>
-    setOpenBorrowers((prev) => ({ ...prev, [name]: !prev[name] }));
-
-  const persistAndSetModified = async (updatedJson, actionTag, successMsg) => {
-    try {
-      const res = await api.post("/update-cleaned-data", {
-        email: sessionStorage.getItem("email") || "",
-        loanID: sessionStorage.getItem("loanId") || "",
-        username: sessionStorage.getItem("username") || "",
-        action: actionTag,
-        raw_json: updatedJson,
-        hasModifications: true,
-      });
-
-      setModifiedData(res?.data?.cleaned_json || updatedJson);
-      setActiveTab("modified");
-      setHasModifications(true);
-      toast.success(successMsg);
-    } catch (err) {
-      console.error(`${actionTag} error:`, err);
-      toast.error("Operation failed. Please try again.");
-    }
-  };
-
-  // ✅ --- handleMoveDocument (the missing function) ---
-  const handleMoveDocument = async (docIndex, toBorrower, subCategory) => {
-    if (!selectedBorrower || !selectedCategory || !toBorrower) return;
-
-    try {
-      const updated = JSON.parse(JSON.stringify(modifiedData));
-
-      // Case 1️⃣: Move entire category
-      if (docIndex === null) {
-        const fromCat = subCategory || selectedCategory;
-        const fullSection = updated[selectedBorrower]?.[fromCat] || [];
-
-        if (fullSection.length === 0) {
-          toast.warning(`No data to move from ${fromCat}`);
-          return;
-        }
-
-        if (!updated[toBorrower]) updated[toBorrower] = {};
-        if (!updated[toBorrower][fromCat]) updated[toBorrower][fromCat] = [];
-
-        updated[toBorrower][fromCat] = [
-          ...(updated[toBorrower][fromCat] || []),
-          ...fullSection,
-        ];
-
-        delete updated[selectedBorrower][fromCat];
-
-        if (Object.keys(updated[selectedBorrower] || {}).length === 0) {
-          delete updated[selectedBorrower];
-        }
-
-        await persistAndSetModified(
-          updated,
-          "category_move",
-          `Moved entire ${fromCat} section to ${toBorrower}`
-        );
-
-        setSelectedBorrower(toBorrower);
-        setSelectedCategory(fromCat);
-        setPanelResetKey(Date.now()); // ✅ also reset panel on move
-        return;
-      }
-
-      // Case 2️⃣: Move single document
-      const currentDocs =
-        updated[selectedBorrower][subCategory || selectedCategory] || [];
-      const [movedDoc] = currentDocs.splice(docIndex, 1);
-
-      if (!updated[toBorrower]) updated[toBorrower] = {};
-      if (!updated[toBorrower][subCategory || selectedCategory])
-        updated[toBorrower][subCategory || selectedCategory] = [];
-
-      updated[toBorrower][subCategory || selectedCategory].push(movedDoc);
-
-      if (
-        updated[selectedBorrower][subCategory || selectedCategory]?.length === 0
-      ) {
-        delete updated[selectedBorrower][subCategory || selectedCategory];
-      }
-
-      if (Object.keys(updated[selectedBorrower]).length === 0) {
-        delete updated[selectedBorrower];
-      }
-
-      await persistAndSetModified(
-        updated,
-        "doc_move",
-        `Moved ${subCategory || selectedCategory} document to ${toBorrower}`
-      );
-
-      setSelectedBorrower(toBorrower);
-      setSelectedCategory(subCategory || selectedCategory);
-      setPanelResetKey(Date.now());
-    } catch (err) {
-      console.error("Error moving document/category:", err);
-      toast.error("Failed to move. Please try again.");
-    }
-  };
-  // ✅ --- end handleMoveDocument ---
-
-  const isCategorySelected = (borrower, category) =>
-    selectedFiles.some(
-      (f) => f.borrower === borrower && f.category === category
+    const headers = Object.keys(rows[0] || {});
+    return (
+      <div className="flex-1 overflow-auto border rounded-md">
+        <table className="w-full border-collapse text-sm">
+          <thead className="sticky top-0 bg-gray-100 z-10">
+            <tr>
+              {headers.map((h) => (
+                <th key={h} className="p-2 border-b font-semibold text-left">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                {headers.map((h) => (
+                  <td key={h} className="p-2 border-b text-gray-700">
+                    {String(r?.[h] ?? "")}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     );
+  };
 
-  return (
-    <>
-      <div className="h-full flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between pb-3 px-6 pt-4 bg-white border-b border-gray-200">
-          <div className="font-medium text-gray-700">
-            Loan ID : {sessionStorage.getItem("loanId") || ""}
+  const renderSummary = (doc) => {
+    if (doc == null) return null;
+    return (
+      <div className="grid grid-cols-2 gap-3 text-sm">
+        {Object.entries(doc || {}).map(([field, value]) => {
+          if (Array.isArray(value)) return null;
+          return (
+            <div key={field}>
+              <span className="font-medium">{field}:</span>{" "}
+              <span className="text-gray-700">{String(value ?? "")}</span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const renderDoc = (doc, idx) => {
+    if (!doc) {
+      return <p className="text-gray-400 italic">No document data</p>;
+    }
+
+    const arrayTabs = Object.entries(doc)
+      .filter(
+        ([, value]) =>
+          Array.isArray(value) &&
+          value.length > 0 &&
+          typeof value[0] === "object"
+      )
+      .map(([key]) => key);
+
+    const subTabs = ["Summary", ...arrayTabs];
+    const tab = activeSubTab[idx] || "Summary";
+
+    return (
+      <div className="flex flex-col h-full space-y-3">
+        {/* === Sub-tabs bar === */}
+        <div className="border-b flex items-center justify-between text-sm shrink-0">
+          <div className="flex gap-6">
+            {subTabs.map((t) => (
+              <button
+                key={t}
+                onClick={() =>
+                  setActiveSubTab((prev) => ({ ...prev, [idx]: t }))
+                }
+                className={`pb-2 ${
+                  tab === t
+                    ? "border-b-2 border-sky-600 text-sky-600 font-medium"
+                    : "text-gray-600 hover:text-sky-600"
+                }`}
+              >
+                {t}
+              </button>
+            ))}
           </div>
 
-          {(isUploaded?.uploaded || normalized_json) && (
-            <div className="flex items-center gap-3">
-              {analyzedState?.isAnalyzed && (
-                <Button
-                  variant="start-analyze"
-                  width={160}
-                  label="View Result"
-                  onClick={() => {
-                    setIsSAClicked(false);
-                    setShowSection((p) => ({
-                      ...p,
-                      startAnalyzing: true,
-                      processLoanSection: false,
-                      provideLoanIDSection: false,
-                      extractedSection: false,
-                    }));
-                    handleStepChange(1);
-                  }}
-                />
-              )}
-              <Button
-                variant="upload-doc"
-                width={180}
-                label="Upload Documents"
-                onClick={() =>
-                  setShowSection((p) => ({ ...p, uploadedModel: true }))
-                }
-              />
-              <Button
-                variant="start-analyze"
-                width={160}
-                label="Start Analyzing"
-                onClick={() => {
-                  setReport({});
-                  setAnalyzedState((prev) => ({
-                    ...prev,
-                    isAnalyzed: false,
-                    analyzed_data: {},
-                  }));
-                  setShowSection((p) => ({
-                    ...p,
-                    startAnalyzing: true,
-                    processLoanSection: false,
-                    provideLoanIDSection: false,
-                    extractedSection: false,
-                  }));
-                }}
-              />
-            </div>
+          {isModifiedView && (
+            <IconButton
+              size="small"
+              title={`Move entire ${category} section`}
+              onClick={(e) => setMoveAnchor(e.currentTarget)}
+            >
+              <TbArrowRight className="text-sky-600" />
+            </IconButton>
           )}
         </div>
 
-        {/* Main Layout */}
-        <div className="flex flex-1 min-h-0">
-          {isUploaded?.uploaded || normalized_json ? (
-            <ResizableLayout
-              left={
-                <div className="h-full flex flex-col">
-                  <div className="flex-1 overflow-y-auto px-4 py-2">
-                    <ul className="space-y-2">
-                      {borrowers.map((name) => {
-                        const categories = Object.keys(currentData[name] || {});
-                        return (
-                          <li key={name}>
-                            <div
-                              className="group flex items-center justify-between p-2 cursor-pointer hover:bg-gray-50 rounded-md"
-                              onClick={() => toggleBorrower(name)}
-                            >
-                              <div className="flex items-center gap-2 flex-1">
-                                <PersonSharpIcon fontSize="small" />
-                                <span className="font-medium">{name}</span>
-                              </div>
-                              {openBorrowers[name] ? (
-                                <ExpandLessIcon />
-                              ) : (
-                                <ExpandMoreIcon />
-                              )}
-                            </div>
+        {/* === Tab content === */}
+        <div className="flex-1 overflow-auto pr-1">
+          {tab === "Summary" && renderSummary(doc)}
 
-                            {openBorrowers[name] && (
-                              <ul className="ml-8 mt-2 space-y-1">
-                                {categories.map((cat) => {
-                                  const docs = currentData[name][cat] || [];
-                                  return (
-                                    <li key={cat}>
-                                      <div
-                                        className={`flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer hover:bg-gray-100 ${
-                                          selectedBorrower === name &&
-                                          selectedCategory === cat
-                                            ? "bg-blue-50 border border-blue-300"
-                                            : ""
-                                        }`}
-                                        onClick={() => {
-                                          setSelectedBorrower(name);
-                                          setSelectedCategory(cat);
-                                          setPanelResetKey(Date.now()); // ✅ resets doc index
-                                        }}
-                                      >
-                                        <FaFolder className="text-gray-500" />
-                                        <span className="truncate text-sm font-medium">
-                                          {cat}
-                                        </span>
-                                        <span className="ml-auto text-xs text-gray-500">
-                                          ({docs.length})
-                                        </span>
-                                      </div>
-                                    </li>
-                                  );
-                                })}
-                              </ul>
-                            )}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
+          {arrayTabs.map(
+            (key) =>
+              tab === key && (
+                <div key={key} className="relative mb-3">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">
+                    {key}
+                  </h3>
+                  {renderTable(doc[key])}
                 </div>
-              }
-              right={
-                <div className="h-full flex flex-col">
-                  <div className="flex-1 overflow-y-auto p-4">
-                    {selectedBorrower &&
-                    currentData[selectedBorrower] &&
-                    selectedCategory &&
-                    currentData[selectedBorrower][selectedCategory] ? (
-                      <LoanPackagePanel
-                        key={panelResetKey}
-                        borrower={selectedBorrower}
-                        category={selectedCategory}
-                        docs={
-                          currentData[selectedBorrower][selectedCategory] || []
-                        }
-                        borrowersList={Object.keys(modifiedData || {})}
-                        onMoveDocument={handleMoveDocument}
-                        isModifiedView={activeTab === "modified"}
-                      />
-                    ) : (
-                      <div className="text-gray-400 flex items-center justify-center h-full">
-                        Select a category to view documents
-                      </div>
-                    )}
-                  </div>
-                </div>
-              }
-            />
-          ) : (
-            <UnuploadedScreen setShowSection={setShowSection} />
+              )
           )}
         </div>
-
-        <div className="fixed bottom-4 right-4 w-[50px] h-[50px] bg-[#12699D] rounded-full flex items-center justify-center shadow-lg hover:bg-[#0f5a7a] transition-colors">
-          <DescriptionIcon
-            onClick={() => setRulesModel(true)}
-            className="text-white cursor-pointer"
-          />
-        </div>
-
-        <UnderwritingRulesModel
-          rulesModel={rulesModel}
-          OpenRulesModel={setRulesModel}
-        />
-        {showSection.uploadedModel && (
-          <UploadedModel setShowSection={setShowSection} />
-        )}
       </div>
-    </>
+    );
+  };
+
+  if (!Array.isArray(docs) || docs.length === 0) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center text-gray-400">
+        <h2 className="text-xl font-bold text-sky-600 border-b pb-2">
+          {borrower} / {formatCategory(category)}
+        </h2>
+        <p>No documents found</p>
+      </div>
+    );
+  }
+
+  const totalPages = Math.ceil(docs.length / DOCS_PER_PAGE);
+  const canGoLeft = docPage > 0;
+  const canGoRight = docPage < totalPages - 1;
+
+  return (
+    <div className="h-full flex flex-col overflow-hidden space-y-4">
+      {/* === Header === */}
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-bold text-sky-600 border-b pb-2 text-center flex-1">
+          {borrower} / {formatCategory(category)}
+        </h2>
+        <IconButton
+          size="small"
+          onClick={() => setExpandedDoc(activeDoc)}
+          title="Expand"
+        >
+          <OpenInFullIcon className="text-sky-600" />
+        </IconButton>
+      </div>
+
+      {/* === Tabs navigation === */}
+      <div className="relative flex items-center border-b overflow-hidden">
+        <div className="absolute left-0 top-0 bottom-0 flex items-center bg-white z-10">
+          {canGoLeft && (
+            <IconButton onClick={() => setDocPage((p) => Math.max(0, p - 1))}>
+              <ArrowBackIosIcon fontSize="small" />
+            </IconButton>
+          )}
+        </div>
+
+        <div className="flex-1 overflow-hidden px-12">
+          <div
+            className="flex transition-transform duration-500 ease-in-out"
+            style={{
+              transform: `translateX(-${docPage * 100}%)`,
+              width: `${Math.max(totalPages, 1) * 100}%`,
+            }}
+          >
+            {Array.from({ length: totalPages }).map((_, pageIdx) => {
+              const sliceStart = pageIdx * DOCS_PER_PAGE;
+              const pageDocs = docs.slice(
+                sliceStart,
+                sliceStart + DOCS_PER_PAGE
+              );
+              return (
+                <div
+                  key={pageIdx}
+                  className="flex gap-4 justify-start flex-shrink-0 w-full"
+                >
+                  {pageDocs.map((_, idx) => {
+                    const realIdx = sliceStart + idx;
+                    return (
+                      <button
+                        key={realIdx}
+                        onClick={() => setActiveDoc(realIdx)}
+                        className={`px-3 py-2 text-sm whitespace-nowrap ${
+                          activeDoc === realIdx
+                            ? "border-b-2 border-sky-600 text-sky-600 font-medium"
+                            : "text-gray-600 hover:text-sky-600"
+                        }`}
+                      >
+                        {category} {realIdx + 1}
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="absolute right-0 top-0 bottom-0 flex items-center bg-white z-10">
+          {canGoRight && (
+            <IconButton
+              onClick={() => setDocPage((p) => Math.min(totalPages - 1, p + 1))}
+            >
+              <ArrowForwardIosIcon fontSize="small" />
+            </IconButton>
+          )}
+        </div>
+      </div>
+
+      {/* === Active Document === */}
+      <div className="flex-1 overflow-auto p-4">
+        {renderDoc(docs[activeDoc], activeDoc)}
+      </div>
+
+      {/* === Move Category Menu === */}
+      <Menu
+        anchorEl={moveAnchor}
+        open={Boolean(moveAnchor)}
+        onClose={() => setMoveAnchor(null)}
+      >
+        <div className="px-4 py-2 text-sm font-semibold text-[#097aaf] border-b border-gray-200">
+          Move entire section to
+        </div>
+        {borrowersList
+          .filter((b) => b !== borrower)
+          .map((b) => (
+            <MenuItem
+              key={b}
+              onClick={() => {
+                setMoveAnchor(null);
+                onMoveDocument(null, b, category);
+              }}
+            >
+              {b}
+            </MenuItem>
+          ))}
+      </Menu>
+
+      {/* === Expand Modal === */}
+      <Dialog
+        open={expandedDoc !== null}
+        onClose={() => setExpandedDoc(null)}
+        PaperProps={{
+          sx: {
+            margin: "40px",
+            borderRadius: "16px",
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            width: "80vw",
+            height: "80vh",
+          },
+        }}
+      >
+        <div className="flex items-center justify-between px-4 py-2 border-b bg-gray-50">
+          <DialogTitle className="!p-0 text-lg font-semibold text-sky-700">
+            {borrower} / {formatCategory(category)} -{" "}
+            {expandedDoc !== null ? expandedDoc + 1 : ""}
+          </DialogTitle>
+          <IconButton onClick={() => setExpandedDoc(null)}>
+            <CloseIcon />
+          </IconButton>
+        </div>
+        <DialogContent sx={{ flex: 1 }}>
+          {expandedDoc !== null && renderDoc(docs[expandedDoc], expandedDoc)}
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
 
-export default React.memo(LoanExtraction);
+export default React.memo(LoanPackagePanel);
