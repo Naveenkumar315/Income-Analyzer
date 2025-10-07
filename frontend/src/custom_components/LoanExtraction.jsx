@@ -355,7 +355,7 @@ const LoanExtraction = ({
               </Button>
             )}
 
-            <Button
+            {/* <Button
               variant="upload-doc"
               width={180}
               label="Upload Documents"
@@ -365,7 +365,7 @@ const LoanExtraction = ({
               }
             >
               Upload Documents
-            </Button>
+            </Button> */}
 
             <Button
               variant="start-analyze"
