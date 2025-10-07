@@ -138,7 +138,6 @@ const LoanExtraction = ({
     }
   };
 
-  // --- Fetch original data from server and switch to original view ---
   const fetchOriginalData = async () => {
     try {
       const email = sessionStorage.getItem("email") || "";
@@ -158,23 +157,18 @@ const LoanExtraction = ({
       const data =
         res?.data?.cleaned_data ?? res?.data?.original_data ?? res?.data ?? {};
 
+      // set original data and switch to original view
       setOriginalData(data);
       setActiveTab("original");
 
-      // pre-select first borrower/category so UI shows something
-      const borrowerKeys = Object.keys(data || {});
-      if (borrowerKeys.length > 0) {
-        const firstBorrower = borrowerKeys[0];
-        const firstCategory = Object.keys(data[firstBorrower] || {})[0] || null;
-        setSelectedBorrower(firstBorrower);
-        setSelectedCategory(firstCategory);
-        setPanelResetKey(Date.now());
-      } else {
-        setSelectedBorrower(null);
-        setSelectedCategory(null);
-      }
+      // DO NOT auto-select borrower/category here.
+      // Leave selectedBorrower/selectedCategory untouched so user must click a category.
+      // (Optional: clear the previous selection if you prefer an empty right pane)
+      setSelectedBorrower(null);
+      setSelectedCategory(null);
+      // no panelResetKey change — right panel will show the "Select a category..." message
 
-      toast.success("Original data loaded.");
+      // toast.success("Original data loaded.");
     } catch (err) {
       console.error("Failed to fetch original data:", err);
       toast.error("Failed to load original data. Check console for details.");
