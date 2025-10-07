@@ -27,7 +27,8 @@ const LoanPackagePanel = ({
   const [activeSubTab, setActiveSubTab] = useState({});
   const [expandedDoc, setExpandedDoc] = useState(null);
   const [docPage, setDocPage] = useState(0);
-  const [moveAnchor, setMoveAnchor] = useState(null);
+  const [moveAnchor, setMoveAnchor] = useState(null); // category move anchor
+  const [docMoveAnchor, setDocMoveAnchor] = useState(null); // per-doc move anchor
 
   function formatCategory(cat = "") {
     return cat
@@ -107,7 +108,7 @@ const LoanPackagePanel = ({
 
     return (
       <div className="flex flex-col h-full space-y-3">
-        {/* === Sub-tabs bar === */}
+        {/* === Sub-tabs bar with Move icon aligned to the right === */}
         <div className="border-b flex items-center justify-between text-sm shrink-0">
           <div className="flex gap-6">
             {subTabs.map((t) => (
@@ -127,15 +128,29 @@ const LoanPackagePanel = ({
             ))}
           </div>
 
-          {isModifiedView && (
-            <IconButton
-              size="small"
-              title={`Move entire ${category} section`}
-              onClick={(e) => setMoveAnchor(e.currentTarget)}
-            >
-              <TbArrowRight className="text-sky-600" />
-            </IconButton>
-          )}
+          <div className="flex items-center gap-1">
+            {/* Per-document move icon (moves the currently activeDoc) */}
+            {isModifiedView && (
+              <>
+                <IconButton
+                  size="small"
+                  title={`Move this document (${category} ${idx + 1})`}
+                  onClick={(e) => setDocMoveAnchor(e.currentTarget)}
+                >
+                  <TbArrowRight className="text-sky-600" />
+                </IconButton>
+
+                {/* Category-level Move icon */}
+                {/* <IconButton
+                  size="small"
+                  title={`Move entire ${category} section`}
+                  onClick={(e) => setMoveAnchor(e.currentTarget)}
+                >
+                  <TbArrowRight className="text-sky-600" />
+                </IconButton> */}
+              </>
+            )}
+          </div>
         </div>
 
         {/* === Tab content === */}
@@ -221,17 +236,33 @@ const LoanPackagePanel = ({
                   {pageDocs.map((_, idx) => {
                     const realIdx = sliceStart + idx;
                     return (
-                      <button
-                        key={realIdx}
-                        onClick={() => setActiveDoc(realIdx)}
-                        className={`px-3 py-2 text-sm whitespace-nowrap ${
-                          activeDoc === realIdx
-                            ? "border-b-2 border-sky-600 text-sky-600 font-medium"
-                            : "text-gray-600 hover:text-sky-600"
-                        }`}
-                      >
-                        {category} {realIdx + 1}
-                      </button>
+                      <div key={realIdx} className="flex items-center gap-2">
+                        <button
+                          onClick={() => setActiveDoc(realIdx)}
+                          className={`px-3 py-2 text-sm whitespace-nowrap ${
+                            activeDoc === realIdx
+                              ? "border-b-2 border-sky-600 text-sky-600 font-medium"
+                              : "text-gray-600 hover:text-sky-600"
+                          }`}
+                        >
+                          {category} {realIdx + 1}
+                        </button>
+
+                        {/* Small per-tab Move icon (optional) */}
+                        {isModifiedView && (
+                          <IconButton
+                            size="small"
+                            onClick={(e) => {
+                              // set the active doc and open doc-move menu for that doc
+                              setActiveDoc(realIdx);
+                              setDocMoveAnchor(e.currentTarget);
+                            }}
+                            title={`Move ${category} ${realIdx + 1}`}
+                          >
+                            <TbArrowRight className="text-sky-400" />
+                          </IconButton>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -256,7 +287,7 @@ const LoanPackagePanel = ({
         {renderDoc(docs[activeDoc], activeDoc)}
       </div>
 
-      {/* === Move Category Menu === */}
+      {/* === Category Move Menu === */}
       <Menu
         anchorEl={moveAnchor}
         open={Boolean(moveAnchor)}
@@ -272,7 +303,33 @@ const LoanPackagePanel = ({
               key={b}
               onClick={() => {
                 setMoveAnchor(null);
+                // category move -> docIndex null
                 onMoveDocument(null, b, category);
+              }}
+            >
+              {b}
+            </MenuItem>
+          ))}
+      </Menu>
+
+      {/* === Per-Document Move Menu === */}
+      <Menu
+        anchorEl={docMoveAnchor}
+        open={Boolean(docMoveAnchor)}
+        onClose={() => setDocMoveAnchor(null)}
+      >
+        <div className="px-4 py-2 text-sm font-semibold text-[#097aaf] border-b border-gray-200">
+          Move this document to
+        </div>
+        {borrowersList
+          .filter((b) => b !== borrower)
+          .map((b) => (
+            <MenuItem
+              key={b}
+              onClick={() => {
+                setDocMoveAnchor(null);
+                // pass the activeDoc index to parent
+                onMoveDocument(activeDoc, b, null);
               }}
             >
               {b}
