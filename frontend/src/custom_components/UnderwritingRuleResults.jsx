@@ -121,7 +121,7 @@ const UnderwritingRuleResult = ({
               })}
           </select>
         </div>
-        <Button variant="result_download" label={"Download"} width={200} />
+        {/* <Button variant="result_download" label={"Download"} width={200} /> */}
       </div>
 
       <div className="mt-2 border-b-1 border-gray-300"></div>

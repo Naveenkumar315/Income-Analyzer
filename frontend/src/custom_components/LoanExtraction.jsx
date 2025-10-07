@@ -335,8 +335,10 @@ const LoanExtraction = ({
           <div className="flex items-center gap-3">
             {analyzedState?.isAnalyzed && (
               <Button
-                className="px-4 py-1 rounded text-white bg-sky-600 hover:bg-sky-700 text-sm"
-                label={"View Result"}
+                variant="start-analyze"
+                width={160}
+                label="View Result"
+                className="whitespace-nowrap"
                 onClick={() => {
                   setIsSAClicked(false);
                   setShowSection((p) => ({
@@ -354,8 +356,10 @@ const LoanExtraction = ({
             )}
 
             <Button
-              className="px-4 py-1 rounded border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 text-sm"
-              label={"Upload Document"}
+              variant="upload-doc"
+              width={180}
+              label="Upload Documents"
+              className="whitespace-nowrap"
               onClick={() =>
                 setShowSection((p) => ({ ...p, uploadedModel: true }))
               }
@@ -364,8 +368,10 @@ const LoanExtraction = ({
             </Button>
 
             <Button
-              className="px-4 py-1 rounded text-white bg-sky-600 hover:bg-sky-700 text-sm"
-              label={"Start Analyzing"}
+              variant="start-analyze"
+              width={160}
+              label="Start Analyzing"
+              className="whitespace-nowrap"
               onClick={() => {
                 setReport({});
                 setAnalyzedState((prev) => ({
