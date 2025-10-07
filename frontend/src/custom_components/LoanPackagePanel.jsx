@@ -249,7 +249,7 @@ const LoanPackagePanel = ({
                         </button>
 
                         {/* Small per-tab Move icon (optional) */}
-                        {isModifiedView && (
+                        {/* {isModifiedView && (
                           <IconButton
                             size="small"
                             onClick={(e) => {
@@ -261,7 +261,7 @@ const LoanPackagePanel = ({
                           >
                             <TbArrowRight className="text-sky-400" />
                           </IconButton>
-                        )}
+                        )} */}
                       </div>
                     );
                   })}
