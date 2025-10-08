@@ -8,7 +8,6 @@ class EmailRequest(BaseModel):
 
 
 class UploadedDataOut(BaseModel):
-    username: str
     loanID: Optional[str]
     file_name: Optional[str]
     updated_at: Optional[datetime]

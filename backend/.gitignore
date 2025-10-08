@@ -11,13 +11,10 @@ __pycache__/
 # Env files
 .env
 .env_1
+
 # VS Code
 .vscode/
 
 # OS
 .DS_Store
 Thumbs.db
-
-backend.zip
-
-

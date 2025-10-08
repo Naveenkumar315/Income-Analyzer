@@ -28,6 +28,9 @@ logger = logging.getLogger(__name__)
 # Config
 # -----------------------------
 allowed_sections = ["BorrowerName", "W2", "VOE", "Paystubs", "Paystub"]
+bs_allowed_sections = ["BorrowerName", "W2", "VOE", "Paystubs", "Paystub", 'Bank Statement']
+bank_statement = ['Bank Statement']
+
 
 try:
     with open("requirements.yaml") as stream:
@@ -149,7 +152,7 @@ class CleanJsonRequest(BaseModel):
     username: str
     email: str
     loanID: str
-    file_name: str
+    file_name: str   # e.g. "folder_merge" / "file_merge" / "upload"
     raw_json: Dict[str, Any]
     threshold: Optional[float] = 0.7
     borrower_indicators: Optional[List[str]] = None
@@ -171,32 +174,33 @@ class LoanGETResponse(BaseModel):
     analyzed_data: bool
 
 
-
 class GetAnalyzedDataRequest(BaseModel):
     email: str
     loanId: str
 
 
+
 # ---------- ROUTES ----------
 @app.post("/clean-json")
 async def clean_json(req: CleanJsonRequest):
-    """
-    Insert new record with cleaned data (first-time upload).
-    Cleans borrower documents using nested cleanup utilities,
-    filters allowed document sections, and saves to MongoDB.
-    """
-    # 1. Clean borrower documents
-    #    New clean_borrower_documents_from_dict ignores threshold/indicators,
-    #    but we keep them in the request for future flexibility.
-    cleaned = clean_borrower_documents_from_dict(req.raw_json)
+    """Insert new record with cleaned data (first time upload)."""
+    cleaned = clean_borrower_documents_from_dict(
+        data=req.raw_json,
+        threshold=req.threshold,
+        borrower_indicators=req.borrower_indicators,
+        employer_indicators=req.employer_indicators,
+    )
 
-    # 2. Optional post-processing
     cl_data = clean_json_data(cleaned)
-    allowed_sections = ["BorrowerName", "W2", "VOE", "Paystubs", "Paystub"]
+    
+
     filtered_data = filter_documents_by_type(cl_data, allowed_sections)
 
-    # 3. Build record for MongoDB
+    filtered_data_with_bs = filter_documents_by_type(cl_data, bs_allowed_sections)
+    only_bs = filter_documents_by_type(cl_data, bank_statement)
+
     timestamp = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")
+
     record = {
         "username": req.username,
         "email": req.email,
@@ -206,12 +210,12 @@ async def clean_json(req: CleanJsonRequest):
         "cleaned_data": cleaned,
         "original_cleaned_data": cleaned,
         "filtered_data": filtered_data,
+        "only_bs": only_bs,
+        "filtered_data_with_bs": filtered_data_with_bs,
         "created_at": timestamp,
         "updated_at": timestamp,
-        "hasModifications": False  # New field to track modifications
     }
 
-    # 4. Insert into database
     await db["uploadedData"].insert_one(record)
 
     return {"message": "Upload saved successfully", "cleaned_json": cleaned}
@@ -231,33 +235,31 @@ async def update_cleaned_data(
 
     timestamp = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")
 
-    existing = await db["uploadedData"].find_one({"loanID": loanID})
+    existing = await db["uploadedData"].find_one({"loanID": loanID, "email": email})
     if not existing:
         raise HTTPException(status_code=404, detail="Record not found")
+
 
     old_cleaned = existing.get("cleaned_data", {})
 
     cl_data = clean_json_data(raw_json)
-    allowed_sections = ["BorrowerName", "W2", "VOE", "Paystubs", "Paystub"]
-
     filtered_data = filter_documents_by_type(cl_data, allowed_sections)
 
+    filtered_data_with_bs = filter_documents_by_type(cl_data, bs_allowed_sections)
+    only_bs = filter_documents_by_type(cl_data, bank_statement)
+
     # Save new cleaned_data
-    # await db["uploadedData"].update_one(
-    #     {"loanID": loanID},
-    #     {"$set": {"cleaned_data": raw_json, "filtered_data": filtered_data,"updated_at": timestamp}}
-    # )
-    
     await db["uploadedData"].update_one(
         {"loanID": loanID},
         {"$set": {
-            "cleaned_data": cl_data,         # <-- use cleaned data here
+            "cleaned_data": cl_data,        
             "filtered_data": filtered_data,
+            "only_bs": only_bs,
+            "filtered_data_with_bs": filtered_data_with_bs,
             "hasModifications": hasModifications,
             "updated_at": timestamp
         }}
 )
-    
 
     # Log audit entry
     await log_action(
@@ -271,7 +273,7 @@ async def update_cleaned_data(
     )
 
     # Return updated cleaned_json from DB
-    updated = await db["uploadedData"].find_one({"loanID": loanID})
+    updated = await db["uploadedData"].find_one({"loanID": loanID, "email": email})
     return {
         "message": "Cleaned data updated successfully",
         "cleaned_json": updated.get("cleaned_data", {}),
@@ -281,7 +283,7 @@ async def update_cleaned_data(
 @app.get("/check-loanid")
 async def check_loanid(email: str = Query(...), loanID: str = Query(...)):
     """Check if a loanID already exists for a given email"""
-    existing = await db["uploadedData"].find_one({"loanID": loanID})
+    existing = await db["uploadedData"].find_one({"loanID": loanID, "email": email})
     return {"exists": bool(existing)}
 
 
@@ -294,9 +296,6 @@ def convert_objectid(obj):
         return str(obj)
     else:
         return obj
-
-
-
 
 @app.post("/verify-rules")
 async def verify_rules(
@@ -431,13 +430,13 @@ async def income_insights(
     """Generate income insights for borrower JSON"""
     content = await db["uploadedData"].find_one(
         {"loanID": loanID, "email": email},
-        {"filtered_data": 1, "_id": 0}
+        {"filtered_data_with_bs": 1, "_id": 0}
     )
 
-    if not content or "filtered_data" not in content:
+    if not content or "filtered_data_with_bs" not in content:
         raise HTTPException(status_code=404, detail="File not found. Please upload first.")
 
-    data = content["filtered_data"]
+    data = content["filtered_data_with_bs"]
 
     if borrower != "All":
         if borrower not in data:
@@ -472,6 +471,43 @@ async def income_insights(
     except Exception as e:
         logger.error(f"Income insights failed: {e}")
         raise HTTPException(status_code=500, detail=f"Income insights failed: {str(e)}")
+
+
+
+@app.post("/banksatement-insights")
+async def banksatement_insights(email: str = Query(...), loanID: str = Query(...)):
+    content = await db["uploadedData"].find_one({"loanID": loanID, "email": email}, {"only_bs": 1, "_id": 0})
+    content = content['only_bs']
+    if not content:
+        raise HTTPException(
+            status_code=404, detail="File not found. Please upload first.")
+
+    try:
+        async def run_insights():
+            try:
+                response = await mcp_client.call_tool(
+                    "bank_statement_insights",
+                    {"content": json.dumps(content)},
+                )
+                if response.content and len(response.content) > 0 and response.content[0].text.strip():
+                    parsed_response = json.loads(response.content[0].text)
+                else:
+                    parsed_response = {"error": "Empty response from MCP client"}
+            except Exception as e:
+                parsed_response = {"error": str(e)}
+            return parsed_response
+
+
+        parsed_response = await run_insights()
+
+        return {"status": "success", "bank_statement_insights": parsed_response}
+
+    except Exception as e:
+        logger.error(f"Income insights failed: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Income insights failed: {str(e)}")
+    
+
 
 @app.post("/store-analyzed-data")
 async def store_analyzed_data(
@@ -519,6 +555,8 @@ async def view_loan(req: LoanViewRequest):
         "analyzed_data": bool(loan.get("analyzed_data", False)),
          "hasModifications": bool(loan.get("hasModifications", False)),  # ✅ NEW
     }
+
+
 @app.post("/get-original-data", response_model=LoanGETResponse)
 async def view_loan(req: LoanViewRequest):
     # if loanId is an ObjectId, convert it

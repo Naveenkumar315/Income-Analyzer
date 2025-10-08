@@ -4,6 +4,8 @@ import { TabContext, TabList, TabPanel } from "@mui/lab";
 import Button from "../components/Button";
 
 const ResultTab = ({ Tabs, value, handleGetResult }) => {
+  console.log("tabs", Tabs);
+
   return (
     <Box sx={{ width: "100%" }}>
       <TabContext value={value}>
@@ -25,7 +27,7 @@ const ResultTab = ({ Tabs, value, handleGetResult }) => {
               minHeight: "unset",
             }}
           >
-            {Tabs.map((tab) => (
+            {Tabs?.map((tab) => (
               <Tab
                 key={tab}
                 label={`${tab}`}

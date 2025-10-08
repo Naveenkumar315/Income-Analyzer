@@ -67,9 +67,9 @@ def names_match_fuzzy(name1, name2, threshold=0.6):
     middle1 = parts1[1:-1] if len(parts1) > 2 else []
     middle2 = parts2[1:-1] if len(parts2) > 2 else []
     
-    print(f"    DEBUG: Comparing '{name1}' vs '{name2}'")
-    print(f"    DEBUG: First: '{first1}' vs '{first2}' = {first1 == first2}")
-    print(f"    DEBUG: Last: '{last1}' vs '{last2}'")
+    #print(f"    DEBUG: Comparing '{name1}' vs '{name2}'")
+    #print(f"    DEBUG: First: '{first1}' vs '{first2}' = {first1 == first2}")
+    #print(f"    DEBUG: Last: '{last1}' vs '{last2}'")
     
     # Must have matching first names
     first_match = first1 == first2 or (
@@ -81,7 +81,7 @@ def names_match_fuzzy(name1, name2, threshold=0.6):
     )
     
     if not first_match:
-        print(f"    DEBUG: First names don't match")
+        #print(f"    DEBUG: First names don't match")
         return False
     
     # Must have matching last names - FIXED LEVENSHTEIN
@@ -105,12 +105,12 @@ def names_match_fuzzy(name1, name2, threshold=0.6):
     edit_dist = levenshtein_distance(last1, last2)
     similarity_ratio = SequenceMatcher(None, last1, last2).ratio()
     
-    print(f"    DEBUG: Edit distance: {edit_dist}, Similarity: {similarity_ratio:.2f}")
+    #print(f"    DEBUG: Edit distance: {edit_dist}, Similarity: {similarity_ratio:.2f}")
     
     last_match = last1 == last2 or edit_dist <= 2 or similarity_ratio > 0.75
     
     if not last_match:
-        print(f"    DEBUG: Last names don't match")
+        #print(f"    DEBUG: Last names don't match")
         return False
     
     # Middle names - one or both can be empty (very lenient)
@@ -131,7 +131,7 @@ def names_match_fuzzy(name1, name2, threshold=0.6):
                 break
     
     result = first_match and last_match and middle_compatible
-    print(f"    DEBUG: Final result: {result} (first={first_match}, last={last_match}, middle={middle_compatible})")
+    #print(f"    DEBUG: Final result: {result} (first={first_match}, last={last_match}, middle={middle_compatible})")
     
     return result
 
@@ -178,7 +178,7 @@ def consolidate_similar_borrowers(master_borrowers):
     used_indices = set()
     
     # Add debug output
-    print(f"  DEBUG: Starting consolidation with {len(master_borrowers)} borrowers")
+    #print(f"  DEBUG: Starting consolidation with {len(master_borrowers)} borrowers")
     
     for i, borrower1 in enumerate(master_borrowers):
         if i in used_indices:
@@ -194,12 +194,12 @@ def consolidate_similar_borrowers(master_borrowers):
                 continue
             
             match_result = names_match_fuzzy(borrower1, borrower2)
-            print(f"  DEBUG: Testing '{borrower1}' vs '{borrower2}': {match_result}")
+            #print(f"  DEBUG: Testing '{borrower1}' vs '{borrower2}': {match_result}")
             
             if match_result:
                 matching_group.append(borrower2)
                 used_indices.add(j)
-                print(f"  Consolidating: '{borrower2}' -> '{borrower1}'")
+                #print(f"  Consolidating: '{borrower2}' -> '{borrower1}'")
         
         consolidated.append({
             'primary_name': borrower1,  # Use first one as primary
@@ -227,11 +227,11 @@ def find_best_borrower_match(document_borrower_name, consolidated_borrowers):
     
     # For multi-borrower documents, try to match the first name that has a match
     if len(individual_names) > 1:
-        print(f"    Multi-borrower document with names: {individual_names}")
+        #print(f"    Multi-borrower document with names: {individual_names}")
         for individual_name in individual_names:
             match = find_single_borrower_match(individual_name, consolidated_borrowers)
             if match:
-                print(f"    Matched individual name '{individual_name}' to '{match}'")
+                #print(f"    Matched individual name '{individual_name}' to '{match}'")
                 return match
         return None
     else:
@@ -305,7 +305,7 @@ def extract_borrower_name_from_document(doc_data):
                                     if not is_company_name and not re.match(r'^\d+$', value) and len(value) > 2:
                                         if not borrower_name or len(value) > len(borrower_name):
                                             borrower_name = value
-                                            print(f"    Found borrower name: '{value}' from field: '{label.get('LabelName')}'")
+                                            #print(f"    Found borrower name: '{value}' from field: '{label.get('LabelName')}'")
     
     return borrower_name
 
@@ -353,51 +353,54 @@ def show_json_structure(input_file, limit=2):
     with open(input_file, 'r', encoding='utf-8') as f:
         data = json.load(f)
     
-    print("JSON Structure Analysis:")
-    print(f"Data type: {type(data)}")
+    #print("JSON Structure Analysis:")
+    #print(f"Data type: {type(data)}")
     
     if isinstance(data, list):
-        print(f"Total items: {len(data)}")
+        ##print(f"Total items: {len(data)}")
         items_to_check = data[:limit]
     elif isinstance(data, dict):
-        print("Single object structure")
+        ##print("Single object structure")
         items_to_check = [data]
         limit = 1
     else:
-        print(f"Unexpected data type: {type(data)}")
+        ##print(f"Unexpected data type: {type(data)}")
         return
     
     for i, item in enumerate(items_to_check):
-        print(f"\nItem {i+1}:")
+        ##print(f"\nItem {i+1}:")
         if isinstance(item, dict):
-            print(f"  BorrowerName: {item.get('BorrowerName', 'N/A')}")
+            ##print(f"  BorrowerName: {item.get('BorrowerName', 'N/A')}")
             
             for key, value in item.items():
                 if key != 'BorrowerName':
                     if isinstance(value, list):
-                        print(f"  {key}: {len(value)} documents")
+                        ##print(f"  {key}: {len(value)} documents")
                         if value and isinstance(value[0], dict):
                             # Show document structure
                             doc = value[0]
                             if 'Summary' in doc:
-                                print(f"    Has Summary structure")
-                            print(f"    Keys: {list(doc.keys())}")
+                                pass
+                                ##print(f"    Has Summary structure")
+                            ##print(f"    Keys: {list(doc.keys())}")
                     else:
-                        print(f"  {key}: {type(value)}")
+                        pass
+                        #print(f"  {key}: {type(value)}")
         else:
-            print(f"  Item is {type(item)}: {str(item)[:100]}...")
+            pass
+            #print(f"  Item is {type(item)}: {str(item)[:100]}...")
             
     # Show top-level keys if it's a dictionary
     if isinstance(data, dict):
-        print(f"\nTop-level keys: {list(data.keys())}")
+        #print(f"\nTop-level keys: {list(data.keys())}")
         # Check if any top-level values are lists that might contain borrower data
         for key, value in data.items():
             if isinstance(value, list) and value:
-                print(f"  {key} contains {len(value)} items")
+                #print(f"  {key} contains {len(value)} items")
                 if isinstance(value[0], dict):
-                    print(f"    First item keys: {list(value[0].keys())}")
+                    #print(f"    First item keys: {list(value[0].keys())}")
                     if 'BorrowerName' in value[0]:
-                        print(f"    Found BorrowerName in {key}")
+                        #print(f"    Found BorrowerName in {key}")
                         break
 
 def clean_borrower_documents(input_file, output_file):
@@ -407,7 +410,7 @@ def clean_borrower_documents(input_file, output_file):
     with open(input_file, 'r', encoding='utf-8') as f:
         data = json.load(f)
     
-    print(f"Loaded JSON - type: {type(data)}")
+    #print(f"Loaded JSON - type: {type(data)}")
     
     # Handle different JSON structures
     if isinstance(data, dict):
@@ -417,7 +420,7 @@ def clean_borrower_documents(input_file, output_file):
             if isinstance(value, list) and value:
                 # Check if this list contains borrower data
                 if isinstance(value[0], dict) and 'BorrowerName' in value[0]:
-                    print(f"Found borrower data in key: {key}")
+                    #print(f"Found borrower data in key: {key}")
                     items_to_process = value
                     break
         
@@ -426,15 +429,15 @@ def clean_borrower_documents(input_file, output_file):
             if 'BorrowerName' in data:
                 items_to_process = [data]
             else:
-                print("Could not find borrower data structure in the JSON")
+                #print("Could not find borrower data structure in the JSON")
                 return
     elif isinstance(data, list):
         items_to_process = data
     else:
-        print(f"Unexpected JSON structure: {type(data)}")
+        #print(f"Unexpected JSON structure: {type(data)}")
         return
     
-    print(f"Processing {len(items_to_process)} items")
+    #print(f"Processing {len(items_to_process)} items")
     
     # Step 1: Collect all unique borrower names from the top-level BorrowerName fields
     master_borrowers = set()
@@ -451,21 +454,22 @@ def clean_borrower_documents(input_file, output_file):
                     master_borrowers.add(borrower_name)
     
     master_borrowers = list(master_borrowers)
-    print(f"Found master borrowers: {master_borrowers}")
+    #print(f"Found master borrowers: {master_borrowers}")
     
     if not master_borrowers:
-        print("No master borrowers found! Check your JSON structure.")
+        #print("No master borrowers found! Check your JSON structure.")
         return
     
     # Consolidate similar borrower names
-    print(f"\nConsolidating similar borrower names...")
+    #print(f"\nConsolidating similar borrower names...")
     consolidated_borrowers = consolidate_similar_borrowers(master_borrowers)
     
-    print(f"Consolidated into {len(consolidated_borrowers)} unique borrowers:")
+    #print(f"Consolidated into {len(consolidated_borrowers)} unique borrowers:")
     for group in consolidated_borrowers:
-        print(f"  Primary: {group['primary_name']}")
+        #print(f"  Primary: {group['primary_name']}")
         if len(group['all_variations']) > 1:
-            print(f"    Variations: {group['all_variations'][1:]}")
+            pass
+            #print(f"    Variations: {group['all_variations'][1:]}")
     
     # Initialize cleaned structure using primary names
     cleaned_data = {}
@@ -490,7 +494,7 @@ def clean_borrower_documents(input_file, output_file):
             # Handle document array
             documents = value if isinstance(value, list) else [value]
             
-            print(f"\nProcessing {document_type} with {len(documents)} documents")
+            #print(f"\nProcessing {document_type} with {len(documents)} documents")
             
             for doc in documents:
                 if not isinstance(doc, dict):
@@ -500,32 +504,32 @@ def clean_borrower_documents(input_file, output_file):
                 doc_borrower_name = extract_borrower_name_from_document(doc)
                 
                 if not doc_borrower_name:
-                    print(f"  No borrower name found in document, using top-level: {top_level_borrower}")
+                    #print(f"  No borrower name found in document, using top-level: {top_level_borrower}")
                     # Fall back to top-level borrower name
                     if top_level_borrower and top_level_borrower != "Unidentified Borrower":
                         # Find which consolidated borrower this top-level name belongs to
                         matched_borrower = find_best_borrower_match(top_level_borrower, consolidated_borrowers)
                         if not matched_borrower:
-                            print(f"  Skipping document - could not match top-level borrower: {top_level_borrower}")
+                            #print(f"  Skipping document - could not match top-level borrower: {top_level_borrower}")
                             continue
                     else:
-                        print(f"  Skipping document - no valid borrower name")
+                        #print(f"  Skipping document - no valid borrower name")
                         continue
                 else:
                     # Find the best matching master borrower
                     matched_borrower = find_best_borrower_match(doc_borrower_name, consolidated_borrowers)
                     
                     if not matched_borrower:
-                        print(f"  Could not match '{doc_borrower_name}' to any master borrower")
+                        #print(f"  Could not match '{doc_borrower_name}' to any master borrower")
                         continue
                     
-                    print(f"  Matched '{doc_borrower_name}' to '{matched_borrower}'")
+                    #print(f"  Matched '{doc_borrower_name}' to '{matched_borrower}'")
                 
                 # Extract clean data from document
                 clean_doc = extract_clean_labels(doc)
                 
                 if not clean_doc:
-                    print(f"  No clean data extracted from document")
+                    #print(f"  No clean data extracted from document")
                     continue
                 
                 # Add to the appropriate borrower's documents
@@ -541,18 +545,18 @@ def clean_borrower_documents(input_file, output_file):
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(cleaned_data, f, indent=2, ensure_ascii=False)
     
-    print(f"\nCleaned data saved to {output_file}")
+    #print(f"\nCleaned data saved to {output_file}")
     
-    # Print summary
-    print("\n=== SUMMARY ===")
+    # #print summary
+    #print("\n=== SUMMARY ===")
     for borrower, docs in cleaned_data.items():
-        print(f"\nBorrower: {borrower}")
+        #print(f"\nBorrower: {borrower}")
         for doc_type, doc_list in docs.items():
-            print(f"  - {doc_type}: {len(doc_list)} document(s)")
+            #print(f"  - {doc_type}: {len(doc_list)} document(s)")
             # Show a sample of the fields in the first document
             if doc_list and isinstance(doc_list[0], dict):
                 sample_fields = list(doc_list[0].keys())[:5]  # First 5 fields
-                print(f"    Sample fields: {sample_fields}")
+                #print(f"    Sample fields: {sample_fields}")
 
 # Usage example
 if __name__ == "__main__":
@@ -569,25 +573,27 @@ if __name__ == "__main__":
         ("WNUKOWSKI", "WUNKOWSKI"),           # Last name variation test
     ]
     
-    print("Testing name matching:")
+    #print("Testing name matching:")
     for name1, name2 in test_names:
         match = names_match_fuzzy(name1, name2)
         score = similarity_score(name1, name2)
-        print(f"'{name1}' vs '{name2}': {match} (score: {score:.2f})")
+        #print(f"'{name1}' vs '{name2}': {match} (score: {score:.2f})")
     
     # Test the specific failing case
-    print(f"\n🔍 SPECIFIC TEST:")
+    #print(f"\n🔍 SPECIFIC TEST:")
     gretchen1 = "Gretchen Adriaana Wnukowski"
     gretchen2 = "Gretchen Wunkowski"
     match_result = names_match_fuzzy(gretchen1, gretchen2)
-    print(f"'{gretchen1}' vs '{gretchen2}': {match_result}")
+    #print(f"'{gretchen1}' vs '{gretchen2}': {match_result}")
     
     if not match_result:
-        print("❌ CRITICAL: This should match but doesn't!")
+        pass
+        #print("❌ CRITICAL: This should match but doesn't!")
     else:
-        print("✅ SUCCESS: Names match correctly")
+        pass
+        #print("✅ SUCCESS: Names match correctly")
     
-    print("\n" + "="*50)
+    #print("\n" + "="*50)
     
     # Replace with your actual file paths
     input_file = "IC_LOAN_50490_24Aug2025_103311.json"  # Update this path
@@ -595,17 +601,17 @@ if __name__ == "__main__":
     
     try:
         # First, let's analyze the structure
-        print("Analyzing JSON structure...")
+        #print("Analyzing JSON structure...")
         show_json_structure(input_file)
         
-        print("\n" + "="*50)
-        print("Starting cleanup process...")
+        #print("\n" + "="*50)
+        #print("Starting cleanup process...")
         
         clean_borrower_documents(input_file, output_file)
-        print("\nProcessing completed successfully!")
+        #print("\nProcessing completed successfully!")
         
     except FileNotFoundError:
-        print(f"Error: Could not find input file '{input_file}'")
+        #print(f"Error: Could not find input file '{input_file}'")
         print("Please update the input_file variable with the correct path to your JSON file.")
     except json.JSONDecodeError:
         print("Error: Invalid JSON format in input file")

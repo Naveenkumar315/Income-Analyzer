@@ -17,8 +17,6 @@ import LoadingModal from "./LoaderModal";
 // import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 
-const Tabs = ["Rule Results", "Summary", "Insights"];
-
 const UnderwritingRuleResult = ({
   goBack,
   report,
@@ -26,8 +24,9 @@ const UnderwritingRuleResult = ({
   loadingStep = 0,
   onCancel = () => {},
 }) => {
-  const [value, setValue] = useState(Tabs[0]);
+  const [value, setValue] = useState("Rule Results");
   const [expanded, setExpanded] = useState(false);
+  const [tabs, setTabs] = useState(["Rule Results", "Summary", "Insights"]);
   const {
     isLoading,
     filtered_borrower,
@@ -45,7 +44,17 @@ const UnderwritingRuleResult = ({
   }, [report, filtered_borrower]);
 
   useEffect(() => {
-    console.log("report", report);
+    debugger;
+    console.log("filtered_borrower", filtered_borrower);
+    console.log("repo", report);
+    if (report?.[filtered_borrower]?.bankStatment?.length > 0) {
+      setTabs((prevTabs) => {
+        if (!prevTabs.includes("Bank Statement")) {
+          return [...prevTabs, "Bank Statement"];
+        }
+        return prevTabs;
+      });
+    }
   }, [report]);
 
   const handleGetResult = (event, newValue) => {
@@ -91,7 +100,7 @@ const UnderwritingRuleResult = ({
     <>
       <div className="flex  items-center my-2">
         <ResultTab
-          Tabs={Tabs}
+          Tabs={tabs}
           value={value}
           handleGetResult={handleGetResult}
         />
@@ -248,17 +257,32 @@ const UnderwritingRuleResult = ({
                       id={`panel-${idx}-header`}
                       className="!bg-gray-100 !rounded-t-lg"
                     >
-                      <div className="flex justify-between items-center w-full">
-                        <Typography
-                          variant="body2"
-                          component="span"
-                          className="font-medium text-gray-800 truncate max-w-[70%]"
-                        >
-                          {`Rule ${idx + 1}: `}
-                        </Typography>
-                        <div className="flex items-center gap-1 text-sm font-medium ">
-                          <span className="font-bold">Status: </span>
-                          <span>{status}</span>
+                      <div className="flex justify-between items-start w-full gap-3">
+                        {/* Left Side: Rule Number + Rule Text */}
+                        <div className="flex flex-wrap items-start flex-1 gap-1 min-w-0">
+                          <Typography
+                            variant="body2"
+                            component="span"
+                            className="font-medium text-gray-800 shrink-0"
+                          >
+                            {`Rule ${idx + 1}:`}
+                          </Typography>
+
+                          <Typography
+                            variant="body2"
+                            component="span"
+                            className="font-medium text-gray-800 break-words whitespace-normal flex-1"
+                          >
+                            {result?.rule || item.rule}
+                          </Typography>
+                        </div>
+
+                        {/* Right Side: Status */}
+                        <div className="flex items-center gap-1 text-sm font-medium shrink-0">
+                          <span className="font-bold text-gray-700">
+                            Status:
+                          </span>
+                          <span className="text-gray-800">{status}</span>
                         </div>
                       </div>
                     </AccordionSummary>
@@ -302,6 +326,46 @@ const UnderwritingRuleResult = ({
               <span className="font-bold shrink-0">Income Insights</span>
               <div className="flex-1 overflow-y-auto whitespace-pre-line">
                 {borrowerData?.insights || ""}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Bank Statement */}
+
+      {value === "Bank Statement" && (
+        <>
+          <div className="text-[#26a3dd] mt-2 font-semibold">
+            Bank Statement Insights
+          </div>
+
+          <div className="relative  mt-3 w-full rounded-2xl p-5 shadow">
+            <div className="absolute inset-0 bg-gradient-to-r from-[#d6f1ff] to-[#b0e2de] opacity-20 rounded-2xl"></div>
+
+            <div className="relative flex flex-col gap-4 h-full">
+              <div className="flex-1 overflow-y-auto whitespace-pre-line">
+                {report?.[filtered_borrower]?.bankStatment.map(
+                  (item, index) => (
+                    <div
+                      key={index}
+                      className="border border-gray-200 rounded-xl p-4 mb-3 bg-white/60 backdrop-blur-sm hover:shadow-md transition-all"
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-gray-800">
+                          {item.field}
+                        </span>
+                        <span className="text-sm font-semibold text-blue-700">
+                          {item.value}
+                        </span>
+                      </div>
+
+                      <div className="mt-2 text-sm text-gray-600">
+                        {item.commentary}
+                      </div>
+                    </div>
+                  )
+                )}
               </div>
             </div>
           </div>

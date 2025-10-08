@@ -136,6 +136,16 @@ const IncomeAnalyzer = () => {
     };
 
     try {
+      // Bank Statement
+      const bankStatement = await api.post("/banksatement-insights", null, {
+        params: { email, loanID: loanId },
+        signal,
+      });
+
+      console.log("bankStatement", bankStatement);
+      let bank_Statement =
+        bankStatement?.data?.income_insights?.insight_commentry || "";
+
       // 1️⃣ Verify Rules
       const rulesRes = await api.post("/verify-rules", null, {
         params: { email, loanID: loanId, borrower },
@@ -180,6 +190,7 @@ const IncomeAnalyzer = () => {
           income_summary: incomeSummary,
           summaryData,
           insights: insightsComment,
+          bankStatment: bank_Statement,
         },
       }));
 

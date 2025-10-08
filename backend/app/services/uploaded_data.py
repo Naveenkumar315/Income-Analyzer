@@ -4,7 +4,6 @@ from pydantic import BaseModel
 
 
 class UploadedDataOut(BaseModel):
-    username: str
     loanID: str
     file_name: str
     updated_at: Optional[datetime]
@@ -13,7 +12,7 @@ class UploadedDataOut(BaseModel):
 
 
 async def get_uploaded_data_by_email(db, email: str):
-    cursor = db["uploadedData"].find({})
+    cursor = db["uploadedData"].find({"email": email})
     results = []
 
     async for record in cursor:
@@ -33,7 +32,6 @@ async def get_uploaded_data_by_email(db, email: str):
 
         results.append(
             UploadedDataOut(
-                username=record.get('username'),
                 loanID=record.get("loanID"),
                 file_name=record.get("file_name"),
                 updated_at=updated_at,
