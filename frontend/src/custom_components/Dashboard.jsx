@@ -24,7 +24,7 @@ const Dashboard = ({ onAddLoanPackage, handleViewChange }) => {
 
   useEffect(() => {
     handleCheckData();
-  }, [showSection]);
+  }, []);
 
   useEffect(() => {
     if (showSection.startAnalyzing) {
