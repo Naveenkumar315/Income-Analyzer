@@ -342,10 +342,47 @@ const LoanExtraction = ({
                           <Tooltip title="View Original Data">
                             <TbDatabaseEdit
                               className="text-gray-600 cursor-pointer"
-                              onClick={() => {
-                                setActiveTab("original");
-                                setSelectedBorrower(null);
-                                setSelectedCategory(null);
+                              onClick={async () => {
+                                try {
+                                  // Step 1: Call backend API to get original borrower data
+                                  const res = await api.post(
+                                    "/get-original-data",
+                                    {
+                                      email:
+                                        sessionStorage.getItem("email") || "",
+                                      loanId:
+                                        sessionStorage.getItem("loanId") || "",
+                                    }
+                                  );
+
+                                  // Step 2: Parse the cleaned data
+                                  const cleanedData =
+                                    res?.data?.cleaned_data || {};
+
+                                  // Step 3: Update local + context states
+                                  setOriginalData(cleanedData);
+                                  setActiveTab("original");
+                                  setSelectedBorrower(null);
+                                  setSelectedCategory(null);
+
+                                  // Step 4: Update borrower list in context
+                                  const borrowers = Object.keys(
+                                    cleanedData || {}
+                                  );
+                                  setBorrowerList(borrowers);
+
+                                  toast.success(
+                                    "Fetched original borrower data."
+                                  );
+                                } catch (error) {
+                                  console.error(
+                                    "Error fetching original data:",
+                                    error
+                                  );
+                                  toast.error(
+                                    "Failed to fetch original data. Please try again."
+                                  );
+                                }
                               }}
                             />
                           </Tooltip>
