@@ -122,9 +122,16 @@ const LoanExtraction = ({
         raw_json: updatedJson,
         hasModifications: true,
       });
-      setModifiedData(res?.data?.cleaned_json || updatedJson);
+
+      const cleanedJson = res?.data?.cleaned_json || updatedJson;
+
+      // Update local and global context state together
+      setModifiedData(cleanedJson);
+      set_normalized_json(cleanedJson); // <-- this line keeps global context in sync
+
       setActiveTab("modified");
       setHasModifications(true);
+
       toast.success(successMsg);
     } catch (err) {
       console.error(`${actionTag} error:`, err);
