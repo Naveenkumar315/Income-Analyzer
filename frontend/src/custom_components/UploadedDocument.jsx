@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Button from "../components/Button";
 import Input from "../components/Input";
-import BackLink from "./BackLink";
+import BackLink from "../utils/BackLink";
 import api from "../api/client"; // axios instance
 import { useUpload } from "../context/UploadContext";
 

@@ -1,5 +1,5 @@
 // ProcessLoanTable.jsx
-import Button from "../components/Button";
+import Button from "../../components/Button";
 import CustomTable from "./CustomTable";
 import {
   Chip,
@@ -16,8 +16,8 @@ import ErrorOutlineOutlinedIcon from "@mui/icons-material/ErrorOutlineOutlined";
 import SearchIcon from "@mui/icons-material/Search";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { useState, useMemo } from "react";
-import { useUpload } from "../context/UploadContext";
-import api from "../api/client";
+import { useUpload } from "../../context/UploadContext";
+import api from "../../api/client";
 
 const ProcessLoanTable = ({
   columns = [],

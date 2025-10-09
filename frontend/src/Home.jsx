@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import Dashboard from "./custom_components/Dashboard";
-import Header from "./custom_components/Header";
-import Rules from "./custom_components/Rules";
+import Dashboard from "./custom_components/dashboard/Dashboard";
+import Header from "./components/Header";
+import Rules from "./custom_components/underWriting/Rules";
 import useCurrentUser from "./hooks/useCurrentUser";
 import IncomeAnalyzer from "./pages/IncomeAnalyer";
 import { useUpload } from "./context/UploadContext";

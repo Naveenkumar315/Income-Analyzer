@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
-import LoanExatraction from "./LoanExtraction";
+import LoanExatraction from "../LoanExtraction/LoanExtraction";
 import ProcessLoanTable from "./ProcessLoanTable";
-import UploadedDocument from "./UploadedDocument";
-import UnderwritingRuleResult from "./UnderwritingRuleResults";
-import api from "../api/client";
-import StepChips from "../custom_components/StepChips";
-import { useUpload } from "../context/UploadContext";
+import UploadedDocument from "../UploadedDocument";
+import UnderwritingRuleResult from "../underWriting/UnderwritingRuleResults";
+import api from "../../api/client";
+import StepChips from "../../utils/StepChips";
+import { useUpload } from "../../context/UploadContext";
 
 const Dashboard = ({ onAddLoanPackage, handleViewChange }) => {
   const {

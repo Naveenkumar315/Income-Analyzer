@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from "react";
-import UploadedModel from "./UploadedModel";
+import UploadedModel from "../../modals/UploadedModel";
 import DescriptionIcon from "@mui/icons-material/Description";
-import UnderwritingRulesModel from "./UnderwritingRulesModel";
-import UnuploadedScreen from "./UnuploadedScreen";
-import { useUpload } from "../context/UploadContext";
+import UnderwritingRulesModel from "../../modals/UnderwritingRulesModel";
+import UnuploadedScreen from "../../utils/UnuploadedScreen";
+import { useUpload } from "../../context/UploadContext";
 import LoanPackagePanel from "./LoanPackagePanel";
 import PersonSharpIcon from "@mui/icons-material/PersonSharp";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import { FaFolder } from "react-icons/fa";
-import EnterBorrowerName from "./EnterBorrowerName";
+import EnterBorrowerName from "../../modals/EnterBorrowerName";
 import Checkbox from "@mui/material/Checkbox";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
@@ -18,14 +18,14 @@ import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SaveIcon from "@mui/icons-material/Save";
-import api from "../api/client";
-import ConfirmMoveModal from "./ConfirmMoveModal";
-import ConfirmMergeModal from "./ConfirmMergeModal";
-import ConfirmDeleteModal from "./ConfirmDeleteModal";
+import api from "../../api/client";
+import ConfirmMoveModal from "../../modals/ConfirmMoveModal";
+import ConfirmMergeModal from "../../modals/ConfirmMergeModal";
+import ConfirmDeleteModal from "../../modals/ConfirmDeleteModal";
 import { toast } from "react-toastify";
 import Tooltip from "@mui/material/Tooltip";
-import ResizableLayout from "../utils/ResizableLayout";
-import Button from "../components/Button";
+import ResizableLayout from "../../utils/ResizableLayout";
+import Button from "../../components/Button";
 
 const LoanExtraction = ({
   showSection = {},

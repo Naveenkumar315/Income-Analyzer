@@ -1,7 +1,7 @@
 import Box from "@mui/material/Box";
 import Tab from "@mui/material/Tab";
 import { TabContext, TabList, TabPanel } from "@mui/lab";
-import Button from "../components/Button";
+import Button from "../../components/Button";
 
 const ResultTab = ({ Tabs, value, handleGetResult }) => {
   console.log("tabs", Tabs);

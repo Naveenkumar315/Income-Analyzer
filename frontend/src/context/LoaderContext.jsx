@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from "react";
-import LoadingModal from "../custom_components/LoaderModal"; // adjust path
+import LoadingModal from "../modals/LoaderModal"; // adjust path
 
 const LoaderContext = createContext();
 

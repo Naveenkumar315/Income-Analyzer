@@ -1,6 +1,6 @@
 import { use, useEffect, useState } from "react";
 import ResultTab from "./ResultTab";
-import Button from "../components/Button";
+import Button from "../../components/Button";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ErrorIcon from "@mui/icons-material/Error";
@@ -12,8 +12,8 @@ import {
   Typography,
 } from "@mui/material";
 import SummarySection from "./SummarySection";
-import { useUpload } from "../context/UploadContext";
-import LoadingModal from "./LoaderModal";
+import { useUpload } from "../../context/UploadContext";
+import LoadingModal from "../../modals/LoaderModal";
 // import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 

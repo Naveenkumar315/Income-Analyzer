@@ -1,10 +1,10 @@
 import { useUpload } from "../context/UploadContext";
-import UnderwritingRuleResult from "../custom_components/UnderwritingRuleResults";
+import UnderwritingRuleResult from "../custom_components/underWriting/UnderwritingRuleResults";
 import UploadedDocument from "../custom_components/UploadedDocument";
-import LoanExatraction from "../custom_components/LoanExtraction";
+import LoanExatraction from "../custom_components/LoanExtraction/LoanExtraction";
 import { useEffect, useState, useRef } from "react";
 import api from "../api/client";
-import StepChips from "../custom_components/StepChips";
+import StepChips from "../utils/StepChips";
 
 const IncomeAnalyzer = () => {
   const {
