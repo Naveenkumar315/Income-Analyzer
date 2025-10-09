@@ -561,6 +561,8 @@ const LoanExtraction = ({
                                             : ""
                                         }`}
                                         onClick={() => {
+                                          setSelectedBorrower(null); // Reset selection before switching to a new borrower/category
+                                          setSelectedCategory(null);
                                           setSelectedBorrower(name);
                                           setSelectedCategory(cat);
                                         }}

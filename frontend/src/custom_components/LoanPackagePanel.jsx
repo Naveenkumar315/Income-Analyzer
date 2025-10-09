@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -29,6 +29,15 @@ const LoanPackagePanel = ({
   const [docPage, setDocPage] = useState(0);
   const [moveAnchor, setMoveAnchor] = useState(null); // category move anchor
   const [docMoveAnchor, setDocMoveAnchor] = useState(null); // per-doc move anchor
+
+  useEffect(() => {
+    setActiveDoc(0);
+    setActiveSubTab({});
+    setExpandedDoc(null);
+    setDocPage(0);
+    setMoveAnchor(null);
+    setDocMoveAnchor(null);
+  }, [borrower, category, docs]);
 
   function formatCategory(cat = "") {
     return cat
