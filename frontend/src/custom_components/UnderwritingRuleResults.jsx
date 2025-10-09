@@ -47,7 +47,7 @@ const UnderwritingRuleResult = ({
     debugger;
     console.log("filtered_borrower", filtered_borrower);
     console.log("repo", report);
-    if (report?.[filtered_borrower]?.bankStatment?.length > 0) {
+    if (report?.[filtered_borrower]?.bankStatement?.length > 0) {
       setTabs((prevTabs) => {
         if (!prevTabs.includes("Bank Statement")) {
           return [...prevTabs, "Bank Statement"];
@@ -370,7 +370,7 @@ const UnderwritingRuleResult = ({
 
             <div className="relative flex flex-col gap-4 h-full">
               <div className="flex-1 overflow-y-auto whitespace-pre-line">
-                {report?.[filtered_borrower]?.bankStatment.map(
+                {report?.[filtered_borrower]?.bankStatement.map(
                   (item, index) => (
                     <div
                       key={index}

@@ -31,6 +31,7 @@ const IncomeAnalyzer = () => {
   useEffect(() => {
     handle_view_result_checker();
     if (Object.keys(report).length) return;
+
     if (showSection.startAnalyzing) {
       controllerRef.current = new AbortController();
       fetchAllData(controllerRef.current.signal);
@@ -41,11 +42,10 @@ const IncomeAnalyzer = () => {
     };
   }, [showSection.startAnalyzing]);
 
-  // 🛑 STOP button handler — immediate cancel + close loader
+  // 🛑 STOP button handler
   const handleCancel = () => {
     try {
       console.log("🛑 Cancel requested — aborting all requests...");
-      controllerRef.current = true; // mark as cancelled
       controllerRef.current?.abort();
     } catch (err) {
       console.error("Abort failed:", err);
@@ -54,21 +54,22 @@ const IncomeAnalyzer = () => {
       setLoadingStep(0);
       setReport({});
       controllerRef.current = null;
-
-      // ✅ force reset UI to extraction (step 0)
-      handleStepChange(0);
+      handleStepChange(0); // back to extraction step
     }
   };
 
   // 🔹 Main orchestrator
   const fetchAllData = async (signal) => {
-    debugger;
     const email = sessionStorage.getItem("email") || "";
     const loanId = sessionStorage.getItem("loanId") || "";
 
     if (!borrowerList.length) return;
+    // 🆕 Fresh run
+    setIsLoading(true);
+    setLoadingStep(0);
+    setReport({});
 
-    // If already analyzed → load from DB
+    // ✅ If already analyzed, fetch saved data
     if (analyzedState.isAnalyzed) {
       try {
         setIsLoading(true);
@@ -105,26 +106,38 @@ const IncomeAnalyzer = () => {
       }
     }
 
-    // Fresh run
-    setIsLoading(true);
-    setLoadingStep(0);
+    const bankStatement = await api.post("/banksatement-insights", null, {
+      params: { email, loanID: loanId },
+      signal,
+    });
+
+    const bank_Statement =
+      bankStatement?.data?.income_insights?.insight_commentry || "";
 
     const firstBorrower = borrowerList[0];
-    await analyzeBorrower(firstBorrower, email, loanId, signal);
+    await analyzeBorrower(firstBorrower, email, loanId, signal, bank_Statement);
 
     setIsLoading(false);
     handleStepChange(1);
 
     const remainingBorrowers = borrowerList.slice(1);
     Promise.all(
-      remainingBorrowers.map((b) => analyzeBorrower(b, email, loanId, signal))
+      remainingBorrowers.map((b) =>
+        analyzeBorrower(b, email, loanId, signal, bank_Statement)
+      )
     ).then(() => {
       console.log("✅ All background borrowers analyzed");
     });
   };
 
-  // ✅ NEW analyzeBorrower with live loader update
-  const analyzeBorrower = async (borrower, email, loanId, signal) => {
+  // ✅ Borrower-by-borrower analysis with progress update
+  const analyzeBorrower = async (
+    borrower,
+    email,
+    loanId,
+    signal,
+    bank_Statement
+  ) => {
     console.log(`▶️ Starting analysis for borrower: ${borrower}`);
 
     const totalSteps = 3;
@@ -133,20 +146,13 @@ const IncomeAnalyzer = () => {
     const updateProgress = () => {
       step += 1;
       setLoadingStep(step);
+      setIsLoading(true); // 🔹 force re-render of loader modal
     };
 
     try {
-      // Bank Statement
-      const bankStatement = await api.post("/banksatement-insights", null, {
-        params: { email, loanID: loanId },
-        signal,
-      });
+      // 1️⃣ Bank Statement
 
-      console.log("bankStatement", bankStatement);
-      let bank_Statement =
-        bankStatement?.data?.income_insights?.insight_commentry || "";
-
-      // 1️⃣ Verify Rules
+      // 2️⃣ Verify Rules
       const rulesRes = await api.post("/verify-rules", null, {
         params: { email, loanID: loanId, borrower },
         signal,
@@ -154,7 +160,7 @@ const IncomeAnalyzer = () => {
       const rulesData = rulesRes.data;
       updateProgress();
 
-      // 2️⃣ Income Calculation
+      // 3️⃣ Income Calculation
       const incomeRes = await api.post("/income-calc", null, {
         params: { email, loanID: loanId, borrower },
         signal,
@@ -162,7 +168,7 @@ const IncomeAnalyzer = () => {
       const incomeData = incomeRes.data;
       updateProgress();
 
-      // 3️⃣ Income Insights
+      // 4️⃣ Income Insights
       const insightsRes = await api.post("/income-insights", null, {
         params: { email, loanID: loanId, borrower },
         signal,
@@ -182,6 +188,7 @@ const IncomeAnalyzer = () => {
       const insightsComment =
         insightsData?.income_insights?.insight_commentry || "";
 
+      // ✅ Update Report
       setReport((prev) => ({
         ...prev,
         [borrower]: {
@@ -190,12 +197,13 @@ const IncomeAnalyzer = () => {
           income_summary: incomeSummary,
           summaryData,
           insights: insightsComment,
-          bankStatment: bank_Statement,
+          bankStatement: bank_Statement,
         },
       }));
 
       console.log(`✅ Finished borrower: ${borrower}`);
-
+      setIsLoading(false); // ✅ stop loader when done
+      // ✅ Store analyzed data in DB
       await update_analyzed_data_into_db(
         email,
         loanId,
@@ -203,7 +211,8 @@ const IncomeAnalyzer = () => {
         incomeSummary,
         summaryData,
         insightsComment,
-        borrower
+        borrower,
+        bank_Statement
       );
 
       setAnalyzedState({ isAnalyzed: true, analyzed_data: {} });
@@ -223,7 +232,8 @@ const IncomeAnalyzer = () => {
     incomeSummary,
     summaryData,
     insightsComment,
-    borrower
+    borrower,
+    bank_Statement
   ) => {
     try {
       await api.post("/store-analyzed-data", {
@@ -236,6 +246,7 @@ const IncomeAnalyzer = () => {
           income_summary: incomeSummary,
           summaryData,
           insights: insightsComment,
+          bankStatement: bank_Statement,
         },
       });
       console.log(`✅ analyzed_data stored successfully for ${borrower}`);
@@ -245,7 +256,6 @@ const IncomeAnalyzer = () => {
   };
 
   const handleStepChange = (step) => {
-    debugger;
     setActiveStep(step);
     setShowSection((prev) => ({
       ...prev,
@@ -306,7 +316,7 @@ const IncomeAnalyzer = () => {
             report={report}
             setReport={setReport}
             loadingStep={loadingStep}
-            onCancel={handleCancel} // ✅ Stop button now fully functional
+            onCancel={handleCancel} // Stop button works properly
           />
         )}
       </div>

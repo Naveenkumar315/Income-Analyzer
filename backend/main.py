@@ -208,8 +208,8 @@ async def clean_json(req: CleanJsonRequest):
         "file_name": req.file_name,
         "original_data": req.raw_json,
         "cleaned_data": cleaned,
-        "original_cleaned_data": cleaned,
         "filtered_data": filtered_data,
+        "original_cleaned_data": cleaned,
         "only_bs": only_bs,
         "filtered_data_with_bs": filtered_data_with_bs,
         "created_at": timestamp,
@@ -479,8 +479,7 @@ async def banksatement_insights(email: str = Query(...), loanID: str = Query(...
     content = await db["uploadedData"].find_one({"loanID": loanID, "email": email}, {"only_bs": 1, "_id": 0})
     content = content['only_bs']
     if not content:
-        raise HTTPException(
-            status_code=404, detail="File not found. Please upload first.")
+        return {"status": "Failure", "income_insights": ['Insufficient documents for bank statement insights.']}
 
     try:
         async def run_insights():
@@ -500,7 +499,7 @@ async def banksatement_insights(email: str = Query(...), loanID: str = Query(...
 
         parsed_response = await run_insights()
 
-        return {"status": "success", "bank_statement_insights": parsed_response}
+        return {"status": "success", "income_insights": parsed_response}
 
     except Exception as e:
         logger.error(f"Income insights failed: {e}")
