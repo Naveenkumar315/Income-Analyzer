@@ -381,7 +381,7 @@ const LoanExtraction = ({
                                   const borrowers = Object.keys(
                                     cleanedData || {}
                                   );
-                                  setBorrowerList(borrowers);
+                                  // setBorrowerList(borrowers);
 
                                   toast.success(
                                     "Fetched original borrower data."
