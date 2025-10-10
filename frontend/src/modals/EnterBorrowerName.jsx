@@ -22,6 +22,7 @@ const EnterBorrowerName = ({
   to_name = "",
   setAddBorrower = () => {},
   addBorrower = {},
+  onSave = () => {}, // Accept onSave as a direct prop
 }) => {
   const CloseModel = () => {
     setAddBorrower((prev) => ({ ...prev, model: false }));
@@ -80,7 +81,8 @@ const EnterBorrowerName = ({
             label="Save"
             onClick={() => {
               if (addBorrower.borrowerName.trim()) {
-                addBorrower.onSave(addBorrower.borrowerName.trim());
+                // Call the onSave prop directly
+                onSave(addBorrower.borrowerName.trim());
               }
               CloseModel();
             }}

@@ -138,7 +138,6 @@ const LoanPackagePanel = ({
           </div>
 
           <div className="flex items-center gap-1">
-            {/* Per-document move icon (moves the currently activeDoc) */}
             {isModifiedView && (
               <>
                 <IconButton
@@ -148,15 +147,6 @@ const LoanPackagePanel = ({
                 >
                   <TbArrowRight className="text-sky-600" />
                 </IconButton>
-
-                {/* Category-level Move icon */}
-                {/* <IconButton
-                  size="small"
-                  title={`Move entire ${category} section`}
-                  onClick={(e) => setMoveAnchor(e.currentTarget)}
-                >
-                  <TbArrowRight className="text-sky-600" />
-                </IconButton> */}
               </>
             )}
           </div>
@@ -256,21 +246,6 @@ const LoanPackagePanel = ({
                         >
                           {category} {realIdx + 1}
                         </button>
-
-                        {/* Small per-tab Move icon (optional) */}
-                        {/* {isModifiedView && (
-                          <IconButton
-                            size="small"
-                            onClick={(e) => {
-                              // set the active doc and open doc-move menu for that doc
-                              setActiveDoc(realIdx);
-                              setDocMoveAnchor(e.currentTarget);
-                            }}
-                            title={`Move ${category} ${realIdx + 1}`}
-                          >
-                            <TbArrowRight className="text-sky-400" />
-                          </IconButton>
-                        )} */}
                       </div>
                     );
                   })}
@@ -312,7 +287,6 @@ const LoanPackagePanel = ({
               key={b}
               onClick={() => {
                 setMoveAnchor(null);
-                // category move -> docIndex null
                 onMoveDocument(null, b, category);
               }}
             >
@@ -337,7 +311,6 @@ const LoanPackagePanel = ({
               key={b}
               onClick={() => {
                 setDocMoveAnchor(null);
-                // pass the activeDoc index to parent
                 onMoveDocument(activeDoc, b, null);
               }}
             >
