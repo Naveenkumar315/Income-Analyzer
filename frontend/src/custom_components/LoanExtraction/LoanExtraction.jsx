@@ -124,8 +124,20 @@ const LoanExtraction = ({
   };
 
   // Add borrower
+  // Add borrower (with duplicate name check)
   const handleAddBorrower = async (name) => {
     if (!name || !name.trim()) return;
+
+    const borrowers = Object.keys(modifiedData || {});
+
+    // 🔍 Check if borrower name already exists (case-insensitive)
+    const exists = borrowers.some((b) => b === name.trim());
+
+    if (exists) {
+      toast.warn(`Borrower name "${name}" already exists!`);
+      return;
+    }
+
     const updated = { ...modifiedData, [name]: {} };
     await persistAndSetModified(
       updated,
