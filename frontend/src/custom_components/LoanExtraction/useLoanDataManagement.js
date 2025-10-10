@@ -145,7 +145,8 @@ export const useLoanDataManagement = () => {
   };
 
   const handleMerge = async (targetBorrower) => {
-    if (!targetBorrower || selectedBorrowers.length < 2) return;
+    debugger;
+    if (!targetBorrower) return;
     const mergedData = JSON.parse(JSON.stringify(modifiedData));
     const sourceBorrowers = selectedBorrowers.filter(
       (b) => b !== targetBorrower

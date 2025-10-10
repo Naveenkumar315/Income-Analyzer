@@ -10,7 +10,7 @@ const SelectionToolbar = ({
   onMoveClick,
   onExitSelectMode,
 }) => {
-  const canMerge = selectedBorrowersCount >= 1;
+  const canMerge = selectedBorrowersCount > 0;
 
   return (
     <div className="flex justify-end items-center px-4 py-2 border-b border-gray-100 bg-blue-50">
@@ -31,7 +31,7 @@ const SelectionToolbar = ({
             >
               <TbArrowMerge
                 size={20}
-                // The icon is now only blue when the merge action is possible (2+ selected)
+                // The icon is now blue when the merge action is possible (1+ selected)
                 className={canMerge ? "text-[#26a3dd]" : "text-gray-300"}
               />
             </button>
