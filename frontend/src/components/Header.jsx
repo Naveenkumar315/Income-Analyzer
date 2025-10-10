@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Switch from "@mui/material/Switch";
 import SearchIcon from "@mui/icons-material/Search";
 import NotificationsIcon from "@mui/icons-material/Notifications";
@@ -130,4 +130,4 @@ const Header = ({
   );
 };
 
-export default Header;
+export default React.memo(Header);

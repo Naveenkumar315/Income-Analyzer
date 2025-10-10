@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useUpload } from "../../context/UploadContext";
 import api from "../../api/client";
 import { toast } from "react-toastify";
@@ -63,150 +63,167 @@ export const useLoanDataManagement = () => {
   ]);
 
   // --- Core API Helper ---
-  const persistAndSetModified = async (updatedJson, actionTag, successMsg) => {
-    try {
-      const res = await api.post("/update-cleaned-data", {
-        email: sessionStorage.getItem("email") || "",
-        loanID: sessionStorage.getItem("loanId") || "",
-        username: sessionStorage.getItem("username") || "",
-        action: actionTag,
-        raw_json: updatedJson,
-        hasModifications: true,
-      });
+  const persistAndSetModified = useCallback(
+    async (updatedJson, actionTag, successMsg) => {
+      try {
+        const res = await api.post("/update-cleaned-data", {
+          email: sessionStorage.getItem("email") || "",
+          loanID: sessionStorage.getItem("loanId") || "",
+          username: sessionStorage.getItem("username") || "",
+          action: actionTag,
+          raw_json: updatedJson,
+          hasModifications: true,
+        });
 
-      const cleanedJson = res?.data?.cleaned_json || updatedJson;
-      setModifiedData(cleanedJson);
-      set_normalized_json(cleanedJson); // Keep global context synced
-      setActiveTab("modified");
-      setHasModifications(true);
-      if (successMsg) toast.success(successMsg);
-      return true;
-    } catch (err) {
-      console.error(`${actionTag} error:`, err);
-      toast.error("Operation failed. Please try again.");
-      return false;
-    }
-  };
+        const cleanedJson = res?.data?.cleaned_json || updatedJson;
+        setModifiedData(cleanedJson);
+        set_normalized_json(cleanedJson); // Keep global context synced
+        setActiveTab("modified");
+        setHasModifications(true);
+        if (successMsg) toast.success(successMsg);
+        return true;
+      } catch (err) {
+        console.error(`${actionTag} error:`, err);
+        toast.error("Operation failed. Please try again.");
+        return false;
+      }
+    },
+    [set_normalized_json, setHasModifications]
+  );
 
   // --- Event Handlers ---
-  const handleAddBorrower = async (name) => {
-    if (!name || !name.trim()) return;
-    const currentBorrowers = Object.keys(modifiedData || {});
-    if (
-      currentBorrowers.some(
-        (b) => b.toLowerCase() === name.trim().toLowerCase()
-      )
-    ) {
-      toast.warn(`Borrower name "${name}" already exists!`);
-      return;
-    }
-    const updated = { ...modifiedData, [name.trim()]: {} };
-    await persistAndSetModified(
-      updated,
-      "add_borrower",
-      `Borrower "${name}" added`
-    );
-  };
-
-  const handleDeleteBorrower = async (name) => {
-    if (!name) return;
-    const updated = { ...modifiedData };
-    delete updated[name];
-    const success = await persistAndSetModified(
-      updated,
-      "delete_borrower",
-      `Borrower "${name}" deleted`
-    );
-    if (success) {
-      if (selectedBorrower === name) {
-        setSelectedBorrower(null);
-        setSelectedCategory(null);
+  const handleAddBorrower = useCallback(
+    async (name) => {
+      if (!name || !name.trim()) return;
+      const currentBorrowers = Object.keys(modifiedData || {});
+      if (
+        currentBorrowers.some(
+          (b) => b.toLowerCase() === name.trim().toLowerCase()
+        )
+      ) {
+        toast.warn(`Borrower name "${name}" already exists!`);
+        return;
       }
-    }
-  };
+      const updated = { ...modifiedData, [name.trim()]: {} };
+      await persistAndSetModified(
+        updated,
+        "add_borrower",
+        `Borrower "${name}" added`
+      );
+    },
+    [modifiedData, persistAndSetModified]
+  );
 
-  const handleRenameBorrower = async (oldName, newName) => {
-    if (!newName || !newName.trim() || oldName === newName) {
-      setEditingBorrower(null);
-      return;
-    }
-    const updated = { ...modifiedData };
-    updated[newName.trim()] = updated[oldName];
-    delete updated[oldName];
-    const success = await persistAndSetModified(
-      updated,
-      "rename_borrower",
-      `Renamed "${oldName}" → "${newName}"`
-    );
-    if (success) {
-      if (selectedBorrower === oldName) setSelectedBorrower(newName);
-      setEditingBorrower(null);
-    }
-  };
-
-  const handleMerge = async (targetBorrower) => {
-    debugger;
-    if (!targetBorrower) return;
-    const mergedData = JSON.parse(JSON.stringify(modifiedData));
-    const sourceBorrowers = selectedBorrowers.filter(
-      (b) => b !== targetBorrower
-    );
-    let targetCategories = mergedData[targetBorrower] || {};
-
-    sourceBorrowers.forEach((source) => {
-      const sourceCategories = mergedData[source] || {};
-      Object.keys(sourceCategories).forEach((cat) => {
-        if (!Array.isArray(targetCategories[cat])) targetCategories[cat] = [];
-        targetCategories[cat].push(...sourceCategories[cat]);
-      });
-      delete mergedData[source];
-    });
-
-    mergedData[targetBorrower] = targetCategories;
-    const success = await persistAndSetModified(
-      mergedData,
-      "folder_merge",
-      `Merged folders into ${targetBorrower}`
-    );
-    if (success) {
-      setSelectMode(false);
-      setSelectedBorrowers([]);
-    }
-  };
-
-  const handleMove = async (toBorrower) => {
-    if (!toBorrower || selectedFiles.length === 0) return;
-    const movedData = JSON.parse(JSON.stringify(modifiedData));
-
-    selectedFiles.forEach(({ borrower, category, docs }) => {
-      // Add docs to target
-      if (!movedData[toBorrower]) movedData[toBorrower] = {};
-      if (!movedData[toBorrower][category])
-        movedData[toBorrower][category] = [];
-      movedData[toBorrower][category].push(...docs);
-
-      // Remove category from source
-      if (movedData[borrower] && movedData[borrower][category]) {
-        delete movedData[borrower][category];
-        // If borrower has no categories left, remove borrower
-        if (Object.keys(movedData[borrower]).length === 0) {
-          delete movedData[borrower];
+  const handleDeleteBorrower = useCallback(
+    async (name) => {
+      if (!name) return;
+      const updated = { ...modifiedData };
+      delete updated[name];
+      const success = await persistAndSetModified(
+        updated,
+        "delete_borrower",
+        `Borrower "${name}" deleted`
+      );
+      if (success) {
+        if (selectedBorrower === name) {
+          setSelectedBorrower(null);
+          setSelectedCategory(null);
         }
       }
-    });
+    },
+    [modifiedData, persistAndSetModified, selectedBorrower]
+  );
 
-    const success = await persistAndSetModified(
-      movedData,
-      "file_merge",
-      `Moved ${selectedFiles.length} category(ies) to ${toBorrower}`
-    );
-    if (success) {
-      setSelectMode(false);
-      setSelectedFiles([]);
-    }
-  };
+  const handleRenameBorrower = useCallback(
+    async (oldName, newName) => {
+      if (!newName || !newName.trim() || oldName === newName) {
+        setEditingBorrower(null);
+        return;
+      }
+      const updated = { ...modifiedData };
+      updated[newName.trim()] = updated[oldName];
+      delete updated[oldName];
+      const success = await persistAndSetModified(
+        updated,
+        "rename_borrower",
+        `Renamed "${oldName}" → "${newName}"`
+      );
+      if (success) {
+        if (selectedBorrower === oldName) setSelectedBorrower(newName);
+        setEditingBorrower(null);
+      }
+    },
+    [modifiedData, persistAndSetModified, selectedBorrower]
+  );
 
-  const handleViewOriginal = async () => {
+  const handleMerge = useCallback(
+    async (targetBorrower) => {
+      if (!targetBorrower) return;
+      const mergedData = JSON.parse(JSON.stringify(modifiedData));
+      const sourceBorrowers = selectedBorrowers.filter(
+        (b) => b !== targetBorrower
+      );
+      let targetCategories = mergedData[targetBorrower] || {};
+
+      sourceBorrowers.forEach((source) => {
+        const sourceCategories = mergedData[source] || {};
+        Object.keys(sourceCategories).forEach((cat) => {
+          if (!Array.isArray(targetCategories[cat])) targetCategories[cat] = [];
+          targetCategories[cat].push(...sourceCategories[cat]);
+        });
+        delete mergedData[source];
+      });
+
+      mergedData[targetBorrower] = targetCategories;
+      const success = await persistAndSetModified(
+        mergedData,
+        "folder_merge",
+        `Merged folders into ${targetBorrower}`
+      );
+      if (success) {
+        setSelectMode(false);
+        setSelectedBorrowers([]);
+      }
+    },
+    [modifiedData, persistAndSetModified, selectedBorrowers]
+  );
+
+  const handleMove = useCallback(
+    async (toBorrower) => {
+      if (!toBorrower || selectedFiles.length === 0) return;
+      const movedData = JSON.parse(JSON.stringify(modifiedData));
+
+      selectedFiles.forEach(({ borrower, category, docs }) => {
+        // Add docs to target
+        if (!movedData[toBorrower]) movedData[toBorrower] = {};
+        if (!movedData[toBorrower][category])
+          movedData[toBorrower][category] = [];
+        movedData[toBorrower][category].push(...docs);
+
+        // Remove category from source
+        if (movedData[borrower] && movedData[borrower][category]) {
+          delete movedData[borrower][category];
+          // If borrower has no categories left, remove borrower
+          if (Object.keys(movedData[borrower]).length === 0) {
+            delete movedData[borrower];
+          }
+        }
+      });
+
+      const success = await persistAndSetModified(
+        movedData,
+        "file_merge",
+        `Moved ${selectedFiles.length} category(ies) to ${toBorrower}`
+      );
+      if (success) {
+        setSelectMode(false);
+        setSelectedFiles([]);
+      }
+    },
+    [modifiedData, persistAndSetModified, selectedFiles]
+  );
+
+  const handleViewOriginal = useCallback(async () => {
     try {
       const res = await api.post("/get-original-data", {
         email: sessionStorage.getItem("email") || "",
@@ -222,26 +239,31 @@ export const useLoanDataManagement = () => {
       console.error("Error fetching original data:", error);
       toast.error("Failed to fetch original data.");
     }
-  };
+  }, []);
 
-  const handleExitOriginalView = () => {
+  const handleExitOriginalView = useCallback(() => {
     setActiveTab("modified");
     setSelectedBorrower(null);
     setSelectedCategory(null);
-  };
+  }, []);
 
-  const toggleBorrower = (name) =>
-    setOpenBorrowers((prev) => ({ ...prev, [name]: !prev[name] }));
+  const toggleBorrower = useCallback(
+    (name) => setOpenBorrowers((prev) => ({ ...prev, [name]: !prev[name] })),
+    []
+  );
 
-  const isCategorySelected = (borrower, category) =>
-    selectedFiles.some(
-      (f) => f.borrower === borrower && f.category === category
-    );
+  const isCategorySelected = useCallback(
+    (borrower, category) =>
+      selectedFiles.some(
+        (f) => f.borrower === borrower && f.category === category
+      ),
+    [selectedFiles]
+  );
 
-  const handleCategoryClick = (borrower, category) => {
+  const handleCategoryClick = useCallback((borrower, category) => {
     setSelectedBorrower(borrower);
     setSelectedCategory(category);
-  };
+  }, []);
 
   return {
     // State

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Dashboard from "./custom_components/dashboard/Dashboard";
 import Header from "./components/Header";
 import Rules from "./custom_components/underWriting/Rules";
@@ -56,42 +56,51 @@ const Home = () => {
   };
 
   // Handle tab switching with state preservation
-  const handleTabChange = (e, newTab) => {
-    // Save current state when leaving Income Analyzer tab
-    if (tab === 1) {
-      saveIncomeAnalyzerState();
-    }
+  const handleTabChange = useCallback(
+    (e, newTab) => {
+      // Save current state when leaving Income Analyzer tab
+      if (tab === 1) {
+        saveIncomeAnalyzerState();
+      }
 
-    // Reset Dashboard state when switching to Dashboard
-    if (newTab === 0) {
-      setShowSection({
-        processLoanSection: true,
-        provideLoanIDSection: false,
-        extractedSection: false,
-        uploadedModel: false,
-        startAnalyzing: false,
-      });
-    }
-
-    // Handle Income Analyzer tab
-    if (newTab === 1) {
-      if (incomeAnalyzerInitialized) {
-        // Restore previous state if user has been here before
-        restoreIncomeAnalyzerState();
-      } else {
-        // First time accessing Income Analyzer - start fresh
+      // Reset Dashboard state when switching to Dashboard
+      if (newTab === 0) {
         setShowSection({
-          processLoanSection: false,
-          provideLoanIDSection: true,
+          processLoanSection: true,
+          provideLoanIDSection: false,
           extractedSection: false,
           uploadedModel: false,
           startAnalyzing: false,
         });
       }
-    }
 
-    setTab(newTab);
-  };
+      // Handle Income Analyzer tab
+      if (newTab === 1) {
+        if (incomeAnalyzerInitialized) {
+          // Restore previous state if user has been here before
+          restoreIncomeAnalyzerState();
+        } else {
+          // First time accessing Income Analyzer - start fresh
+          setShowSection({
+            processLoanSection: false,
+            provideLoanIDSection: true,
+            extractedSection: false,
+            uploadedModel: false,
+            startAnalyzing: false,
+          });
+        }
+      }
+
+      setTab(newTab);
+    },
+    [
+      tab,
+      saveIncomeAnalyzerState,
+      incomeAnalyzerInitialized,
+      restoreIncomeAnalyzerState,
+      setShowSection,
+    ]
+  );
 
   // Initialize Dashboard state on first load
   useEffect(() => {
@@ -102,7 +111,7 @@ const Home = () => {
       uploadedModel: false,
       startAnalyzing: false,
     });
-  }, []); // Only run once on mount
+  }, [setShowSection]); // Only run once on mount
 
   return (
     <div className="flex flex-col h-screen">

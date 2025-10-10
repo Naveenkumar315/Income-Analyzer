@@ -44,7 +44,7 @@ const Button = ({
       style={{ width: `${width}px` }}
       onClick={onClick}
       disabled={disabled}
-  >
+    >
       {label}
     </button>
   );

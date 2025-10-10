@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   Table,
   TableBody,
@@ -25,15 +25,18 @@ const CustomTable = ({
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
-  const handleChangePage = (event, newPage) => setPage(newPage);
-  const handleChangeRowsPerPage = (event) => {
+  const handleChangePage = useCallback(
+    (event, newPage) => setPage(newPage),
+    []
+  );
+  const handleChangeRowsPerPage = useCallback((event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
-  };
+  }, []);
 
-  const paginatedData = data.slice(
-    page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage
+  const paginatedData = useMemo(
+    () => data.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+    [data, page, rowsPerPage]
   );
 
   return (
@@ -138,4 +141,4 @@ const CustomTable = ({
   );
 };
 
-export default CustomTable;
+export default React.memo(CustomTable);
