@@ -317,6 +317,7 @@ const IncomeAnalyzer = () => {
             setReport={setReport}
             loadingStep={loadingStep}
             onCancel={handleCancel} // Stop button works properly
+            handleStepChange={handleStepChange}
           />
         )}
       </div>

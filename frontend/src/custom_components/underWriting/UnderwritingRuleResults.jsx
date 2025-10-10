@@ -16,6 +16,7 @@ import { useUpload } from "../../context/UploadContext";
 import LoadingModal from "../../modals/LoaderModal";
 // import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import { toast } from "react-toastify";
 
 const UnderwritingRuleResult = ({
   goBack,
@@ -23,6 +24,7 @@ const UnderwritingRuleResult = ({
   setReport,
   loadingStep = 0,
   onCancel = () => {},
+  handleStepChange = () => {},
 }) => {
   const [value, setValue] = useState("Rule Results");
   const [expanded, setExpanded] = useState(false);
@@ -45,15 +47,26 @@ const UnderwritingRuleResult = ({
 
   useEffect(() => {
     debugger;
-    console.log("filtered_borrower", filtered_borrower);
-    console.log("repo", report);
-    if (report?.[filtered_borrower]?.bankStatement?.length > 0) {
-      setTabs((prevTabs) => {
-        if (!prevTabs.includes("Bank Statement")) {
-          return [...prevTabs, "Bank Statement"];
-        }
-        return prevTabs;
-      });
+    try {
+      console.log("filtered_borrower", filtered_borrower);
+      console.log("repo", report);
+
+      if (!Object.keys(report).length && !filtered_borrower) {
+        toast.warn("No borrower data available.");
+        handleStepChange(0);
+        return;
+      }
+
+      if (report?.[filtered_borrower]?.bankStatement?.length > 0) {
+        setTabs((prevTabs) => {
+          if (!prevTabs.includes("Bank Statement")) {
+            return [...prevTabs, "Bank Statement"];
+          }
+          return prevTabs;
+        });
+      }
+    } catch (ex) {
+      console.log("error in setting tabs", ex);
     }
   }, [report]);
 

@@ -103,11 +103,17 @@ const UploadedDocument = ({
 
         <div className="mt-6 text-left">
           <Input
-            label="Loan ID"
-            placeholder="Enter"
+            label="Enter Loan ID"
+            placeholder="IC_5040"
             name="loanId"
             value={loanId}
             onChange={handle_loanid_change}
+            onKeyDown={(e) => {
+              debugger;
+              if (e.key === "Enter" && !checking && loanId.length && isUnique) {
+                handle_continue();
+              }
+            }}
           />
           {errorMsg && <p className="text-red-500 text-sm mt-1">{errorMsg}</p>}
         </div>
