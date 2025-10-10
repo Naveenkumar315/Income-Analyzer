@@ -236,7 +236,7 @@ const ProcessLoanTable = ({
             </Tooltip>
           )}
 
-          <Tooltip title="Refresh">
+          {/* <Tooltip title="Refresh">
             <IconButton
               onClick={() => {
                 onRefresh();
@@ -244,7 +244,7 @@ const ProcessLoanTable = ({
             >
               <RefreshIcon />
             </IconButton>
-          </Tooltip>
+          </Tooltip> */}
 
           <Select
             value={statusFilter}
