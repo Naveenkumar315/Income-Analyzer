@@ -296,5 +296,6 @@ export const useLoanDataManagement = () => {
     handleExitOriginalView,
     isCategorySelected,
     handleCategoryClick,
+    setModifiedData,
   };
 };

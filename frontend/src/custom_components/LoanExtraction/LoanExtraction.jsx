@@ -29,6 +29,8 @@ const LoanExtraction = ({ showSection, setShowSection, handleStepChange }) => {
     setAnalyzedState,
     setReport,
     normalized_json,
+    set_normalized_json,
+    setHasModifications,
   } = useUpload();
   const loanId = sessionStorage.getItem("loanId") || "";
 
@@ -61,6 +63,7 @@ const LoanExtraction = ({ showSection, setShowSection, handleStepChange }) => {
     handleExitOriginalView,
     isCategorySelected,
     handleCategoryClick,
+    setModifiedData,
   } = useLoanDataManagement();
 
   // State for modals and menus
@@ -146,6 +149,9 @@ const LoanExtraction = ({ showSection, setShowSection, handleStepChange }) => {
                       onSelect={() => setSelectMode(true)}
                       onViewOriginal={handleViewOriginal}
                       onExitOriginal={handleExitOriginalView}
+                      setModifiedData={setModifiedData}
+                      set_normalized_json={set_normalized_json}
+                      setHasModifications={setHasModifications}
                     />
                   )}
                   <BorrowerList
