@@ -47,12 +47,14 @@ def math_tool(expression: str) -> str:
     except Exception as e:
         return f"Math error: {e}"
 
+
 agent = create_react_agent(llm, tools=[math_tool])
 
 bank_agent = create_react_agent(llm, tools=[math_tool])
 # ======================================
 #  Models
 # ======================================
+
 
 class ICField(BaseModel):
     field: str
@@ -83,9 +85,22 @@ class IC_Bank_Field(BaseModel):
     value: str
 
 
-
 class IC_bank_Fields(BaseModel):
     insight_commentry: List[IC_Bank_Field]
+
+
+class IC_self_Field(BaseModel):
+
+    """
+    Output Structure for the Wage earner income calculation
+    """
+    borrower_type: str
+    status: Literal['Pass', 'Fail']
+    Documents_used: List
+    calculation_commentry: str
+    commentary: str
+    formulas_applied: str
+    final_math_formula: str
 
 
 # Parsers
@@ -93,6 +108,7 @@ ic_parser = PydanticOutputParser(pydantic_object=ICFields)
 rule_parser = PydanticOutputParser(pydantic_object=RuleCheckResult)
 insight_parser = PydanticOutputParser(pydantic_object=IC_insights)
 bank_parser = PydanticOutputParser(pydantic_object=IC_bank_Fields)
+IC_self_parser = PydanticOutputParser(pydantic_object=IC_self_Field)
 
 
 # ======================================
@@ -280,7 +296,6 @@ KEY ACTIONS: [List 3-5 critical next steps]
     return prompt
 
 
-
 @mcp.prompt()
 def bank_statemnt_prompt(content) -> str:
 
@@ -355,6 +370,7 @@ Conclude with a summary assessing:
 """
     return promt
 
+
 @mcp.prompt()
 def ic_calculation_prompt(fields, content) -> str:
     """
@@ -411,6 +427,166 @@ Additional Rules to be followed:
 - VALUE must equal the final figure from Calculation Commentary.
 
     """
+
+
+@mcp.prompt()
+def self_employment_prompt(content) -> str:
+
+    prompt = f"""
+
+[INPUT SECTION]
+
+Below is the borrower’s loan file content. Review it carefully and extract all relevant financial information to determine qualifying income.
+
+<<BORROWER DOCUMENT CONTENT START>>
+{content}
+<<BORROWER DOCUMENT CONTENT END>>
+
+----------------------------------------------------
+ROLE AND OBJECTIVE
+----------------------------------------------------
+You are an expert mortgage underwriter specializing in self-employed income analysis.  
+Your goal is to calculate the borrower’s qualifying monthly income using the provided documentation (tax returns, P&L, K-1s, financial statements, etc.).  
+You must identify each income source, apply correct formulas, include or exclude add-backs appropriately, and present the final qualifying income clearly.
+
+----------------------------------------------------
+INSTRUCTIONS
+----------------------------------------------------
+1. Identify the borrower’s self-employment type (Sole Proprietorship, Partnership, S-Corp, or Corporation).  
+2. Extract relevant fields such as:
+   - Net Profit / Ordinary Business Income
+   - Depreciation, Depletion, Amortization
+   - Nonrecurring or One-Time Income
+   - W-2 wages (if applicable)
+   - Ownership percentage
+   - YTD P&L or tax return figures
+3. Apply category-specific formulas as defined below.
+4. If multiple years are provided, compute a two-year average unless income is declining.
+5. Show intermediate steps and the final monthly qualifying income.
+
+----------------------------------------------------
+CATEGORY-WISE CALCULATION LOGIC
+----------------------------------------------------
+
+>> SOLE PROPRIETORSHIP (Schedule C)
+Data Source: IRS Form 1040 Schedule C – Line 31 (Net Profit)
+
+Formula:
+Qualifying Income = [(Net Profit + Non-cash Add-backs) − Nonrecurring Income] ÷ 12
+
+Add-backs may include:
+- Depreciation (Line 13)
+- Depletion (Line 12)
+- Business Use of Home (Line 30)
+- Amortization or Non-cash Expenses
+
+Two-Year Average:
+Avg Income = [(Year 1 Adj Net Income + Year 2 Adj Net Income) ÷ 24]
+If most recent year is lower → use lower year only.
+
+----------------------------------------------------
+
+>> PARTNERSHIP / S-CORPORATION (Form 1065 / 1120S)
+Data Source: Schedule K-1 (Lines 1, 2, 4), Form 8825 if applicable
+
+Formula:
+Qualifying Income = [(Ordinary Business Income + Guaranteed Payments + Depreciation + Depletion + Amortization) − Nonrecurring Items] ÷ 12
+
+If Borrower Owns ≥ 25% of Business:
+- Include share of income proportional to ownership %
+- Add W-2 wages if borrower is salaried
+- Subtract distributions greater than available cash flow
+
+Two-Year Average:
+Avg Monthly = (Adj Income Yr1 + Adj Income Yr2) ÷ 24
+
+----------------------------------------------------
+
+>> CORPORATION (Form 1120)
+Data Source: Form 1120 – Line 28 (Taxable Income before NOL)
+
+Formula:
+Qualifying Income = [(Taxable Income + Officer Compensation + Depreciation + Depletion + Amortization) − Nonrecurring Income] ÷ 12
+
+If Borrower Owns ≥ 25%:
+- Add salary paid to borrower (W-2)
+- Confirm positive business cash flow (review balance sheet)
+- Use two-year average if stable/increasing
+
+Formula Example:
+= [(Taxable Income (L28) + Depreciation (L20) + Officer Comp (L12)) ÷ 12]
+
+----------------------------------------------------
+
+>> PARTNERSHIP INCOME FROM K-1 (<25% OWNERSHIP)
+Data Source: Schedule K-1
+
+Formula:
+Qualifying Income = (K-1 Ordinary Business Income × Ownership %) ÷ 12
+No add-backs unless borrower can prove access to funds.
+
+----------------------------------------------------
+
+>> PROFIT & LOSS (P&L) STATEMENT VALIDATION
+When P&L and bank statements are available:
+
+Monthly Income = (YTD Net Income + Add-backs) ÷ Number of Months Covered
+
+Add-backs include:
+- Depreciation
+- Depletion
+- Amortization
+- Nonrecurring expenses
+
+If trend is consistent → average with prior year tax returns.
+
+----------------------------------------------------
+
+COMMON ADD-BACKS AND ADJUSTMENTS
+| Category | Add Back/Subtract | Example |
+|-----------|------------------|----------|
+| Depreciation | + | Net Income + Depreciation |
+| Depletion | + | Net Income + Depletion |
+| Amortization | + | Net Income + Amortization |
+| Nonrecurring Income | − | Adj Income − One-Time Gain |
+| Meals/Entertainment (50% Deductible) | + | Adj Income + (Disallowed Portion) |
+
+----------------------------------------------------
+
+FINAL QUALIFYING INCOME FORMULA
+Final Monthly Qualifying Income = [(Adj Net Income Year1 + Adj Net Income Year2) ÷ 24]
+If Year 2 < Year 1 → use Year 2 adjusted monthly only.
+
+----------------------------------------------------
+OUTPUT FORMAT
+----------------------------------------------------
+
+  "borrower_type": "Self-Employed",
+  Documents_used: k-1, schedule c
+  CALCULATION COMMENTARY:
+            - Step 1: VOE 10/21/2017
+            - Step 2: The Depreciation for 2019 is 122.00 and for 2018 is 22.00.
+            - Step 3: The value over the two years is (122.00 + 22.00) / 24.
+
+    PROFESSIONAL COMMENTARY:
+            - Mention the raw value used from the document.
+            - Mention the document type with the year.
+            - Reason for choosing the document and value.
+  "formulas_applied": [
+    "(Net Profit + Depreciation + Amortization - Nonrecurring Income) / 12",
+    "(Adj Yr1 + Adj Yr2) / 24"
+  ],
+  "final_math_formula": "(12+34+2-34)/12"
+
+---
+
+final_math_formula should be full mathematical expression
+
+If the content is not enough return status as fail and add comment is commentry and return all the fields as `0`.
+
+"""
+
+    return prompt
 
 
 # ======================================
@@ -482,7 +658,7 @@ async def income_insights(content: str):
 
     except Exception as e:
         return f'Error: {e}'
-    
+
 
 @mcp.tool()
 async def bank_statement_insights(content: str):
@@ -500,6 +676,31 @@ async def bank_statement_insights(content: str):
         output = raw_output['messages'][-1].content
 
         return bank_parser.parse(output).dict()
+
+    except Exception as e:
+        return f'Error: {e}'
+
+
+@mcp.tool()
+async def IC_self_income(content):
+
+    try:
+        self_emp_prompt = self_employment_prompt(content)
+        self_emp_prompt += f"\n\n{IC_self_parser.get_format_instructions()}"
+        prompt = {
+            "messages": [
+                {"role": "user", "content": self_emp_prompt}
+            ]
+        }
+
+        raw_output = await agent.ainvoke(prompt)
+        output = raw_output['messages'][-1].content
+
+        data = IC_self_parser.parse(output).dict()
+
+        data['value'] = math_tool(data['final_math_formula'])
+
+        return data
 
     except Exception as e:
         return f'Error: {e}'
