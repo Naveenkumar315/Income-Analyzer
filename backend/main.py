@@ -190,9 +190,15 @@ async def clean_json(req: CleanJsonRequest):
         borrower_indicators=req.borrower_indicators,
         employer_indicators=req.employer_indicators,
     )
+    
+    # Save as JSON file
+    with open("cleaned_output.json", "w", encoding="utf-8") as f:
+        json.dump(cleaned, f, indent=4, ensure_ascii=False)
+
+    print("✅ Cleaned data saved as 'cleaned_output.json'")
 
     cl_data = clean_json_data(cleaned)
-    
+
 
     filtered_data = filter_documents_by_type(cl_data, allowed_sections)
 
