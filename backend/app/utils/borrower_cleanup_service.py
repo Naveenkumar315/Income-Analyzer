@@ -1,106 +1,88 @@
-# borrower_cleanup_service.py
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 import re
-from difflib import SequenceMatcher
+import json
 
-# --- import your existing functions here ---
-from app.utils.json_borrower_cleanup import (
-    clean_name,
-    consolidate_similar_borrowers,
-    extract_borrower_name_from_document,
-    extract_clean_labels,
-    find_best_borrower_match,
-)
+from app.utils.json_borrower_cleanup import extract_structured_document_data
+
 
 def clean_borrower_documents_from_dict(
     data: Dict[str, Any],
-    threshold: float = 0.7,
-    borrower_indicators: Optional[List[str]] = None,
-    employer_indicators: Optional[List[str]] = None,
+    **kwargs
 ) -> Dict[str, Any]:
     """
-    Clean borrower documents directly from in-memory dict instead of file.
-    Returns cleaned JSON object.
+    Cleans and structures borrower documents from nested dictionary structures.
+
+    Updated:
+      ✅ Simplifies final JSON hierarchy:
+         borrower_name -> category -> [document_data]
+      ✅ Removes "_meta" keys
+      ✅ Flattens redundant nested category keys
     """
 
-    borrower_indicators = borrower_indicators or [
-        "borrower name", "employee name", "account holder name",
-        "applicant name", "employee full name", "full name"
-    ]
-    employer_indicators = employer_indicators or [
-        "employer", "company", "organization", "business",
-        "corp", "inc", "llc", "ltd", "bank", "association"
-    ]
+    cleaned_data = {}
 
-    # --- Step 1: Find borrower data list ---
+    if not isinstance(data, dict):
+        return {}
+
+    # --- Step 1: Locate borrower list under 'Summary' ---
     items_to_process = []
-    if isinstance(data, dict):
-        for key, value in data.items():
-            if isinstance(value, list) and value:
-                if isinstance(value[0], dict) and "BorrowerName" in value[0]:
-                    items_to_process = value
-                    break
-        if not items_to_process and "BorrowerName" in data:
-            items_to_process = [data]
-    elif isinstance(data, list):
-        items_to_process = data
-    else:
-        raise ValueError("Unexpected JSON structure")
+    for key, value in data.items():
+        if isinstance(value, list) and value and isinstance(value[0], dict):
+            items_to_process = value
+            break
 
-    # --- Step 2: Collect master borrower names ---
-    master_borrowers = set()
+    if not items_to_process:
+        print("⚠️ No borrower summary section found.")
+        return {}
+
+    # --- Step 2: Iterate through each borrower item ---
     for item in items_to_process:
-        if "BorrowerName" in item and item["BorrowerName"]:
-            borrower_name = item["BorrowerName"].strip()
-            if borrower_name and borrower_name != "Unidentified Borrower":
-                if "," in borrower_name:
-                    borrowers = [b.strip() for b in borrower_name.split(",") if b.strip()]
-                    master_borrowers.update(borrowers)
-                else:
-                    master_borrowers.add(borrower_name)
-
-    master_borrowers = list(master_borrowers)
-    consolidated_borrowers = consolidate_similar_borrowers(master_borrowers)
-
-    # --- Step 3: Initialize cleaned structure ---
-    cleaned_data = {group["primary_name"]: {} for group in consolidated_borrowers}
-
-    # --- Step 4: Process documents ---
-    for item in items_to_process:
-        if not isinstance(item, dict) or "BorrowerName" not in item:
+        if not isinstance(item, dict):
             continue
-        top_level_borrower = item["BorrowerName"]
 
-        for doc_type, value in item.items():
+        borrower_name_key = item.get("BorrowerName", "Unidentified Borrower")
+        cleaned_data.setdefault(borrower_name_key, {})
+
+        # --- Step 3: Process each document type for this borrower ---
+        for doc_type, documents in item.items():
             if doc_type == "BorrowerName":
                 continue
 
-            documents = value if isinstance(value, list) else [value]
+            documents = documents if isinstance(documents, list) else [documents]
+            cleaned_data[borrower_name_key].setdefault(doc_type, [])
+
             for doc in documents:
                 if not isinstance(doc, dict):
                     continue
 
-                # Extract borrower name
-                doc_borrower_name = extract_borrower_name_from_document(doc)
-                matched_borrower = None
-
-                if doc_borrower_name:
-                    matched_borrower = find_best_borrower_match(doc_borrower_name, consolidated_borrowers)
-                elif top_level_borrower and top_level_borrower != "Unidentified Borrower":
-                    matched_borrower = find_best_borrower_match(top_level_borrower, consolidated_borrowers)
-
-                if not matched_borrower:
+                # --- Step 4: Extract nested data ---
+                extracted = extract_structured_document_data(doc)
+                if not extracted:
                     continue
 
-                # Extract clean doc
-                clean_doc = extract_clean_labels(doc)
-                if not clean_doc:
-                    continue
+                # --- Step 5: Remove "_meta" keys ---
+                def remove_meta_keys(d):
+                    if isinstance(d, dict):
+                        return {
+                            k: remove_meta_keys(v)
+                            for k, v in d.items()
+                            if not str(k).startswith("_meta")
+                        }
+                    elif isinstance(d, list):
+                        return [remove_meta_keys(v) for v in d]
+                    return d
 
-                if doc_type not in cleaned_data[matched_borrower]:
-                    cleaned_data[matched_borrower][doc_type] = []
-                cleaned_data[matched_borrower][doc_type].append(clean_doc)
+                cleaned_doc = remove_meta_keys(extracted)
 
-    # Remove empty borrowers
-    cleaned_data = {k: v for k, v in cleaned_data.items() if v}
+                # --- Step 6: Flatten redundant doc_type layer ---
+                # Example: {"Paystub": {Summary, Earnings}} → {Summary, Earnings}
+                if (
+                    len(cleaned_doc) == 1
+                    and doc_type in cleaned_doc
+                    and isinstance(cleaned_doc[doc_type], dict)
+                ):
+                    cleaned_doc = cleaned_doc[doc_type]
+
+                cleaned_data[borrower_name_key][doc_type].append(cleaned_doc)
+
     return cleaned_data
