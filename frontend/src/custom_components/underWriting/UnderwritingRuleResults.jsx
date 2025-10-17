@@ -23,12 +23,12 @@ const UnderwritingRuleResult = ({
   report,
   setReport,
   loadingStep = 0,
-  onCancel = () => {},
-  handleStepChange = () => {},
+  onCancel = () => { },
+  handleStepChange = () => { },
 }) => {
   const [value, setValue] = useState("Rule Results");
   const [expanded, setExpanded] = useState(false);
-  const [tabs, setTabs] = useState(["Rule Results", "Summary", "Insights"]);
+  const [tabs, setTabs] = useState(["Rule Results", "Summary", "Insights", "Self Employee"]);
   const {
     isLoading,
     filtered_borrower,
@@ -73,6 +73,8 @@ const UnderwritingRuleResult = ({
   const handleGetResult = (event, newValue) => {
     setValue(newValue);
   };
+
+  const borrower = report?.[filtered_borrower]?.self_employee;
 
   // 🔹 Global loader: before first borrower is analyzed
   if (isLoading && !borrowerData) {
@@ -179,7 +181,7 @@ const UnderwritingRuleResult = ({
                   <span className="text-black font-bold pl-1">
                     {
                       borrowerData?.rules?.["rule_result"]?.[
-                        "Insufficient data"
+                      "Insufficient data"
                       ]
                     }
                   </span>
@@ -279,10 +281,9 @@ const UnderwritingRuleResult = ({
                 <Accordion
                   key={idx}
                   className={`!shadow-sm mt-3 
-                    ${
-                      expanded === idx
-                        ? "!border-2 !border-[#26a3dd]"
-                        : "!border !border-gray-200"
+                    ${expanded === idx
+                      ? "!border-2 !border-[#26a3dd]"
+                      : "!border !border-gray-200"
                     }`}
                   expanded={expanded === idx}
                   onChange={() => setExpanded(expanded === idx ? false : idx)}
@@ -348,7 +349,7 @@ const UnderwritingRuleResult = ({
       {value === "Summary" && (
         <>
           <div className="w-full">
-            <SummarySection summary_data={borrowerData["summary"]} />
+            <SummarySection summary_data={borrowerData?.["summary"]} />
           </div>
         </>
       )}
@@ -409,6 +410,68 @@ const UnderwritingRuleResult = ({
           </div>
         </>
       )}
+
+      {
+        value === "Self Employee" && (
+          <>
+            <div className="flex flex-col gap-6 w-full">
+              <div className="bg-white rounded-2xl shadow-md p-6 flex flex-col gap-4 w-full">
+                <div className="flex flex-col gap-3 text-sm text-gray-900">
+                  <div className="grid grid-cols-[220px_1fr] gap-4 border-b border-gray-100 pb-2">
+                    <span className="font-bold text-gray-700">Qualifying Income</span>
+                    <span className="font-bold text-gray-900">{borrower?.value}</span>
+                  </div>
+
+                  <div className="grid grid-cols-[220px_1fr] gap-4 border-b border-gray-100 pb-2">
+                    <span className="font-semibold text-gray-700">Borrower Type</span>
+                    <span className="text-gray-900">{borrower?.borrower_type}</span>
+                  </div>
+
+                  <div className="grid grid-cols-[220px_1fr] gap-4 border-b border-gray-100 pb-2">
+                    <span className="font-semibold text-gray-700">Status</span>
+                    <span className="text-gray-900">{borrower?.status}</span>
+                  </div>
+
+                  <div className="grid grid-cols-[220px_1fr] gap-4 border-b border-gray-100 pb-2">
+                    <span className="font-semibold text-gray-700">Documents Used</span>
+                    <span className="text-gray-900">
+                      {borrower?.Documents_used?.join(", ")}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-[220px_1fr] gap-4 border-b border-gray-100 pb-2">
+                    <span className="font-semibold text-gray-700">Commentary</span>
+                    <p className="text-gray-800 leading-relaxed">
+                      {borrower?.commentary}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-[220px_1fr] gap-4 border-b border-gray-100 pb-2">
+                    <span className="font-semibold text-gray-700">Calculation Commentary</span>
+                    <p className="text-gray-800 leading-relaxed">
+                      {borrower?.calculation_commentry}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-[220px_1fr] gap-4 border-b border-gray-100 pb-2">
+                    <span className="font-semibold text-gray-700">Formula Applied</span>
+                    <p className="text-gray-900 font-mono bg-gray-50 p-2 rounded-lg text-sm break-words">
+                      {borrower?.formulas_applied}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-[220px_1fr] gap-4">
+                    <span className="font-semibold text-gray-700">Final Math Formula</span>
+                    <p className="text-gray-900 font-mono bg-gray-50 p-2 rounded-lg text-sm break-words">
+                      {borrower?.final_math_formula}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )
+      }
     </>
   );
 };
