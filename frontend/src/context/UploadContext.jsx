@@ -32,7 +32,7 @@ export const UploadProvider = ({ children }) => {
   const [borrowerList, setBorrowerList] = useState([]);
 
   useEffect(() => {
-    console.log("++++++", normalized_json);
+    console.log({ normalized_json });
   }, [normalized_json]);
 
   const goBack = () => {

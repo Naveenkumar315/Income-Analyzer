@@ -13,10 +13,10 @@ def clean_borrower_documents_from_dict(
     Cleans and structures borrower documents from nested dictionary structures.
 
     Updated:
-      ✅ Simplifies final JSON hierarchy:
+       Simplifies final JSON hierarchy:
          borrower_name -> category -> [document_data]
-      ✅ Removes "_meta" keys
-      ✅ Flattens redundant nested category keys
+       Removes "_meta" keys
+       Flattens redundant nested category keys
     """
 
     cleaned_data = {}
@@ -32,7 +32,7 @@ def clean_borrower_documents_from_dict(
             break
 
     if not items_to_process:
-        print("⚠️ No borrower summary section found.")
+        print(" No borrower summary section found.")
         return {}
 
     # --- Step 2: Iterate through each borrower item ---
