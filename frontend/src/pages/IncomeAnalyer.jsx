@@ -69,7 +69,8 @@ const IncomeAnalyzer = () => {
       summaryData,
       insightsComment,
       borrower,
-      bank_Statement
+      bank_Statement,
+      self_employee,
     ) => {
       try {
         await api.post("/store-analyzed-data", {
@@ -82,6 +83,7 @@ const IncomeAnalyzer = () => {
             income_summary: incomeSummary,
             insights: insightsComment,
             bankStatement: bank_Statement,
+            self_employee: self_employee,
           },
         });
         console.log(`✅ analyzed_data stored successfully for ${borrower}`);
@@ -133,12 +135,21 @@ const IncomeAnalyzer = () => {
         const insightsComment =
           insightsRes.data?.income_insights?.insight_commentry || "";
 
+        debugger
+        const { data } = await api.post("/income-self_emp", null, {
+          params: { email, loanID: loanId, borrower },
+          signal,
+        });
+        const self_employee_response = data?.income || {}
+        console.log("****self_employee_response", self_employee_response)
+
         const finalReport = {
           rules: rulesRes.data,
           summary: summaryData,
           income_summary: incomeSummary,
           insights: insightsComment,
           bankStatement: bank_Statement,
+          self_employee: self_employee_response,
         };
 
         setReport((prev) => ({ ...prev, [borrower]: finalReport }));
@@ -152,7 +163,8 @@ const IncomeAnalyzer = () => {
           finalReport.summary,
           finalReport.insights,
           borrower,
-          finalReport.bankStatement
+          finalReport.bankStatement,
+          finalReport.self_employee,
         );
       } catch (ex) {
         if (!signal.aborted)
