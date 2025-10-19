@@ -300,6 +300,7 @@ def convert_objectid(obj):
         return obj
 
 
+
 @app.post("/verify-rules")
 async def verify_rules(
     email: str = Query(...),
@@ -313,20 +314,18 @@ async def verify_rules(
     )
 
     if not content or "filtered_data" not in content:
-        raise HTTPException(
-            status_code=404, detail="File not found or cleaned_data missing.")
+       return {"status": "error", "results": [], "rule_result": {}}
 
     data = content["filtered_data"]
 
     # Handle borrower selection
     if borrower != "All":
         if borrower not in data:
-            raise HTTPException(
-                status_code=404, detail=f"Borrower '{borrower}' not found.")
+            return {"status": "error", "results": [], "rule_result": {}}
         data = data[borrower]
 
     if not data:
-        raise HTTPException(status_code=404, detail="Data is not found.")
+        return {"status": "error", "results": [], "rule_result": {}}
 
     try:
         results = []
@@ -387,19 +386,17 @@ async def income_calc(
     )
 
     if not content or "filtered_data" not in content:
-        raise HTTPException(
-            status_code=404, detail="File not found. Please upload first.")
+        return {"status": "error", "income": []}
 
     data = content["filtered_data"]
 
     if borrower != "All":
         if borrower not in data:
-            raise HTTPException(
-                status_code=404, detail=f"Borrower '{borrower}' not found.")
+            return {"status": "error", "income": []}
         data = data[borrower]
 
     if not data:
-        raise HTTPException(status_code=404, detail="Data is not found.")
+        return {"status": "error", "income": []}
 
     try:
         final_response = []
@@ -450,19 +447,17 @@ async def income_insights(
     )
 
     if not content or "filtered_data_with_bs" not in content:
-        raise HTTPException(
-            status_code=404, detail="File not found. Please upload first.")
+        return {"status": "error", "income_insights": {}}
 
     data = content["filtered_data_with_bs"]
 
     if borrower != "All":
         if borrower not in data:
-            raise HTTPException(
-                status_code=404, detail=f"Borrower '{borrower}' not found.")
+            return {"status": "error", "income_insights": {}}
         data = data[borrower]
 
     if not data:
-        raise HTTPException(status_code=404, detail="Data is not found.")
+        return {"status": "error", "income_insights": {}}
 
     try:
         async with client_lock:
@@ -539,19 +534,17 @@ async def income_self_emp(
     )
 
     if not content or "cleaned_data" not in content:
-        raise HTTPException(
-            status_code=404, detail="File not found. Please upload first.")
+        return {"status": "error", "income": {}}
 
     data = content["cleaned_data"]
 
     if borrower != "All":
         if borrower not in data:
-            raise HTTPException(
-                status_code=404, detail=f"Borrower '{borrower}' not found.")
+            return {"status": "error", "income": {}}
         data = data[borrower]
 
     if not data:
-        raise HTTPException(status_code=404, detail="Data is not found.")
+        return {"status": "error", "income": {}}
 
     # print(data)
     try:
@@ -562,7 +555,7 @@ async def income_self_emp(
                     {"content": json.dumps(data)},
                 )
 
-                print('response', response)
+                # print('response', response)
 
                 if response.content and len(response.content) > 0 and response.content[0].text.strip():
                     parsed_response = json.loads(response.content[0].text)
