@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Body, Query, File, UploadFile
+from fastapi import FastAPI, HTTPException, Body, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
@@ -8,15 +8,16 @@ import json
 import yaml
 import uvicorn
 from bson import ObjectId
+import logging
+import httpx
 
 from app.routes import auth, uploaded_data
 from app.utils.borrower_cleanup_service import clean_borrower_documents_from_dict
 from app.db import db
 from app.services.audit_service import log_action  # <-- audit service
 from app.utils.MCP_Connector import MCPClient
-from app.utils.Data_formatter import BorrowerDocumentProcessor
-import logging
-import os
+
+from fastapi.responses import StreamingResponse
 
 # -----------------------------
 # Logging Setup
@@ -28,10 +29,8 @@ logger = logging.getLogger(__name__)
 # Config
 # -----------------------------
 allowed_sections = ["BorrowerName", "W2", "VOE", "Paystubs", "Paystub"]
-bs_allowed_sections = ["BorrowerName", "W2",
-                       "VOE", "Paystubs", "Paystub", 'Bank Statement']
+bs_allowed_sections = ["BorrowerName", "W2", "VOE", "Paystubs", "Paystub", "Bank Statement"]
 bank_statement = ['Bank Statement']
-
 
 try:
     with open("requirements.yaml") as stream:
@@ -59,22 +58,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 mcp_client = MCPClient("http://localhost:8000/mcp")
 client_lock = asyncio.Lock()
 
-
-# Storage for uploaded borrower content
-uploaded_content: Dict[int, Dict[str, Any]] = {}
-
 # -----------------------------
-# Startup / Shutdown
+# Helpers
 # -----------------------------
-
-
 def clean_json_data(obj):
     if isinstance(obj, dict):
-        # Remove unwanted keys
         obj.pop("Link", None)
         obj.pop("ConfidenceScore", None)
         obj.pop("Url", None)
@@ -86,7 +77,6 @@ def clean_json_data(obj):
         obj.pop("StageName", None)
         obj.pop("Title", None)
         obj.pop("SkillName", None)
-        # Recursively clean nested dicts
         for key in list(obj.keys()):
             clean_json_data(obj[key])
     elif isinstance(obj, list):
@@ -94,37 +84,30 @@ def clean_json_data(obj):
             clean_json_data(item)
     return obj
 
-
 def filter_documents_by_type(processed_data, document_types):
-    """
-    Filter processed borrower data to include only specified document types.
-
-    Args:
-        processed_data (dict): The processed JSON data with borrower names as keys
-        document_types (list): List of document types to keep (e.g., ['Paystubs', 'W2'])
-
-    Returns:
-        dict: Filtered data containing only the specified document types for each borrower
-    """
     filtered_data = {}
-
-    # Iterate through each borrower
     for borrower_name, documents in processed_data.items():
         filtered_borrower_data = {}
-
-        # Iterate through each document type for this borrower
         for doc_type, doc_list in documents.items():
-            # Check if this document type is in our filter list (case-insensitive)
             if any(doc_type.lower() == filter_type.lower() for filter_type in document_types):
                 filtered_borrower_data[doc_type] = doc_list
-
-        # Only add borrower if they have at least one of the requested document types
         if filtered_borrower_data:
             filtered_data[borrower_name] = filtered_borrower_data
-
     return filtered_data
 
+def convert_objectid(obj):
+    if isinstance(obj, dict):
+        return {k: convert_objectid(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_objectid(i) for i in obj]
+    elif isinstance(obj, ObjectId):
+        return str(obj)
+    else:
+        return obj
 
+# -----------------------------
+# Startup / Shutdown
+# -----------------------------
 @app.on_event("startup")
 async def startup_event():
     try:
@@ -132,7 +115,6 @@ async def startup_event():
         logger.info("MCP client connected successfully")
     except Exception as e:
         logger.error(f"Failed to connect MCP client: {e}")
-
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -142,13 +124,16 @@ async def shutdown_event():
     except Exception as e:
         logger.error(f"Error during MCP client cleanup: {e}")
 
-
+# -----------------------------
+# Root
+# -----------------------------
 @app.get("/")
 async def root():
     return {"message": "Welcome to the Income Analyzer API"}
 
-
-# ---------- MODELS ----------
+# -----------------------------
+# Models
+# -----------------------------
 class CleanJsonRequest(BaseModel):
     username: str
     email: str
@@ -159,50 +144,39 @@ class CleanJsonRequest(BaseModel):
     borrower_indicators: Optional[List[str]] = None
     employer_indicators: Optional[List[str]] = None
 
-
 class LoanViewRequest(BaseModel):
     email: str
     loanId: str
 
-
-# --- Response model ---
 class LoanViewResponse(BaseModel):
     cleaned_data: dict
     analyzed_data: bool
-    hasModifications: bool  # ✅ NEW
-
+    hasModifications: bool
 
 class LoanGETResponse(BaseModel):
     cleaned_data: dict
     analyzed_data: bool
 
-
 class GetAnalyzedDataRequest(BaseModel):
     email: str
     loanId: str
 
-
-# ---------- ROUTES ----------
+# -----------------------------
+# Routes (core APIs remain unchanged)
+# -----------------------------
 @app.post("/clean-json")
 async def clean_json(req: CleanJsonRequest):
-    """Insert new record with cleaned data (first time upload)."""
     cleaned = clean_borrower_documents_from_dict(
         data=req.raw_json,
         threshold=req.threshold,
         borrower_indicators=req.borrower_indicators,
         employer_indicators=req.employer_indicators,
     )
-
     cl_data = clean_json_data(cleaned)
-
     filtered_data = filter_documents_by_type(cl_data, allowed_sections)
-
-    filtered_data_with_bs = filter_documents_by_type(
-        cl_data, bs_allowed_sections)
+    filtered_data_with_bs = filter_documents_by_type(cl_data, bs_allowed_sections)
     only_bs = filter_documents_by_type(cl_data, bank_statement)
-
     timestamp = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")
-
     record = {
         "username": req.username,
         "email": req.email,
@@ -217,40 +191,22 @@ async def clean_json(req: CleanJsonRequest):
         "created_at": timestamp,
         "updated_at": timestamp,
     }
-
     await db["uploadedData"].insert_one(record)
-
     return {"message": "Upload saved successfully", "cleaned_json": cleaned}
 
-
 @app.post("/update-cleaned-data")
-async def update_cleaned_data(
-    email: str = Body(...),
-    loanID: str = Body(...),
-    username: str = Body(...),
-    action: str = Body(...),   # e.g. "folder_merge", "file_merge"
-    # description: str = Body(...),
-    raw_json: dict = Body(...),
-    hasModifications: bool = Body(False)
-):
-    """Update cleaned_data for merges/moves and log into auditLogs."""
-
+async def update_cleaned_data(email: str = Body(...), loanID: str = Body(...), username: str = Body(...),
+                              action: str = Body(...), raw_json: dict = Body(...), hasModifications: bool = Body(False)):
     timestamp = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")
-
     existing = await db["uploadedData"].find_one({"loanID": loanID, "email": email})
     if not existing:
         raise HTTPException(status_code=404, detail="Record not found")
-
     old_cleaned = existing.get("cleaned_data", {})
-
     cl_data = clean_json_data(raw_json)
     filtered_data = filter_documents_by_type(cl_data, allowed_sections)
-
-    filtered_data_with_bs = filter_documents_by_type(
-        cl_data, bs_allowed_sections)
+    filtered_data_with_bs = filter_documents_by_type(cl_data, bs_allowed_sections)
     only_bs = filter_documents_by_type(cl_data, bank_statement)
-
-    # Save new cleaned_data
+    updated_analyzed = existing.get("analyzed_data", {})
     await db["uploadedData"].update_one(
         {"loanID": loanID},
         {"$set": {
@@ -262,32 +218,21 @@ async def update_cleaned_data(
             "updated_at": timestamp
         }}
     )
-
-    # Log audit entry
     await log_action(
         loanID=loanID,
         email=email,
         username=username,
         action=action,
-        # description=description,
         old_cleaned_data=old_cleaned,
         new_cleaned_data=raw_json,
     )
-
-    # Return updated cleaned_json from DB
     updated = await db["uploadedData"].find_one({"loanID": loanID, "email": email})
-    return {
-        "message": "Cleaned data updated successfully",
-        "cleaned_json": updated.get("cleaned_data", {}),
-    }
-
+    return {"message": "Cleaned data updated successfully", "cleaned_json": updated.get("cleaned_data", {})}
 
 @app.get("/check-loanid")
 async def check_loanid(email: str = Query(...), loanID: str = Query(...)):
-    """Check if a loanID already exists for a given email"""
     existing = await db["uploadedData"].find_one({"loanID": loanID, "email": email})
     return {"exists": bool(existing)}
-
 
 def convert_objectid(obj):
     if isinstance(obj, dict):
@@ -658,6 +603,67 @@ async def get_analyzed_data(req: GetAnalyzedDataRequest):
     return {
         "analyzed_data": loan.get("analyzed_data", {})
     }
+
+
+
+@app.post("/start-analysis")
+async def start_analysis(payload: dict = Body(...)):
+    email = payload.get("email")
+    loanID = payload.get("loanID")
+    borrowers = payload.get("borrowers", [])
+    if not email or not loanID or not borrowers:
+        return {"error": True, "message": "Invalid payload"}
+
+    first_borrower = borrowers[0]
+    remaining_borrowers = borrowers[1:]
+
+    async def borrower_stream():
+        async with httpx.AsyncClient(base_url="http://localhost:8080", timeout=None) as client:
+            # Step-by-step for first borrower
+            steps = [
+                ("verify-rules", "/verify-rules"),
+                ("income-calc", "/income-calc"),
+                ("income-insights", "/income-insights"),
+                ("self-employee", "/income-self_emp"),
+                ("bank-statement", "/banksatement-insights"),
+            ]
+            first_report = {}
+            total_steps = len(steps)
+            for i, (step_name, api_path) in enumerate(steps, start=1):
+                try:
+                    res = await client.post(api_path, params={"email": email, "loanID": loanID, "borrower": first_borrower})
+                    first_report[step_name] = res.json()
+                    yield f"data: {json.dumps({'borrower': first_borrower, 'step': i, 'totalSteps': total_steps, 'report': first_report, 'done': i==total_steps})}\n\n"
+                    await asyncio.sleep(0.1)
+                except Exception as e:
+                    yield f"data: {json.dumps({'borrower': first_borrower, 'step': i, 'error': str(e), 'done': False})}\n\n"
+
+            # Remaining borrowers in parallel
+            async def process_borrower(borrower):
+                try:
+                    r_rules = await client.post("/verify-rules", params={"email": email, "loanID": loanID, "borrower": borrower})
+                    r_income = await client.post("/income-calc", params={"email": email, "loanID": loanID, "borrower": borrower})
+                    r_insights = await client.post("/income-insights", params={"email": email, "loanID": loanID, "borrower": borrower})
+                    r_self = await client.post("/income-self_emp", params={"email": email, "loanID": loanID, "borrower": borrower})
+                    r_bs = await client.post("/banksatement-insights", params={"email": email, "loanID": loanID})
+                    return {"borrower": borrower, "status": "ready", "report": {
+                        "rules": r_rules.json(),
+                        "summary": r_income.json(),
+                        "insights": r_insights.json(),
+                        "self_employee": r_self.json(),
+                        "bankStatement": r_bs.json(),
+                    }}
+                except Exception as e:
+                    return {"borrower": borrower, "status": "error", "error": str(e)}
+
+            tasks = [process_borrower(b) for b in remaining_borrowers]
+            for task in asyncio.as_completed(tasks):
+                result = await task
+                yield f"data: {json.dumps(result)}\n\n"
+
+            yield "event: all_done\ndata: {\"status\":\"complete\"}\n\n"
+
+    return StreamingResponse(borrower_stream(), media_type="text/event-stream")
 
 # ======================================
 #  Entrypoint
