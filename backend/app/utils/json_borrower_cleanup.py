@@ -404,8 +404,8 @@ def extract_structured_document_data(doc_data: Dict[str, Any]) -> Dict[str, Any]
                 labels = section.get('Labels') or []
                 section_data = _process_labels_recursive(labels)
                 # Keep section-level metadata
-                if section.get('SkillName'):
-                    section_data['_SkillName'] = section.get('SkillName')
+                # if section.get('SkillName'):
+                #     section_data['_SkillName'] = section.get('SkillName')
                 out[skill] = section_data
         else:
             # No Summary -> conservative flatten of document with fallback extractor

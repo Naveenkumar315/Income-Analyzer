@@ -66,7 +66,7 @@ def clean_borrower_documents_from_dict(
                         return {
                             k: remove_meta_keys(v)
                             for k, v in d.items()
-                            if not str(k).startswith("_meta")
+                            if not (str(k).startswith("_meta") and k != "_SkillName")
                         }
                     elif isinstance(d, list):
                         return [remove_meta_keys(v) for v in d]
