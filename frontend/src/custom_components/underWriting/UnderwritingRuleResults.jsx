@@ -21,7 +21,8 @@ const UnderwritingRuleResult = ({
   const { isLoading, filtered_borrower, set_filter_borrower, borrowerList } =
     useUpload();
 
-  const totalSteps = 3;
+  const totalSteps = 3; // total steps for first borrower
+
   const [borrowerData, setBorrowerData] = useState({});
 
   useEffect(() => {
@@ -49,8 +50,10 @@ const UnderwritingRuleResult = ({
     setValue(newValue);
   };
 
-  const borrowerData_ = report?.[filtered_borrower]; // dynamic from SSE
-  if (isLoading && !borrowerData_) {
+  const borrower = report?.[filtered_borrower]?.self_employee;
+
+  // 🔹 Loader for **first borrower in progress**
+  if (isLoading && borrowerList[0] === filtered_borrower) {
     return (
       <LoadingModal
         progress={Math.round((loadingStep / totalSteps) * 100)}

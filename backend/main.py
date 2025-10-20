@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Body, Query
+from fastapi import FastAPI, HTTPException, Body, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
@@ -17,7 +17,13 @@ from app.db import db
 from app.services.audit_service import log_action  # <-- audit service
 from app.utils.MCP_Connector import MCPClient
 
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
+# from fastapi.responses import StreamingResponse
+
+# from fastapi import FastAPI, 
+# import httpx
+# import asyncio
+# import json
 
 # -----------------------------
 # Logging Setup
@@ -49,7 +55,7 @@ app.include_router(auth.router)
 app.include_router(uploaded_data.router)
 
 # CORS
-origins = ["*"]
+origins = ["http://localhost:5173"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -606,64 +612,91 @@ async def get_analyzed_data(req: GetAnalyzedDataRequest):
 
 
 
-@app.post("/start-analysis")
-async def start_analysis(payload: dict = Body(...)):
-    email = payload.get("email")
-    loanID = payload.get("loanID")
-    borrowers = payload.get("borrowers", [])
-    if not email or not loanID or not borrowers:
-        return {"error": True, "message": "Invalid payload"}
+BACKEND_URL = "http://localhost:8080"
 
-    first_borrower = borrowers[0]
-    remaining_borrowers = borrowers[1:]
+async def fetch_borrower_data(email: str, loanId: str, borrower: str):
+    """
+    Fetch all data for a single borrower with error handling.
+    Returns a dictionary for SSE streaming.
+    """
+    report = {}
 
-    async def borrower_stream():
-        async with httpx.AsyncClient(base_url="http://localhost:8080", timeout=None) as client:
-            # Step-by-step for first borrower
-            steps = [
-                ("verify-rules", "/verify-rules"),
-                ("income-calc", "/income-calc"),
-                ("income-insights", "/income-insights"),
-                ("self-employee", "/income-self_emp"),
-                ("bank-statement", "/banksatement-insights"),
-            ]
-            first_report = {}
-            total_steps = len(steps)
-            for i, (step_name, api_path) in enumerate(steps, start=1):
-                try:
-                    res = await client.post(api_path, params={"email": email, "loanID": loanID, "borrower": first_borrower})
-                    first_report[step_name] = res.json()
-                    yield f"data: {json.dumps({'borrower': first_borrower, 'step': i, 'totalSteps': total_steps, 'report': first_report, 'done': i==total_steps})}\n\n"
-                    await asyncio.sleep(0.1)
-                except Exception as e:
-                    yield f"data: {json.dumps({'borrower': first_borrower, 'step': i, 'error': str(e), 'done': False})}\n\n"
+    async with httpx.AsyncClient() as client:
+        # 1️⃣ Rules
+        try:
+            rule_res = await client.post(f"{BACKEND_URL}/rule-results", params={"borrower": borrower, "loanId": loanId, "email": email})
+            report["rules"] = rule_res.json()
+        except Exception as e:
+            report["rules"] = {"results": []}
+            print(f"Rule API error for {borrower}: {e}")
 
-            # Remaining borrowers in parallel
-            async def process_borrower(borrower):
-                try:
-                    r_rules = await client.post("/verify-rules", params={"email": email, "loanID": loanID, "borrower": borrower})
-                    r_income = await client.post("/income-calc", params={"email": email, "loanID": loanID, "borrower": borrower})
-                    r_insights = await client.post("/income-insights", params={"email": email, "loanID": loanID, "borrower": borrower})
-                    r_self = await client.post("/income-self_emp", params={"email": email, "loanID": loanID, "borrower": borrower})
-                    r_bs = await client.post("/banksatement-insights", params={"email": email, "loanID": loanID})
-                    return {"borrower": borrower, "status": "ready", "report": {
-                        "rules": r_rules.json(),
-                        "summary": r_income.json(),
-                        "insights": r_insights.json(),
-                        "self_employee": r_self.json(),
-                        "bankStatement": r_bs.json(),
-                    }}
-                except Exception as e:
-                    return {"borrower": borrower, "status": "error", "error": str(e)}
+        # 2️⃣ Summary / Income
+        try:
+            income_res = await client.post(f"{BACKEND_URL}/income-summary", params={"borrower": borrower, "loanId": loanId, "email": email})
+            report["summary"] = income_res.json()
+        except Exception as e:
+            report["summary"] = {}
+            print(f"Income API error for {borrower}: {e}")
 
-            tasks = [process_borrower(b) for b in remaining_borrowers]
-            for task in asyncio.as_completed(tasks):
-                result = await task
-                yield f"data: {json.dumps(result)}\n\n"
+        # 3️⃣ Insights
+        try:
+            insights_res = await client.post(f"{BACKEND_URL}/insights", params={"borrower": borrower, "loanId": loanId, "email": email})
+            report["insights"] = insights_res.json()
+        except Exception as e:
+            report["insights"] = "No insights available"
+            print(f"Insights API error for {borrower}: {e}")
 
-            yield "event: all_done\ndata: {\"status\":\"complete\"}\n\n"
+        # 4️⃣ Self Employee
+        try:
+            self_emp_res = await client.post(f"{BACKEND_URL}/self-employee", params={"borrower": borrower, "loanId": loanId, "email": email})
+            report["self_employee"] = self_emp_res.json()
+        except Exception as e:
+            report["self_employee"] = {}
+            print(f"Self Employee API error for {borrower}: {e}")
 
-    return StreamingResponse(borrower_stream(), media_type="text/event-stream")
+        # 5️⃣ Bank Statement
+        try:
+            bs_res = await client.post(f"{BACKEND_URL}/banksatement-insights", params={"borrower": borrower, "loanId": loanId, "email": email})
+            content = bs_res.json() or {}
+            report["bankStatement"] = content.get("only_bs", [])
+        except Exception as e:
+            report["bankStatement"] = []
+            print(f"Bank statement API error for {borrower}: {e}")
+
+    return report
+
+
+@app.get("/start-analysis")
+async def start_analysis(request: Request, email: str, loanId: str, borrowers: str):
+    """
+    SSE endpoint for streaming borrower analysis to frontend.
+    """
+    borrower_list = [b.strip() for b in borrowers.split(",")]
+
+    async def event_generator():
+        for idx, borrower in enumerate(borrower_list):
+            # Stop if client disconnects
+            if await request.is_disconnected():
+                print("Client disconnected, stopping SSE")
+                break
+
+            data = await fetch_borrower_data(email, loanId, borrower)
+
+            # Build SSE message
+            message = {
+                "borrower": borrower,
+                "step": idx + 1,
+                "totalSteps": len(borrower_list),
+                "report": data,
+                "done": idx + 1 == len(borrower_list)
+            }
+
+            yield f"data: {json.dumps(message)}\n\n"
+
+            await asyncio.sleep(0.1)  # optional small delay
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
 
 # ======================================
 #  Entrypoint

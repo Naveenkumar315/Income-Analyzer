@@ -5,15 +5,14 @@ import UploadedDocument from "../custom_components/UploadedDocument";
 import LoanExatraction from "../custom_components/LoanExtraction/LoanExtraction";
 import StepChips from "../utils/StepChips";
 
-const FRONTEND_ORIGIN = "http://localhost:5173";
 const BACKEND_URL = "http://localhost:8080";
 
 const IncomeAnalyzer = () => {
   const {
     showSection,
     setShowSection,
-    loanId,
-    setLoanId,
+    // loanId = sessionStorage.getItem("loanId"),
+    // setLoanId,
     activeStep,
     setActiveStep,
     goBack,
@@ -24,10 +23,13 @@ const IncomeAnalyzer = () => {
     analyzedState,
     setAnalyzedState,
     borrowerList,
+    filtered_borrower,
     set_filter_borrower,
   } = useUpload();
 
   const [loadingStep, setLoadingStep] = useState(0);
+  const [firstBorrowerCompleted, setFirstBorrowerCompleted] = useState(false);
+  const [loanId, setLoanId] = useState(sessionStorage.getItem("loanId"));
   const eventSourceRef = useRef(null);
 
   const handleStepChange = useCallback(
@@ -45,6 +47,7 @@ const IncomeAnalyzer = () => {
   );
 
   const handleCancel = useCallback(() => {
+    console.log("🛑 Cancel requested — closing SSE connection...");
     eventSourceRef.current?.close();
     setIsLoading(false);
     setLoadingStep(0);
@@ -53,30 +56,36 @@ const IncomeAnalyzer = () => {
   }, [setIsLoading, setReport, handleStepChange]);
 
   const startSSEAnalysis = useCallback(async () => {
-    if (!borrowerList.length || !loanId) return;
+    if (
+      sessionStorage.getItem("loanId").trim().length === 0 ||
+      borrowerList.length === 0
+    ) {
+      console.warn("Loan ID or borrower list missing. SSE will not start.");
+      return;
+    }
 
     const email = sessionStorage.getItem("email") || "";
+    const params = new URLSearchParams({
+      email,
+      loanId,
+      borrowers: borrowerList.join(","),
+    });
 
-    const payload = { email, loanID: loanId, borrowers: borrowerList };
+    eventSourceRef.current?.close();
 
-    // Start backend processing
-    await fetch(`${BACKEND_URL}/start-analysis`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    }).catch((err) => console.error("Error starting analysis:", err));
-
-    // Open SSE to receive streamed results
     eventSourceRef.current = new EventSource(
-      `${BACKEND_URL}/start-analysis?email=${email}&loanID=${loanId}`
+      `${BACKEND_URL}/start-analysis?${params.toString()}`,
+      { withCredentials: true }
     );
 
     setIsLoading(true);
     setLoadingStep(0);
+    setFirstBorrowerCompleted(false);
 
     eventSourceRef.current.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+        console.log("SSE event received:", data);
         const {
           borrower,
           report: borrowerReport,
@@ -89,12 +98,17 @@ const IncomeAnalyzer = () => {
           setReport((prev) => ({ ...prev, [borrower]: borrowerReport }));
         }
 
-        if (step && totalSteps) setLoadingStep(step);
+        if (borrower === borrowerList[0] && step && totalSteps) {
+          setLoadingStep(step);
+        }
 
-        // Mark first borrower done
-        if (done) setIsLoading(false);
+        if (borrower === borrowerList[0] && done && !firstBorrowerCompleted) {
+          setFirstBorrowerCompleted(true);
+          setIsLoading(false);
+          handleStepChange(1);
+        }
       } catch (err) {
-        console.error("Error parsing SSE:", err);
+        console.error("Error parsing SSE data:", err);
       }
     };
 
@@ -103,14 +117,29 @@ const IncomeAnalyzer = () => {
       eventSourceRef.current?.close();
       setIsLoading(false);
     };
-  }, [borrowerList, loanId, setReport, setIsLoading]);
+  }, [
+    borrowerList,
+    loanId,
+    setReport,
+    setIsLoading,
+    handleStepChange,
+    firstBorrowerCompleted,
+  ]);
 
   useEffect(() => {
     if (showSection.startAnalyzing) {
+      if (!loanId) {
+        console.warn("Cannot start analysis: Loan ID missing.");
+        return;
+      }
       startSSEAnalysis();
-      return () => eventSourceRef.current?.close();
+
+      return () => {
+        console.log("Cleaning up SSE connection...");
+        eventSourceRef.current?.close();
+      };
     }
-  }, [showSection.startAnalyzing, startSSEAnalysis]);
+  }, [showSection.startAnalyzing, loanId, startSSEAnalysis]);
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
