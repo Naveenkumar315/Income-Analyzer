@@ -105,7 +105,7 @@ const IncomeAnalyzer = () => {
       loanId,
       signal,
       bank_Statement,
-      isBackground = false // Flag to control modal
+      isBackground = false
     ) => {
       console.log(
         `▶️ ${
@@ -117,7 +117,6 @@ const IncomeAnalyzer = () => {
 
       const updateProgress = () => {
         if (!isBackground) {
-          // Only update modal if it's the foreground task
           step += 1;
           setLoadingStep(step);
         }
@@ -154,14 +153,12 @@ const IncomeAnalyzer = () => {
         const insightsComment =
           insightsRes.data?.income_insights?.insight_commentry || "";
 
-        debugger;
         const { data } = await api.post("/income-self_emp", null, {
           params: { email, loanID: loanId, borrower },
           signal,
         });
         if (signal.aborted) throw new Error("Aborted");
         const self_employee_response = data?.income || {};
-        console.log("****self_employee_response", self_employee_response);
 
         const finalReport = {
           rules: rulesRes.data,
@@ -191,14 +188,17 @@ const IncomeAnalyzer = () => {
           finalReport.bankStatement,
           finalReport.self_employee
         );
+
+        return { success: true, borrower };
       } catch (ex) {
         if (ex.message === "Aborted") {
           console.warn(`🛑 Analysis aborted for ${borrower}`);
+          return { success: false, borrower, error: "Aborted" };
         } else if (!signal.aborted) {
           console.error(`❌ Error analyzing borrower ${borrower}`, ex);
-          // Optionally set an error state for this specific borrower
-          // setReport((prev) => ({ ...prev, [borrower]: { error: true } }));
+          return { success: false, borrower, error: ex.message };
         }
+        return { success: false, borrower, error: "Unknown error" };
       }
     },
     [setReport, update_analyzed_data_into_db]
@@ -241,25 +241,29 @@ const IncomeAnalyzer = () => {
                   ? data[Object.keys(data)[0]]?.bankStatement || []
                   : [];
 
-              // **FIX: Run missing borrowers in parallel**
-              const missingPromises = missingBorrowers.map((b) =>
+              // Run missing borrowers in parallel with individual completion tracking
+              missingBorrowers.forEach((borrower) => {
                 analyzeBorrower(
-                  b,
+                  borrower,
                   email,
                   loanId,
                   signal,
                   anyBankStatement,
-                  true // isBackground = true
-                )
-              );
-              await Promise.all(missingPromises); // Wait for all missing to finish
-              console.log("✅ Missing borrowers fetched in parallel.");
+                  true
+                ).then((result) => {
+                  if (result.success) {
+                    console.log(`✅ ${borrower} background analysis completed`);
+                  } else {
+                    console.error(`❌ ${borrower} background analysis failed`);
+                  }
+                });
+              });
             }
 
             setIsLoading(false);
             handleStepChange(1);
           } else {
-            // --- FLOW 2: New analysis (Manager's Requirement) ---
+            // --- FLOW 2: New analysis ---
             console.log("🚀 Starting new analysis...");
             const firstBorrower = borrowerList[0];
             const remainingBorrowers = borrowerList.slice(1);
@@ -289,18 +293,17 @@ const IncomeAnalyzer = () => {
             );
 
             // 4. Hide loader and show UI for the first borrower
-            // This happens immediately after the first borrower is done
             setIsLoading(false);
             handleStepChange(1);
 
             // 5. Analyze all *remaining* borrowers in PARALLEL (background)
             if (remainingBorrowers.length > 0) {
               console.log(
-                `Fetching ${remainingBorrowers.length} remaining borrowers in background (parallel)...`
+                `🚀 Starting ${remainingBorrowers.length} background borrowers in parallel...`
               );
 
-              // **THE FIX: Create an array of promises**
-              const backgroundPromises = remainingBorrowers.map((borrower) =>
+              // Start all background analyses without waiting for all to complete
+              remainingBorrowers.forEach((borrower) => {
                 analyzeBorrower(
                   borrower,
                   email,
@@ -308,23 +311,52 @@ const IncomeAnalyzer = () => {
                   signal,
                   bank_Statement,
                   true // isBackground = true
+                ).then((result) => {
+                  if (result.success) {
+                    console.log(`✅ ${borrower} completed and UI updated`);
+                  } else {
+                    console.error(`❌ ${borrower} failed:`, result.error);
+                  }
+                });
+              });
+
+              // Track completion of all background tasks without blocking
+              Promise.allSettled(
+                remainingBorrowers.map((borrower) =>
+                  analyzeBorrower(
+                    borrower,
+                    email,
+                    loanId,
+                    signal,
+                    bank_Statement,
+                    true
+                  )
                 )
-              );
+              ).then((results) => {
+                const successful = results.filter(
+                  (r) => r.status === "fulfilled" && r.value.success
+                ).length;
+                const failed = results.filter(
+                  (r) =>
+                    r.status === "rejected" ||
+                    (r.status === "fulfilled" && !r.value.success)
+                ).length;
+                console.log(
+                  `📊 Background analysis complete: ${successful} succeeded, ${failed} failed`
+                );
 
-              // Await all promises. This doesn't block the UI,
-              // as the loader is already off.
-              await Promise.all(backgroundPromises);
-
-              console.log("✅ Background parallel analysis complete.");
+                // Mark analysis as complete only when all background tasks are done
+                setAnalyzedState((prev) => ({ ...prev, isAnalyzed: true }));
+              });
+            } else {
+              // No remaining borrowers, mark as complete immediately
+              setAnalyzedState((prev) => ({ ...prev, isAnalyzed: true }));
             }
-
-            // 6. Mark analysis as complete
-            setAnalyzedState((prev) => ({ ...prev, isAnalyzed: true }));
           }
         } catch (err) {
           if (!signal.aborted) {
             console.error("❌ Failed to fetch data:", err);
-            setIsLoading(false); // Ensure loader is off on error
+            setIsLoading(false);
           }
         }
       };

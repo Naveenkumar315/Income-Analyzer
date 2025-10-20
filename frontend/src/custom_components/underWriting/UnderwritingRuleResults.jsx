@@ -41,6 +41,7 @@ const UnderwritingRuleResult = ({
 
   const totalSteps = 3;
   const [borrowerData, setBorrowerData] = useState({});
+  const [backgroundLoading, setBackgroundLoading] = useState(false);
 
   useEffect(() => {
     setBorrowerData(report?.[filtered_borrower]);
@@ -63,6 +64,17 @@ const UnderwritingRuleResult = ({
       console.log("error in setting tabs", ex);
     }
   }, [report]);
+
+  // Check if any borrowers are still loading in background
+  useEffect(() => {
+    if (borrowerList && report) {
+      const readyBorrowers = borrowerList.filter(
+        (borrower) => report[borrower]
+      );
+      const allReady = readyBorrowers.length === borrowerList.length;
+      setBackgroundLoading(!allReady && readyBorrowers.length > 0);
+    }
+  }, [borrowerList, report]);
 
   const handleGetResult = (event, newValue) => {
     setValue(newValue);
@@ -106,7 +118,7 @@ const UnderwritingRuleResult = ({
             value={value}
             handleGetResult={handleGetResult}
           />
-          <div className="flex-1 flex justify-center">
+          <div className="flex-1 flex justify-center items-center gap-2">
             <select
               onChange={(e) => {
                 setAnalyzedState({ isAnalyzed: false, analyzed_data: {} });
@@ -125,11 +137,16 @@ const UnderwritingRuleResult = ({
                       disabled={!isReady}
                       className={isReady ? "text-black" : "text-gray-400"}
                     >
-                      {item}
+                      {item} {isReady ? "✅" : "⏳"}
                     </option>
                   );
                 })}
             </select>
+            {backgroundLoading && (
+              <div className="text-sm text-blue-600 font-medium">
+                Loading other borrowers...
+              </div>
+            )}
           </div>
         </div>
       </div>
