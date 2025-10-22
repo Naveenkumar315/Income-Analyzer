@@ -1,3 +1,4 @@
+import json
 import re
 from difflib import SequenceMatcher
 from typing import Dict, Any, List, Union, Optional
@@ -158,43 +159,65 @@ def find_best_borrower_match(document_borrower_name: str, consolidated_borrowers
     return find_single_borrower_match(document_borrower_name, consolidated_borrowers)
 
 # -------------------------------
-# Document extraction helpers
+# Document extraction
 # -------------------------------
+
+LEAF_KEYS = [
+    "Borrower Name", "Account Number", "Year", "Schedule C", "Schedule E",
+    "Paystub", "Form 1040", "Form 4797"
+]
+
+def _is_leaf_document(d: Dict[str, Any]) -> bool:
+    if not isinstance(d, dict):
+        return False
+    return any(k in d for k in LEAF_KEYS)
+
 def _process_labels_recursive(labels_list: List[Dict[str, Any]]) -> Dict[str, Any]:
     out = {}
     if not isinstance(labels_list, list):
         return out
+
     for item in labels_list:
         if not isinstance(item, dict):
             continue
-        label_name = item.get('LabelName')
+        label_name = item.get("LabelName")
         if not label_name:
             continue
+
+        # Leaf document found, return directly
+        if _is_leaf_document(item):
+            # Extract Values as key-value
+            if "Values" in item:
+                leaf_data = {}
+                for val_obj in item["Values"]:
+                    if isinstance(val_obj, dict) and "Value" in val_obj:
+                        leaf_data[label_name] = val_obj["Value"]
+                out.update(leaf_data)
+            continue
+
+        # Process Values
         if "Values" in item and isinstance(item.get("Values"), list):
-            extracted_vals = []
-            for val_obj in item["Values"]:
-                if isinstance(val_obj, dict) and "Value" in val_obj:
-                    v = val_obj.get("Value")
-                    if v is not None and v != "N/A":
-                        extracted_vals.append(v)
-                elif val_obj is not None and val_obj != "N/A":
-                    extracted_vals.append(val_obj)
-            if extracted_vals:
-                out[label_name] = extracted_vals[0] if len(extracted_vals) == 1 else extracted_vals
+            vals = [v.get("Value") if isinstance(v, dict) else v for v in item["Values"]]
+            vals = [v for v in vals if v is not None and v != "N/A"]
+            if vals:
+                out[label_name] = vals[0] if len(vals) == 1 else vals
+
+        # Process Groups recursively
         if "Groups" in item and isinstance(item.get("Groups"), list):
             records = []
             for group in item["Groups"]:
                 if isinstance(group, dict):
-                    if "RecordLabels" in group and isinstance(group.get("RecordLabels"), list):
+                    if "RecordLabels" in group:
                         rec = _process_labels_recursive(group["RecordLabels"])
                         if rec:
                             records.append(rec)
-                    elif "Labels" in group and isinstance(group.get("Labels"), list):
+                    elif "Labels" in group:
                         rec = _process_labels_recursive(group["Labels"])
                         if rec:
                             records.append(rec)
             if records:
                 out[label_name] = records
+
     return out
 
 def _extract_any_nested(data: Union[Dict[str, Any], List[Any]], parent_key: str = "") -> Dict[str, Any]:
@@ -203,16 +226,8 @@ def _extract_any_nested(data: Union[Dict[str, Any], List[Any]], parent_key: str 
     if isinstance(data, dict):
         for k, v in data.items():
             new_key = f"{parent_key}{sep}{k}" if parent_key else k
-            if isinstance(v, dict):
+            if isinstance(v, dict) or isinstance(v, list):
                 out.update(_extract_any_nested(v, new_key))
-            elif isinstance(v, list):
-                for idx, item in enumerate(v):
-                    list_key = f"{new_key}[{idx}]"
-                    if isinstance(item, (dict, list)):
-                        out.update(_extract_any_nested(item, list_key))
-                    else:
-                        if item is not None and item != "N/A":
-                            out[list_key] = item
             else:
                 if v is not None and v != "N/A":
                     out[new_key] = v
@@ -228,30 +243,61 @@ def _extract_any_nested(data: Union[Dict[str, Any], List[Any]], parent_key: str 
 
 def extract_structured_document_data(doc_data: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Robust wrapper that returns **isolated sections** per SkillName or top-level section.
-    Ensures unrelated document types do not get mixed.
+    Robust wrapper that returns nested, structured extraction for an entire doc.
+    Ensures each document type contains only its own values, splitting nested keys.
     """
     if not isinstance(doc_data, dict):
         return {}
 
+    def split_nested_by_doc_type(d: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Recursively splits nested dicts so that each top-level key contains only relevant data.
+        """
+        result = {}
+        for k, v in d.items():
+            if isinstance(v, dict):
+                # If all nested keys are distinct doc types, split them
+                nested_split = split_nested_by_doc_type(v)
+                for nk, nv in nested_split.items():
+                    # Avoid merging into parent if key already exists
+                    result.setdefault(nk, []).append(nv)
+            else:
+                # Keep scalar values at this level
+                result.setdefault(k, []).append(v)
+        return result
+
     try:
         out = {}
 
-        summary = doc_data.get('Summary')
+        summary = doc_data.get("Summary")
         if isinstance(summary, list) and summary:
             for idx, section in enumerate(summary):
-                skill = section.get('SkillName') or f"Section_{idx}"
-                labels = section.get('Labels') or []
+                skill = section.get("SkillName") or f"Section_{idx}"
+                labels = section.get("Labels") or []
+
+                # Process labels recursively
                 section_data = _process_labels_recursive(labels)
-                out[skill] = section_data
+
+                # Split nested document types
+                split_data = {}
+                for key, value in section_data.items():
+                    if isinstance(value, dict):
+                        # Treat each nested dict as its own doc_type
+                        split_data[key] = value
+                    else:
+                        split_data[key] = value
+
+                out[skill] = split_data
+
         else:
             out = _extract_any_nested(doc_data)
 
         # Preserve top-level metadata
-        for meta in ('Title', 'GeneratedOn', 'Url', 'StageName'):
+        for meta in ("Title", "GeneratedOn", "Url", "StageName"):
             if doc_data.get(meta) is not None:
-                out.setdefault('_meta', {})[meta] = doc_data[meta]
+                out.setdefault("_meta", {})[meta] = doc_data[meta]
 
         return out
+
     except Exception as e:
         return {"_ParseError": str(e), "_DocTitle": doc_data.get("Title", "Unknown")}
