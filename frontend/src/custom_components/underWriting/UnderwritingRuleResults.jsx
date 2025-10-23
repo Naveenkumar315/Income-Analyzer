@@ -5,6 +5,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ErrorIcon from "@mui/icons-material/Error";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
+import ReportGmailerrorredIcon from '@mui/icons-material/ReportGmailerrorred';
 import {
   Accordion,
   AccordionSummary,
@@ -20,8 +21,8 @@ const UnderwritingRuleResult = ({
   report,
   setReport,
   loadingStep = 0,
-  onCancel = () => {},
-  handleStepChange = () => {},
+  onCancel = () => { },
+  handleStepChange = () => { },
 }) => {
   const [value, setValue] = useState("Rule Results");
   const [expanded, setExpanded] = useState(false);
@@ -132,6 +133,132 @@ const UnderwritingRuleResult = ({
             </select>
           </div>
         </div>
+        {value === "Rule Results" && (
+          <>
+            <div className="text-[#26a3dd] mt-2">
+              Underwriting Rule Results{" "}
+              <span className="text-black">
+                : {sessionStorage.getItem("loanId") || ""}
+              </span>
+            </div>
+            <div className="h-[100px] mt-3 w-full relative rounded-2xl overflow-hidden shadow">
+              <div className="absolute inset-0 bg-gradient-to-r from-[#26a3dd] to-[#bcdff0] opacity-30"></div>
+              <div className="relative grid grid-cols-4 gap-4 h-full p-5">
+                <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl">
+                  <span className="text-black font-bold pl-1">
+                    {borrowerData?.rules?.rule_result?.Pass}
+                  </span>
+                  <span className="flex items-center gap-1 text-sm">
+                    <CheckCircleIcon className="text-green-500 text-base" />
+                    Passed
+                  </span>
+                </div>
+                <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl">
+                  <span className="text-black font-bold pl-1">
+                    {borrowerData?.rules?.rule_result?.Fail}
+                  </span>
+                  <span className="flex items-center gap-1 text-sm">
+                    <CancelOutlinedIcon className="text-red-400 text-base" />
+                    Failed
+                  </span>
+                </div>
+                <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl">
+                  <span className="text-black font-bold pl-1">
+                    {borrowerData?.rules?.["rule_result"]?.["Insufficient data"]}
+                  </span>
+                  <span className="flex items-center gap-1 text-sm">
+                    <ErrorIcon className="text-yellow-500 text-base" />
+                    Insufficient
+                  </span>
+                </div>
+                <div className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl">
+                  <span className="text-black font-bold pl-1">
+                    {borrowerData?.rules?.rule_result?.["Error"]}
+                  </span>
+                  <span className="flex items-center gap-1 text-sm">
+                    <ReportGmailerrorredIcon className="text-red-600 text-base" />
+                    Error
+                  </span>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {value === "Summary" && (
+          <>
+            <div className="text-[#26a3dd] mt-2">
+              Underwriting Summary{" "}
+              <span className="text-black">
+                : {sessionStorage.getItem("loanId") || ""}
+              </span>
+            </div>
+            <div className="relative h-[100px] mt-3 w-full rounded-2xl overflow-hidden shadow">
+              <div className="absolute inset-0 bg-gradient-to-r from-[#26a3dd] to-[#bcdff0] opacity-30"></div>
+              <div className="relative p-5 h-full">
+                <div className="grid grid-cols-6 gap-4">
+                  {(() => {
+                    const entries = Object.entries(
+                      borrowerData?.["income_summary"] || []
+                    );
+                    const qualifyingEntry = entries.find(
+                      ([key]) => key === "Qualifying income"
+                    );
+                    const otherEntries = entries.filter(
+                      ([key]) => key !== "Qualifying income"
+                    );
+                    const orderedEntries = qualifyingEntry
+                      ? [qualifyingEntry, ...otherEntries]
+                      : otherEntries;
+
+                    return orderedEntries.map(([key, value]) => (
+                      <div
+                        key={key}
+                        className="flex flex-col p-2 gap-1 pl-5 bg-white rounded-2xl shadow"
+                      >
+                        <span className="text-black font-bold pl-1">{value}</span>
+                        <span className="flex items-center gap-1 text-sm">
+                          {key}
+                        </span>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {value === "Insights" && (
+          <>
+            <div className="text-[#26a3dd] mt-2">
+              Underwriting Insights{" "}
+              <span className="text-black">
+                : {sessionStorage.getItem("loanId") || ""}
+              </span>
+            </div>
+          </>
+        )}
+
+
+        {value === "Bank Statement" && (
+          <>
+            <div className="text-[#26a3dd] mt-2">
+              Bank Statement Insights{" "}
+              <span className="text-black">
+                : {sessionStorage.getItem("loanId") || ""}
+              </span>
+            </div>
+          </>)}
+
+
+        {value === "Self Employee" && (<div className="text-[#26a3dd] mt-2">
+          Self Employee{" "}
+          <span className="text-black">
+            : {sessionStorage.getItem("loanId") || ""}
+          </span>
+        </div>)
+        }
       </div>
 
       {/* ===== Rule Results Tab ===== */}
@@ -145,11 +272,10 @@ const UnderwritingRuleResult = ({
                 return (
                   <Accordion
                     key={idx}
-                    className={`!shadow-sm mt-3 ${
-                      expanded === idx
-                        ? "!border-2 !border-[#26a3dd]"
-                        : "!border !border-gray-200"
-                    }`}
+                    className={`!shadow-sm mt-3 ${expanded === idx
+                      ? "!border-2 !border-[#26a3dd]"
+                      : "!border !border-gray-200"
+                      }`}
                     expanded={expanded === idx}
                     onChange={() => setExpanded(expanded === idx ? false : idx)}
                   >
