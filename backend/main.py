@@ -188,9 +188,9 @@ async def clean_json(req: CleanJsonRequest):
     """Insert new record with cleaned data (first time upload)."""
     cleaned = clean_borrower_documents_from_dict(
         data=req.raw_json,
-        threshold=req.threshold,
-        borrower_indicators=req.borrower_indicators,
-        employer_indicators=req.employer_indicators,
+        # threshold=req.threshold,
+        # borrower_indicators=req.borrower_indicators,
+        # employer_indicators=req.employer_indicators,
     )
 
     cl_data = clean_json_data(cleaned)
@@ -300,7 +300,6 @@ def convert_objectid(obj):
         return obj
 
 
-
 @app.post("/verify-rules")
 async def verify_rules(
     email: str = Query(...),
@@ -314,7 +313,7 @@ async def verify_rules(
     )
 
     if not content or "filtered_data" not in content:
-       return {"status": "error", "results": [], "rule_result": {}}
+        return {"status": "error", "results": [], "rule_result": {}}
 
     data = content["filtered_data"]
 
@@ -369,8 +368,7 @@ async def verify_rules(
 
     except Exception as e:
         logger.error(f"Rules verification failed: {e}")
-        raise HTTPException(
-            status_code=500, detail=f"Rules verification failed: {str(e)}")
+        return {"status": "error", "results": [], "rule_result": {}}
 
 
 @app.post("/income-calc")
@@ -430,8 +428,7 @@ async def income_calc(
 
     except Exception as e:
         logger.error(f"Income calculation failed: {e}")
-        raise HTTPException(
-            status_code=500, detail=f"Income calculation failed: {str(e)}")
+        return {"status": "error", "income": [e]}
 
 
 @app.post("/income-insights")
@@ -484,16 +481,17 @@ async def income_insights(
 
     except Exception as e:
         logger.error(f"Income insights failed: {e}")
-        raise HTTPException(
-            status_code=500, detail=f"Income insights failed: {str(e)}")
+        return {"status": "error", "income_insights": e}
 
 
 @app.post("/banksatement-insights")
 async def banksatement_insights(email: str = Query(...), loanID: str = Query(...)):
     content = await db["uploadedData"].find_one({"loanID": loanID, "email": email}, {"only_bs": 1, "_id": 0})
-    content = content['only_bs']
+
     if not content:
         return {"status": "Failure", "income_insights": ['Insufficient documents for bank statement insights.']}
+
+    content = content['only_bs']
 
     try:
         async def run_insights():
@@ -517,8 +515,7 @@ async def banksatement_insights(email: str = Query(...), loanID: str = Query(...
 
     except Exception as e:
         logger.error(f"Income insights failed: {e}")
-        raise HTTPException(
-            status_code=500, detail=f"Income insights failed: {str(e)}")
+        return {"status": "success", "income_insights": e}
 
 
 @app.post("/income-self_emp")
@@ -574,8 +571,7 @@ async def income_self_emp(
 
     except Exception as e:
         logger.error(f"Self employed Income calculation failed: {e}")
-        raise HTTPException(
-            status_code=500, detail=f"self Income calculation failed: {str(e)}")
+        return {"status": "success", "income": e}
 
 
 @app.post("/store-analyzed-data")
