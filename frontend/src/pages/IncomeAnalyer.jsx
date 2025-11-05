@@ -108,9 +108,7 @@ const IncomeAnalyzer = () => {
       isBackground = false // Flag to control modal
     ) => {
       console.log(
-        `▶️ ${
-          isBackground ? "Background" : "Starting"
-        } analysis for: ${borrower}`
+        `▶️ ${isBackground ? "Background" : "Starting"} analysis for: ${borrower}`
       );
       const totalSteps = 3;
       let step = 0;
@@ -124,6 +122,7 @@ const IncomeAnalyzer = () => {
       };
 
       try {
+        // Step 1: Verify Rules
         const rulesRes = await api.post("/verify-rules", null, {
           params: { email, loanID: loanId, borrower },
           signal,
@@ -131,6 +130,7 @@ const IncomeAnalyzer = () => {
         if (signal.aborted) throw new Error("Aborted");
         updateProgress();
 
+        // Step 2: Income Calculation
         const incomeRes = await api.post("/income-calc", null, {
           params: { email, loanID: loanId, borrower },
           signal,
@@ -138,6 +138,7 @@ const IncomeAnalyzer = () => {
         if (signal.aborted) throw new Error("Aborted");
         updateProgress();
 
+        // Step 3: Income Insights
         const insightsRes = await api.post("/income-insights", null, {
           params: { email, loanID: loanId, borrower },
           signal,
@@ -145,6 +146,7 @@ const IncomeAnalyzer = () => {
         if (signal.aborted) throw new Error("Aborted");
         updateProgress();
 
+        // Process results
         const incomeSummary =
           incomeRes.data?.income?.[0]?.checks?.reduce(
             (acc, item) => ({ ...acc, [item.field]: item.value }),
@@ -154,7 +156,7 @@ const IncomeAnalyzer = () => {
         const insightsComment =
           insightsRes.data?.income_insights?.insight_commentry || "";
 
-        debugger;
+        // Step 4: Self-employed data
         const { data } = await api.post("/income-self_emp", null, {
           params: { email, loanID: loanId, borrower },
           signal,
@@ -163,6 +165,7 @@ const IncomeAnalyzer = () => {
         const self_employee_response = data?.income || {};
         console.log("****self_employee_response", self_employee_response);
 
+        // Prepare final combined data
         const finalReport = {
           rules: rulesRes.data,
           summary: summaryData,
@@ -172,14 +175,14 @@ const IncomeAnalyzer = () => {
           self_employee: self_employee_response,
         };
 
-        // This state update enables the dropdown for this borrower
+        // ✅ Update dropdown immediately for this borrower
         setReport((prev) => ({ ...prev, [borrower]: finalReport }));
+
         console.log(
-          `✅ Finished ${
-            isBackground ? "background" : ""
-          } analysis for: ${borrower}`
+          `✅ Finished ${isBackground ? "background" : "foreground"} analysis for: ${borrower}`
         );
 
+        // Save to DB
         await update_analyzed_data_into_db(
           email,
           loanId,
@@ -191,18 +194,21 @@ const IncomeAnalyzer = () => {
           finalReport.bankStatement,
           finalReport.self_employee
         );
+
+        // ✅ Return report so parent can also use it if needed
+        return finalReport;
+
       } catch (ex) {
         if (ex.message === "Aborted") {
           console.warn(`🛑 Analysis aborted for ${borrower}`);
         } else if (!signal.aborted) {
           console.error(`❌ Error analyzing borrower ${borrower}`, ex);
-          // Optionally set an error state for this specific borrower
-          // setReport((prev) => ({ ...prev, [borrower]: { error: true } }));
         }
       }
     },
     [setReport, update_analyzed_data_into_db]
   );
+
 
   useEffect(() => {
     handle_view_result_checker();
@@ -233,28 +239,28 @@ const IncomeAnalyzer = () => {
             const data = res.data?.analyzed_data || {};
             setReport(data);
 
-            const missingBorrowers = borrowerList.filter((b) => !data[b]);
-            if (missingBorrowers.length > 0) {
-              console.log("🔄 Missing borrowers detected:", missingBorrowers);
-              const anyBankStatement =
-                Object.keys(data).length > 0
-                  ? data[Object.keys(data)[0]]?.bankStatement || []
-                  : [];
+            // const missingBorrowers = borrowerList.filter((b) => !data[b]);
+            // if (missingBorrowers.length > 0) {
+            //   console.log("🔄 Missing borrowers detected:", missingBorrowers);
+            //   const anyBankStatement =
+            //     Object.keys(data).length > 0
+            //       ? data[Object.keys(data)[0]]?.bankStatement || []
+            //       : [];
 
-              // **FIX: Run missing borrowers in parallel**
-              const missingPromises = missingBorrowers.map((b) =>
-                analyzeBorrower(
-                  b,
-                  email,
-                  loanId,
-                  signal,
-                  anyBankStatement,
-                  true // isBackground = true
-                )
-              );
-              await Promise.all(missingPromises); // Wait for all missing to finish
-              console.log("✅ Missing borrowers fetched in parallel.");
-            }
+            //   // **FIX: Run missing borrowers in parallel**
+            //   const missingPromises = missingBorrowers.map((b) =>
+            //     analyzeBorrower(
+            //       b,
+            //       email,
+            //       loanId,
+            //       signal,
+            //       anyBankStatement,
+            //       true // isBackground = true
+            //     )
+            //   );
+            //   await Promise.all(missingPromises); // Wait for all missing to finish
+            //   console.log("✅ Missing borrowers fetched in parallel.");
+            // }
 
             setIsLoading(false);
             handleStepChange(1);
@@ -293,33 +299,39 @@ const IncomeAnalyzer = () => {
             setIsLoading(false);
             handleStepChange(1);
 
-            // 5. Analyze all *remaining* borrowers in PARALLEL (background)
             if (remainingBorrowers.length > 0) {
               console.log(
-                `Fetching ${remainingBorrowers.length} remaining borrowers in background (parallel)...`
+                `Fetching ${remainingBorrowers.length} remaining borrowers sequentially (one by one)...`
               );
 
-              // **THE FIX: Create an array of promises**
-              const backgroundPromises = remainingBorrowers.map((borrower) =>
-                analyzeBorrower(
-                  borrower,
-                  email,
-                  loanId,
-                  signal,
-                  bank_Statement,
-                  true // isBackground = true
-                )
-              );
+              for (const borrower of remainingBorrowers) {
+                try {
+                  console.log(`⏳ Analyzing borrower: ${borrower}`);
+                  const result = await analyzeBorrower(
+                    borrower,
+                    email,
+                    loanId,
+                    signal,
+                    bank_Statement,
+                    true // isBackground = true
+                  );
 
-              // Await all promises. This doesn't block the UI,
-              // as the loader is already off.
-              await Promise.all(backgroundPromises);
+                  // ✅ Update dropdown immediately for this borrower
+                  setReport((prev) => ({ ...prev, [borrower]: result }));
 
-              console.log("✅ Background parallel analysis complete.");
+                  console.log(`✅ Borrower ${borrower} analyzed successfully.`);
+                } catch (error) {
+                  console.error(`❌ Error analyzing borrower ${borrower}:`, error);
+                }
+              }
+
+              console.log("✅ Sequential borrower analysis complete.");
             }
 
+
+
             // 6. Mark analysis as complete
-            setAnalyzedState((prev) => ({ ...prev, isAnalyzed: true }));
+            // setAnalyzedState((prev) => ({ ...prev, isAnalyzed: true }));
           }
         } catch (err) {
           if (!signal.aborted) {

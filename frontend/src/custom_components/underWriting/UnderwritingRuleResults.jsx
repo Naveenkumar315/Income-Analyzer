@@ -30,7 +30,7 @@ const UnderwritingRuleResult = ({
     "Rule Results",
     "Summary",
     "Insights",
-    "Self Employee",
+    "Self-Employed",
   ]);
   const {
     isLoading,
@@ -252,8 +252,8 @@ const UnderwritingRuleResult = ({
           </>)}
 
 
-        {value === "Self Employee" && (<div className="text-[#26a3dd] mt-2">
-          Self Employee{" "}
+        {value === "Self-Employed" && (<div className="text-[#26a3dd] mt-2">
+          Self-Employed{" "}
           <span className="text-black">
             : {sessionStorage.getItem("loanId") || ""}
           </span>
@@ -389,8 +389,8 @@ const UnderwritingRuleResult = ({
           renderNoData("Bank Statement")
         ))}
 
-      {/* ===== Self Employee Tab ===== */}
-      {value === "Self Employee" &&
+      {/* ===== Self-Employed Tab ===== */}
+      {value === "Self-Employed" &&
         (hasData(borrower) ? (
           <div className="flex flex-col gap-6 w-full p-3">
             <div className="bg-white rounded-2xl shadow-md p-6 flex flex-col gap-4 w-full">
@@ -408,7 +408,7 @@ const UnderwritingRuleResult = ({
             </div>
           </div>
         ) : (
-          renderNoData("Self Employee")
+          renderNoData("Self-Employed")
         ))}
     </>
   );
