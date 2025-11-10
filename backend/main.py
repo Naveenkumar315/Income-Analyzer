@@ -603,6 +603,61 @@ async def store_analyzed_data(
     return {"status": "success", "message": "Analyzed data stored"}
 
 
+@app.post("/reo-calc")
+async def reo_calc(
+    email: str = Query(...),
+    loanID: str = Query(...),
+    borrower: str = Query("All")
+):
+    """Calculate income for previously uploaded borrower JSON"""
+    content = await db["uploadedData"].find_one(
+        {"loanID": loanID, "email": email},
+        {"cleaned_data": 1, "_id": 0}
+    )
+
+    if not content or "cleaned_data" not in content:
+        raise HTTPException(
+            status_code=404, detail="File not found. Please upload first.")
+
+    data = content["cleaned_data"]
+
+    if borrower != "All":
+        if borrower not in data:
+            raise HTTPException(
+                status_code=404, detail=f"Borrower '{borrower}' not found.")
+        data = data[borrower]
+
+    if not data:
+        raise HTTPException(status_code=404, detail="Data is not found.")
+
+    try:
+        async with client_lock:
+            try:
+                response = await mcp_client.call_tool(
+                    "reo_calculation",
+                    {"content": json.dumps(data)},
+                )
+                if response.content and len(response.content) > 0 and response.content[0].text.strip():
+                    parsed_response = json.loads(response.content[0].text)
+                else:
+                    parsed_response = {
+                        "error": "Empty response from MCP client"}
+
+            except json.JSONDecodeError as e:
+                logger.error(f"JSON decode error in income calculation: {e}")
+                parsed_response = {"error": "Invalid JSON response"}
+            except Exception as e:
+                logger.error(f"Income calculation error: {e}")
+                parsed_response = {"error": f"Calculation failed: {str(e)}"}
+
+        return {"status": "success", "reo_calc": parsed_response}
+
+    except Exception as e:
+        logger.error(f"REO calculation failed: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"REO calculation failed: {str(e)}")
+
+
 @app.post("/view-loan", response_model=LoanViewResponse)
 async def view_loan(req: LoanViewRequest):
     # if loanId is an ObjectId, convert it

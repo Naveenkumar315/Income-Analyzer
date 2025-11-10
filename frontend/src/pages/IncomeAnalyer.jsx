@@ -70,7 +70,8 @@ const IncomeAnalyzer = () => {
       insightsComment,
       borrower,
       bank_Statement,
-      self_employee
+      self_employee,
+      reo_summary,
     ) => {
       try {
         await api.post("/store-analyzed-data", {
@@ -84,6 +85,7 @@ const IncomeAnalyzer = () => {
             insights: insightsComment,
             bankStatement: bank_Statement,
             self_employee: self_employee,
+            reo_summary: reo_summary,
           },
         });
         console.log(`✅ analyzed_data stored successfully for ${borrower}`);
@@ -165,6 +167,18 @@ const IncomeAnalyzer = () => {
         const self_employee_response = data?.income || {};
         console.log("****self_employee_response", self_employee_response);
 
+
+        // VOE
+        const reo_res = await api.post("/reo-calc", null, {
+          params: { email, loanID: loanId, borrower },
+          signal,
+        });
+
+        console.log('reo_res', reo_res?.data?.reo_calc?.checks);
+
+        const reo_summary = reo_res?.data?.reo_calc?.checks || []
+
+
         // Prepare final combined data
         const finalReport = {
           rules: rulesRes.data,
@@ -173,6 +187,7 @@ const IncomeAnalyzer = () => {
           insights: insightsComment,
           bankStatement: bank_Statement,
           self_employee: self_employee_response,
+          reo_summary: reo_summary,
         };
 
         // ✅ Update dropdown immediately for this borrower
@@ -192,7 +207,8 @@ const IncomeAnalyzer = () => {
           finalReport.insights,
           borrower,
           finalReport.bankStatement,
-          finalReport.self_employee
+          finalReport.self_employee,
+          reo_summary,
         );
 
         // ✅ Return report so parent can also use it if needed
