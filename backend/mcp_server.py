@@ -2,6 +2,9 @@ import uvicorn
 import argparse
 from typing import List, Literal
 from dotenv import load_dotenv
+from decimal import Decimal, ROUND_HALF_UP
+import re
+import json
 
 from mcp.server.fastmcp import FastMCP
 from langchain_openai import AzureChatOpenAI
@@ -12,9 +15,8 @@ from langchain.tools import tool
 from pydantic import BaseModel
 import os
 
-
-
 from agents import Ic_fixed_income
+
 # ======================================
 #  Environment Setup
 # ======================================
@@ -30,7 +32,7 @@ llm = AzureChatOpenAI(
     api_version=az_api_version,
     temperature=0,
     max_retries=2,
-    model_kwargs={"seed": 42},
+    seed=42
 )
 
 # MCP Server Init
@@ -40,19 +42,36 @@ mcp = FastMCP(
 )
 
 # Agent (no external tools yet)
-
-
 mcp.tool()(Ic_fixed_income)
+
+
+# ✅ NEW: Helper function for value normalization
+def normalize_monetary_value(value_str: str) -> str:
+    """Normalize monetary values to consistent 2-decimal format."""
+    try:
+        clean_value = re.sub(r'[,$]', '', str(value_str).strip())
+        decimal_value = Decimal(clean_value)
+        return str(decimal_value.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
+    except:
+        return "0.00"
 
 
 @tool
 def math_tool(expression: str) -> str:
     """Safely evaluate a math expression for underwriting calculations."""
     try:
+        # ✅ MODIFIED: Added validation
+        if not re.match(r'^[\d\s\+\-\*\/\(\)\.]]+$', expression.strip()):
+            return "0.00"
+        
         result = eval(expression, {"__builtins__": {}})
-        return str(round(float(result), 2))
+        
+        # ✅ MODIFIED: Use Decimal for precision
+        decimal_result = Decimal(str(result))
+        rounded = decimal_result.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        return str(rounded)
     except Exception as e:
-        return f"Math error: {e}"
+        return "0.00"  # ✅ MODIFIED: Return "0.00" instead of error message
 
 agent = create_react_agent(llm, tools=[math_tool])
 
@@ -91,13 +110,11 @@ class IC_Bank_Field(BaseModel):
     value: str
 
 
-
 class IC_bank_Fields(BaseModel):
     insight_commentry: List[IC_Bank_Field]
 
 
 class IC_self_Field(BaseModel):
-
     """
     Output Structure for the Wage earner income calculation
     """
@@ -108,8 +125,6 @@ class IC_self_Field(BaseModel):
     commentary: str
     formulas_applied: str
     final_math_formula: str
-
-
 
 
 # Parsers
@@ -134,6 +149,8 @@ def rule_verification_prompt(rules, content) -> str:
 
     Given the extracted loan information and rules to evaluate,
     verify whether the rules are satisfied.
+    
+    IMPORTANT: Process data consistently for deterministic results.
 
     ---
     Rules:
@@ -305,7 +322,6 @@ KEY ACTIONS: [List 3-5 critical next steps]
     return prompt
 
 
-
 @mcp.prompt()
 def bank_statemnt_prompt(content) -> str:
 
@@ -380,6 +396,7 @@ Conclude with a summary assessing:
 """
     return promt
 
+
 @mcp.prompt()
 def ic_calculation_prompt(fields, content) -> str:
     """
@@ -387,7 +404,11 @@ def ic_calculation_prompt(fields, content) -> str:
     """
     return f"""
 You are a senior U.S. mortgage underwriter. Perform qualifying income calculations for each income component using strict underwriting discipline.
-Use `math_tool` for the calculation
+
+Use `math_tool` for ALL calculations.
+
+CRITICAL: Always round to exactly 2 decimal places. Process fields in the order given.
+
 Rules:
 - Must Use `math_tool` for all the math related calculation
 
@@ -403,6 +424,7 @@ Rules:
   - ≥12 months required (24 preferred for commission)
   - If Stable/increasing → average YTD + prior year(s)
   - If Declining → use lower current figure
+  
 - Qualifying Income Formula (calculate using math tool):
   Total Monthly Income = Base + Bonus + Overtime + Commission + Other 
 
@@ -421,19 +443,19 @@ CALCULATION COMMENTARY:(Strictly Use math tool for calculation)
     - Step 1: Identify data sources, and mention the value used from the document with year.
     - Step 2: Apply the chosen income method (state explicitly which one)
     - Step 3: Show math with actual numbers
-    - Step 4: Final derived qualifying figure 
+    - Step 4: Final derived qualifying figure (exactly 2 decimals)
 
 PROFESSIONAL COMMENTARY:
     - Mention the raw value used from the document.
     - Mention the document type with the year.
     - Reason for choosing the document and value.
 
-
-VALUE: $[Derived monthly amount from calculation commentary]
+VALUE: $[Derived monthly amount from calculation commentary - must be 2 decimals]
 
 Additional Rules to be followed:
 - All calculations must use the math tool.
 - VALUE must equal the final figure from Calculation Commentary.
+- Always use 2 decimal places for all monetary values.
 
     """
 
@@ -544,8 +566,6 @@ def reo_calc_prompt(content: str) -> str:
     return REO_Calculation_Prompt
 
 
-
-
 @mcp.prompt()
 def self_employment_prompt(content) -> str:
 
@@ -553,7 +573,7 @@ def self_employment_prompt(content) -> str:
 
 [INPUT SECTION]
 
-Below is the borrower’s loan file content. Review it carefully and extract all relevant financial information to determine qualifying income.
+Below is the borrower's loan file content. Review it carefully and extract all relevant financial information to determine qualifying income.
 
 <<BORROWER DOCUMENT CONTENT START>>
 {content}
@@ -563,13 +583,13 @@ Below is the borrower’s loan file content. Review it carefully and extract all
 ROLE AND OBJECTIVE
 ----------------------------------------------------
 You are an expert mortgage underwriter specializing in self-employed income analysis.  
-Your goal is to calculate the borrower’s qualifying monthly income using the provided documentation (tax returns, P&L, K-1s, financial statements, etc.).  
+Your goal is to calculate the borrower's qualifying monthly income using the provided documentation (tax returns, P&L, K-1s, financial statements, etc.).  
 You must identify each income source, apply correct formulas, include or exclude add-backs appropriately, and present the final qualifying income clearly.
 
 ----------------------------------------------------
 INSTRUCTIONS
 ----------------------------------------------------
-1. Identify the borrower’s self-employment type (Sole Proprietorship, Partnership, S-Corp, or Corporation).  
+1. Identify the borrower's self-employment type (Sole Proprietorship, Partnership, S-Corp, or Corporation).  
 2. Extract relevant fields such as:
    - Net Profit / Ordinary Business Income
    - Depreciation, Depletion, Amortization
@@ -706,7 +726,6 @@ If the content is not enough return status as fail and add comment is commentry 
     return prompt
 
 
-
 # ======================================
 #  Tools
 # ======================================
@@ -717,8 +736,19 @@ async def rule_verification(rules: str, content: str):
     Verify mortgage loan rules against extracted loan details.
     """
     try:
-        user_prompt = rule_verification_prompt(rules, content)
+        # ✅ NEW: Sort content for consistency
+        try:
+            content_dict = json.loads(content) if isinstance(content, str) else content
+            sorted_content = json.dumps(content_dict, sort_keys=True, indent=2)
+        except:
+            sorted_content = content
+        
+        # ✅ NEW: Normalize rules text
+        normalized_rules = rules.strip()
+        
+        user_prompt = rule_verification_prompt(normalized_rules, sorted_content)
         user_prompt += f"\n\n{rule_parser.get_format_instructions()}"
+        user_prompt += "\n\nIMPORTANT: Process all data in the exact order presented. Be deterministic and consistent in your evaluation."
 
         prompt = {
             "messages": [
@@ -728,9 +758,12 @@ async def rule_verification(rules: str, content: str):
 
         raw_output = await agent.ainvoke(prompt)
         output = raw_output['messages'][-1].content
+
         return rule_parser.parse(output).dict()
+
     except Exception as e:
-        return f'Error: {e}'
+        # ✅ MODIFIED: Return structured error
+        return {"rule": rules, "status": "Fail", "commentary": f"Error: {str(e)}"}
 
 
 @mcp.tool()
@@ -740,8 +773,19 @@ async def income_calculator(fields: List[str], content: str):
     """
 
     try:
-        ic_prompt = ic_calculation_prompt(fields, content)
+        # ✅ NEW: Sort fields and content for consistency
+        sorted_fields = sorted(fields) if isinstance(fields, list) else fields
+        
+        try:
+            content_dict = json.loads(content) if isinstance(content, str) else content
+            sorted_content = json.dumps(content_dict, sort_keys=True, indent=2)
+        except:
+            sorted_content = content
+        
+        ic_prompt = ic_calculation_prompt(sorted_fields, sorted_content)
         ic_prompt += f"\n\n{ic_parser.get_format_instructions()}"
+        ic_prompt += f"\n\nIMPORTANT: Process fields in this exact order: {sorted_fields}. Be deterministic and consistent."
+        
         prompt = {
             "messages": [
                 {"role": "user", "content": ic_prompt}
@@ -751,10 +795,19 @@ async def income_calculator(fields: List[str], content: str):
         raw_output = await agent.ainvoke(prompt)
         output = raw_output['messages'][-1].content
 
-        return ic_parser.parse(output).dict()
+        result = ic_parser.parse(output).dict()
+        
+        # ✅ NEW: Normalize all monetary values
+        if 'checks' in result:
+            for check in result['checks']:
+                if 'value' in check:
+                    check['value'] = normalize_monetary_value(check['value'])
+
+        return result
 
     except Exception as e:
-        return f'Error: {e}'
+        # ✅ MODIFIED: Return structured error instead of string
+        return {"error": f"Calculation failed: {str(e)}", "checks": []}
 
 
 @mcp.tool()
@@ -775,8 +828,9 @@ async def income_insights(content: str):
         return insight_parser.parse(output).dict()
 
     except Exception as e:
-        return f'Error: {e}'
-    
+        # ✅ MODIFIED: Return structured error
+        return {"insight_commentry": f"Error: {str(e)}"}
+
 
 @mcp.tool()
 async def bank_statement_insights(content: str):
@@ -796,16 +850,25 @@ async def bank_statement_insights(content: str):
         return bank_parser.parse(output).dict()
 
     except Exception as e:
-        return f'Error: {e}'
+        # ✅ MODIFIED: Return structured error
+        return {"insight_commentry": []}
 
 
 @mcp.tool()
-async def IC_self_income(content): 
-
+async def IC_self_income(content):
 
     try:
-        self_emp_prompt = self_employment_prompt(content)
+        # ✅ NEW: Sort content for consistency
+        try:
+            content_dict = json.loads(content) if isinstance(content, str) else content
+            sorted_content = json.dumps(content_dict, sort_keys=True, indent=2)
+        except:
+            sorted_content = content
+        
+        self_emp_prompt = self_employment_prompt(sorted_content)
         self_emp_prompt += f"\n\n{IC_self_parser.get_format_instructions()}"
+        self_emp_prompt += "\n\nIMPORTANT: Be deterministic and consistent in your calculations. Always use the same methodology."
+        
         prompt = {
             "messages": [
                 {"role": "user", "content": self_emp_prompt}
@@ -817,14 +880,27 @@ async def IC_self_income(content):
 
         data = IC_self_parser.parse(output).dict()
 
-        data['value'] = math_tool(data['final_math_formula'])
+        # ✅ MODIFIED: Calculate and normalize value
+        if data.get('final_math_formula'):
+            calculated_value = math_tool(data['final_math_formula'])
+            data['value'] = normalize_monetary_value(calculated_value)
+        else:
+            data['value'] = "0.00"
 
         return data
 
-
     except Exception as e:
-        return f'Error: {e}'
-
+        # ✅ MODIFIED: Return structured error with all required fields
+        return {
+            "borrower_type": "Self-Employed",
+            "status": "Fail",
+            "Documents_used": [],
+            "calculation_commentry": f"Error: {str(e)}",
+            "commentary": "Calculation failed",
+            "formulas_applied": "",
+            "final_math_formula": "",
+            "value": "0.00"
+        }
 
 
 @mcp.tool()
@@ -834,7 +910,14 @@ async def reo_calculation(content: str):
     """
 
     try:
-        reo_prompt = reo_calc_prompt(content)
+        # ✅ NEW: Sort content for consistency
+        try:
+            content_dict = json.loads(content) if isinstance(content, str) else content
+            sorted_content = json.dumps(content_dict, sort_keys=True)
+        except:
+            sorted_content = content
+        
+        reo_prompt = reo_calc_prompt(sorted_content)
         reo_prompt += f"\n\n{ic_parser.get_format_instructions()}"
         prompt = {
             "messages": [
@@ -845,12 +928,19 @@ async def reo_calculation(content: str):
         raw_output = await agent.ainvoke(prompt)
         output = raw_output['messages'][-1].content
 
-        return ic_parser.parse(output).dict()
+        result = ic_parser.parse(output).dict()
+        
+        # ✅ NEW: Normalize all monetary values
+        if 'checks' in result:
+            for check in result['checks']:
+                if 'value' in check:
+                    check['value'] = normalize_monetary_value(check['value'])
+
+        return result
 
     except Exception as e:
-        return f'Error: {e}'
-
-
+        # ✅ MODIFIED: Return structured error instead of string
+        return {"error": f"REO calculation failed: {str(e)}", "checks": []}
 
 
 # ======================================

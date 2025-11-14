@@ -25,7 +25,7 @@ llm = AzureChatOpenAI(
     api_version=az_api_version,
     temperature=0,
     max_retries=2,
-    model_kwargs={"seed": 42}
+    seed=42
 )
 
 
